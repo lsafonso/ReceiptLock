@@ -11,6 +11,9 @@ struct ApplianceRowView: View {
     let receipt: Receipt
     @State private var isPressed = false
     @State private var showPulse = false
+    @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
+    @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
         HStack(spacing: AppTheme.spacing) {
@@ -107,6 +110,97 @@ struct ApplianceRowView: View {
                     }
                 }
             }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // Edit action
+            Button(action: {
+                showingEditSheet = true
+            }) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(AppTheme.primary)
+            
+            // Delete action
+            Button(role: .destructive, action: {
+                showingDeleteAlert = true
+            }) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            // Quick share action
+            Button(action: {
+                shareAppliance()
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .tint(AppTheme.secondary)
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            EditApplianceView(receipt: receipt)
+        }
+        .alert("Delete Appliance", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteAppliance()
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(receipt.title ?? "this appliance")'? This action cannot be undone.")
+        }
+    }
+    
+    // MARK: - Action Methods
+    
+    private func deleteAppliance() {
+        // Cancel any scheduled notifications
+        NotificationManager.shared.cancelNotification(for: receipt)
+        
+        // Delete associated file if exists
+        if let fileName = receipt.fileName {
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("receipts").appendingPathComponent(fileName)
+            
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        
+        // Delete from Core Data
+        viewContext.delete(receipt)
+        
+        do {
+            try viewContext.save()
+            
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+        } catch {
+            print("Error deleting appliance: \(error)")
+        }
+    }
+    
+    private func shareAppliance() {
+        // Create share content
+        let title = receipt.title ?? "Appliance"
+        let store = receipt.store ?? "Unknown Store"
+        let price = String(format: "%.2f", receipt.price)
+        let expiryDate = formattedExpiryDate
+        
+        let shareText = """
+        Appliance: \(title)
+        Store: \(store)
+        Price: $\(price)
+        Expires: \(expiryDate)
+        
+        Shared from Appliance Warranty Tracker
+        """
+        
+        let activityVC = UIActivityViewController(
+            activityItems: [shareText],
+            applicationActivities: nil
+        )
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController?.present(activityVC, animated: true)
         }
     }
     

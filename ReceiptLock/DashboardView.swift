@@ -58,17 +58,29 @@ struct DashboardView: View {
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
                     
-                    Text("John Doe")
+                    Text(UserProfileManager.shared.currentProfile.name.isEmpty ? "User" : UserProfileManager.shared.currentProfile.name)
                         .font(.largeTitle.weight(.bold))
                         .foregroundColor(AppTheme.text)
                 }
                 
                 Spacer()
                 
-                Button(action: {}) {
-                    Image(systemName: "bell.fill")
-                        .font(.title2)
-                        .foregroundColor(AppTheme.primary)
+                HStack(spacing: AppTheme.smallSpacing) {
+                    Button(action: {}) {
+                        Image(systemName: "bell.fill")
+                            .font(.title2)
+                            .foregroundColor(AppTheme.primary)
+                    }
+                    
+                    Button(action: {
+                        // Show profile edit sheet
+                    }) {
+                        AvatarView(
+                            image: UserProfileManager.shared.getAvatarImage(),
+                            size: 40,
+                            showBorder: false
+                        )
+                    }
                 }
             }
         }

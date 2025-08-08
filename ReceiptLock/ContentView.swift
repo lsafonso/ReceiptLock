@@ -12,47 +12,54 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var selectedTab = 0
     @State private var showingAddAppliance = false
+    @StateObject private var profileManager = UserProfileManager.shared
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            DashboardView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
+        Group {
+            if !profileManager.hasCompletedOnboarding {
+                OnboardingView()
+            } else {
+                TabView(selection: $selectedTab) {
+                    DashboardView()
+                        .tabItem {
+                            Label("Home", systemImage: "house.fill")
+                        }
+                        .tag(0)
+                    
+                    ApplianceListView()
+                        .tabItem {
+                            Label("Appliances", systemImage: "list.bullet")
+                        }
+                        .tag(1)
+                    
+                    // Add button - this will be a placeholder that shows the add sheet
+                    Color.clear
+                        .tabItem {
+                            Label("Add", systemImage: "plus.circle.fill")
+                        }
+                        .tag(2)
+                    
+                    ProfileView()
+                        .tabItem {
+                            Label("Profile", systemImage: "person.fill")
+                        }
+                        .tag(3)
                 }
-                .tag(0)
-            
-            ApplianceListView()
-                .tabItem {
-                    Label("Appliances", systemImage: "list.bullet")
+                .tint(AppTheme.primary)
+                .background(AppTheme.background)
+                .onAppear {
+                    setupTabBarAppearance()
                 }
-                .tag(1)
-            
-            // Add button - this will be a placeholder that shows the add sheet
-            Color.clear
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle.fill")
+                .onChange(of: selectedTab) { _, newValue in
+                    if newValue == 2 {
+                        showingAddAppliance = true
+                        selectedTab = 0 // Reset to home tab
+                    }
                 }
-                .tag(2)
-            
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
+                .sheet(isPresented: $showingAddAppliance) {
+                    AddApplianceView()
                 }
-                .tag(3)
-        }
-        .tint(AppTheme.primary)
-        .background(AppTheme.background)
-        .onAppear {
-            setupTabBarAppearance()
-        }
-        .onChange(of: selectedTab) { _, newValue in
-            if newValue == 2 {
-                showingAddAppliance = true
-                selectedTab = 0 // Reset to home tab
             }
-        }
-        .sheet(isPresented: $showingAddAppliance) {
-            AddApplianceView()
         }
     }
     
