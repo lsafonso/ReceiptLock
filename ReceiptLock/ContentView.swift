@@ -45,7 +45,7 @@ struct ContentView: View {
         .onAppear {
             setupTabBarAppearance()
         }
-        .onChange(of: selectedTab) { newValue in
+        .onChange(of: selectedTab) { _, newValue in
             if newValue == 2 {
                 showingAddAppliance = true
                 selectedTab = 0 // Reset to home tab

@@ -213,7 +213,7 @@ struct AnimatedCounter: View {
                 animatedValue = value
             }
         }
-        .onChange(of: value) { newValue in
+        .onChange(of: value) { _, newValue in
             withAnimation(AppTheme.springAnimation) {
                 animatedValue = newValue
             }
