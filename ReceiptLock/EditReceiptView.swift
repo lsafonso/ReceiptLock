@@ -22,6 +22,8 @@ struct EditReceiptView: View {
     @State private var warrantySummary: String
     @State private var showingError = false
     @State private var errorMessage = ""
+    @StateObject private var validationManager = ValidationManager()
+    @State private var showingValidationAlert = false
     
     init(receipt: Receipt) {
         self.receipt = receipt
@@ -35,52 +37,105 @@ struct EditReceiptView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Receipt Information") {
-                    TextField("Title", text: $title)
-                        .accessibilityLabel("Receipt title")
+            ScrollView {
+                VStack(spacing: AppTheme.largeSpacing) {
+                    // Validation Error Banner
+                    ValidationErrorBanner(validationManager: validationManager)
+                        .animation(.easeInOut, value: validationManager.hasErrors())
                     
-                    TextField("Store", text: $store)
-                        .accessibilityLabel("Store name")
-                    
-                    DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
-                        .accessibilityLabel("Purchase date")
-                    
-                    HStack {
-                        Text("Price")
-                        Spacer()
-                        TextField("0.00", value: $price, format: .currency(code: "USD"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityLabel("Price amount")
+                    // Form Fields
+                    VStack(spacing: AppTheme.spacing) {
+                        // Appliance Name Field
+                        ValidatedTextField(
+                            title: "Appliance Name",
+                            placeholder: "Enter appliance name",
+                            text: $title,
+                            fieldKey: "title",
+                            validationManager: validationManager
+                        ) { value, fieldKey in
+                            validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
+                            validationManager.validateApplianceName(value, fieldKey: fieldKey)
+                        }
+                        
+                        // Store/Brand Field
+                        ValidatedTextField(
+                            title: "Store/Brand",
+                            placeholder: "Enter store or brand",
+                            text: $store,
+                            fieldKey: "store",
+                            validationManager: validationManager
+                        ) { value, fieldKey in
+                            validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
+                            validationManager.validateStoreName(value, fieldKey: fieldKey)
+                        }
+                        
+                        // Purchase Date Field
+                        ValidatedDateField(
+                            title: "Purchase Date",
+                            date: $purchaseDate,
+                            fieldKey: "date",
+                            validationManager: validationManager
+                        )
+                        
+                        // Price Field
+                        ValidatedPriceField(
+                            title: "Price",
+                            price: $price,
+                            fieldKey: "price",
+                            validationManager: validationManager
+                        )
+                        
+                        // Warranty Duration Field
+                        ValidatedStepperField(
+                            title: "Warranty Duration (months)",
+                            value: $warrantyMonths,
+                            range: 1...120,
+                            fieldKey: "warranty",
+                            validationManager: validationManager
+                        ) { value, fieldKey in
+                            validationManager.validateWarrantyMonths(value, fieldKey: fieldKey)
+                        }
                     }
+                    .padding(AppTheme.spacing)
+                    .background(AppTheme.cardBackground)
+                    .cornerRadius(AppTheme.cornerRadius)
                     
-                    Stepper("Warranty: \(warrantyMonths) months", value: $warrantyMonths, in: 0...120)
-                        .accessibilityLabel("Warranty duration in months")
-                }
-                
-                if !warrantySummary.isEmpty {
-                    Section("Warranty Summary") {
-                        Text(warrantySummary)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    // Warranty Summary Section
+                    if !warrantySummary.isEmpty {
+                        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                            Text("Warranty Summary")
+                                .font(.headline)
+                                .foregroundColor(AppTheme.text)
+                            
+                            Text(warrantySummary)
+                                .font(.body)
+                                .foregroundColor(AppTheme.secondaryText)
+                                .padding()
+                                .background(AppTheme.cardBackground)
+                                .cornerRadius(AppTheme.cornerRadius)
+                        }
+                        .padding(AppTheme.spacing)
+                        .background(AppTheme.cardBackground)
+                        .cornerRadius(AppTheme.cornerRadius)
                     }
                 }
+                .padding(AppTheme.spacing)
             }
-            .navigationTitle("Edit Receipt")
-            .navigationBarTitleDisplayMode(.inline)
+            .background(AppTheme.background)
+            .navigationTitle("Edit Appliance")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
                 }
                 
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveReceipt()
                     }
-                    .disabled(title.isEmpty || store.isEmpty)
+                    .fontWeight(.semibold)
                 }
             }
             .alert("Error", isPresented: $showingError) {
@@ -88,14 +143,40 @@ struct EditReceiptView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("Validation Errors", isPresented: $showingValidationAlert) {
+                Button("OK") {
+                    validationManager.clearErrors()
+                }
+            } message: {
+                Text("Please fix the validation errors before saving.")
+            }
         }
     }
     
     // MARK: - Helper Methods
     
     private func saveReceipt() {
-        receipt.title = title
-        receipt.store = store
+        // Validate all fields before saving
+        let isValid = validationManager.validateApplianceForm(
+            title: title,
+            store: store,
+            price: price,
+            warrantyMonths: warrantyMonths,
+            purchaseDate: purchaseDate
+        )
+        
+        if !isValid {
+            showingValidationAlert = true
+            
+            // Haptic feedback for validation errors
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            return
+        }
+        
+        receipt.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        receipt.store = store.trimmingCharacters(in: .whitespacesAndNewlines)
         receipt.purchaseDate = purchaseDate
         receipt.price = price
         receipt.warrantyMonths = Int16(warrantyMonths)
@@ -111,9 +192,18 @@ struct EditReceiptView: View {
         
         do {
             try viewContext.save()
+            
+            // Update notification for warranty expiry
+            NotificationManager.shared.cancelNotification(for: receipt)
+            NotificationManager.shared.scheduleNotification(for: receipt)
+            
+            // Haptic feedback for successful save
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            
             dismiss()
         } catch {
-            errorMessage = "Failed to save receipt: \(error.localizedDescription)"
+            errorMessage = "Failed to save appliance: \(error.localizedDescription)"
             showingError = true
         }
     }

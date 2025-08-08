@@ -24,6 +24,8 @@ struct AddApplianceView: View {
     @State private var isProcessingOCR = false
     @State private var selectedDeviceType: DeviceType?
     @State private var selectedTab: AddMethod = .scanInvoice
+    @StateObject private var validationManager = ValidationManager()
+    @State private var showingValidationAlert = false
     
     enum AddMethod {
         case scanInvoice
@@ -147,6 +149,13 @@ struct AddApplianceView: View {
             Task {
                 await loadImage()
             }
+        }
+        .alert("Validation Errors", isPresented: $showingValidationAlert) {
+            Button("OK") {
+                validationManager.clearErrors()
+            }
+        } message: {
+            Text("Please fix the validation errors before saving.")
         }
     }
     
@@ -284,53 +293,59 @@ struct AddApplianceView: View {
     // MARK: - Form Fields
     private var formFields: some View {
         VStack(spacing: AppTheme.spacing) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Appliance Name")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                TextField("Enter appliance name", text: $title)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            // Validation Error Banner
+            ValidationErrorBanner(validationManager: validationManager)
+                .animation(.easeInOut, value: validationManager.hasErrors())
+            
+            // Appliance Name Field
+            ValidatedTextField(
+                title: "Appliance Name",
+                placeholder: "Enter appliance name",
+                text: $title,
+                fieldKey: "title",
+                validationManager: validationManager
+            ) { value, fieldKey in
+                validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
+                validationManager.validateApplianceName(value, fieldKey: fieldKey)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Store/Brand")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                TextField("Enter store or brand", text: $store)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            // Store/Brand Field
+            ValidatedTextField(
+                title: "Store/Brand",
+                placeholder: "Enter store or brand",
+                text: $store,
+                fieldKey: "store",
+                validationManager: validationManager
+            ) { value, fieldKey in
+                validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
+                validationManager.validateStoreName(value, fieldKey: fieldKey)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Purchase Date")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
-                    .datePickerStyle(CompactDatePickerStyle())
-            }
+            // Purchase Date Field
+            ValidatedDateField(
+                title: "Purchase Date",
+                date: $purchaseDate,
+                fieldKey: "date",
+                validationManager: validationManager
+            )
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Price")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                TextField("Enter price", value: $price, format: .currency(code: "USD"))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.decimalPad)
-            }
+            // Price Field
+            ValidatedPriceField(
+                title: "Price",
+                price: $price,
+                fieldKey: "price",
+                validationManager: validationManager
+            )
             
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Warranty Duration (months)")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
-                
-                Stepper("\(warrantyMonths) months", value: $warrantyMonths, in: 1...60)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(AppTheme.cardBackground)
-                    .cornerRadius(AppTheme.smallCornerRadius)
+            // Warranty Duration Field
+            ValidatedStepperField(
+                title: "Warranty Duration (months)",
+                value: $warrantyMonths,
+                range: 1...120,
+                fieldKey: "warranty",
+                validationManager: validationManager
+            ) { value, fieldKey in
+                validationManager.validateWarrantyMonths(value, fieldKey: fieldKey)
             }
         }
     }
@@ -426,14 +441,38 @@ struct AddApplianceView: View {
     }
     
     private func saveAppliance() {
+        // Validate all fields before saving
+        let isValid = validationManager.validateApplianceForm(
+            title: title,
+            store: store,
+            price: price,
+            warrantyMonths: warrantyMonths,
+            purchaseDate: purchaseDate
+        )
+        
+        if !isValid {
+            showingValidationAlert = true
+            
+            // Haptic feedback for validation errors
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            return
+        }
+        
         let receipt = Receipt(context: viewContext)
         receipt.id = UUID()
-        receipt.title = title
-        receipt.store = store
+        receipt.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        receipt.store = store.trimmingCharacters(in: .whitespacesAndNewlines)
         receipt.purchaseDate = purchaseDate
         receipt.price = price
         receipt.warrantyMonths = Int16(warrantyMonths)
         receipt.createdAt = Date()
+        
+        // Calculate expiry date
+        if let expiryDate = Calendar.current.date(byAdding: .month, value: warrantyMonths, to: purchaseDate) {
+            receipt.expiryDate = expiryDate
+        }
         
         // Note: imageData property doesn't exist in Receipt entity
         // In a real app, you would save the image to Documents directory
@@ -441,6 +480,14 @@ struct AddApplianceView: View {
         
         do {
             try viewContext.save()
+            
+            // Schedule notification for warranty expiry
+            NotificationManager.shared.scheduleNotification(for: receipt)
+            
+            // Haptic feedback for successful save
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            
             dismiss()
         } catch {
             print("Error saving appliance: \(error)")
