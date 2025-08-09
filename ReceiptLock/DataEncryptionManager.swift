@@ -25,7 +25,7 @@ class DataEncryptionManager: ObservableObject {
         let keyData = newKey.withUnsafeBytes { Data($0) }
         
         // Store in keychain
-        keychain.set(keyData, forKey: encryptionKeyIdentifier)
+        _ = keychain.set(keyData, forKey: encryptionKeyIdentifier)
         
         return newKey
     }
@@ -44,7 +44,7 @@ class DataEncryptionManager: ObservableObject {
         }
         
         // Store in keychain
-        keychain.set(salt, forKey: saltIdentifier)
+        _ = keychain.set(salt, forKey: saltIdentifier)
         
         return salt
     }
@@ -136,27 +136,17 @@ class DataEncryptionManager: ObservableObject {
     }
     
     private func deriveKeyUsingPBKDF2(password: Data, salt: Data, iterations: Int, keyLength: Int) throws -> Data {
-        var derivedKey = Data(count: keyLength)
+        // Use CryptoKit's HKDF instead of CommonCrypto
+        let key = SymmetricKey(data: password)
+        let derivedKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: key,
+            salt: salt,
+            outputByteCount: keyLength
+        )
         
-        let result = derivedKey.withUnsafeMutableBytes { derivedKeyBytes in
-            password.withUnsafeBytes { passwordBytes in
-                salt.withUnsafeBytes { saltBytes in
-                    CCKeyDerivationHKDF(
-                        CCHmacAlgorithm(kCCHmacAlgSHA256),
-                        passwordBytes.baseAddress, passwordBytes.count,
-                        saltBytes.baseAddress, saltBytes.count,
-                        nil, 0,
-                        derivedKeyBytes.baseAddress, derivedKeyBytes.count
-                    )
-                }
-            }
+        return derivedKey.withUnsafeBytes { bytes in
+            Data(bytes)
         }
-        
-        guard result == kCCSuccess else {
-            throw EncryptionError.keyDerivationFailed
-        }
-        
-        return derivedKey
     }
     
     // MARK: - Secure Random Generation
@@ -180,8 +170,8 @@ class DataEncryptionManager: ObservableObject {
         let newSalt = generateSecureRandomBytes(count: 32)
         
         // Store new key and salt
-        keychain.set(newKeyData, forKey: encryptionKeyIdentifier)
-        keychain.set(newSalt, forKey: saltIdentifier)
+        _ = keychain.set(newKeyData, forKey: encryptionKeyIdentifier)
+        _ = keychain.set(newSalt, forKey: saltIdentifier)
         
         // Note: In a production app, you would need to re-encrypt all existing data
         // with the new key. This is a complex operation that requires careful planning.
@@ -190,8 +180,8 @@ class DataEncryptionManager: ObservableObject {
     // MARK: - Cleanup
     
     func clearEncryptionKeys() {
-        keychain.removeObject(forKey: encryptionKeyIdentifier)
-        keychain.removeObject(forKey: saltIdentifier)
+        _ = keychain.removeObject(forKey: encryptionKeyIdentifier)
+        _ = keychain.removeObject(forKey: saltIdentifier)
     }
 }
 

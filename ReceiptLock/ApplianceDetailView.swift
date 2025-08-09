@@ -151,7 +151,7 @@ struct ApplianceDetailView: View {
                 }
                 
                 // Expiry date
-                if let expiryDate = receipt.expiryDate {
+                if receipt.expiryDate != nil {
                     HStack {
                         Image(systemName: "calendar")
                             .font(.caption)

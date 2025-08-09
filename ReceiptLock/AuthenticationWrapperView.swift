@@ -425,18 +425,14 @@ class AuthenticationManager: ObservableObject {
     
     private func loadAuthenticationState() {
         // Load authentication state from secure storage
-        do {
-            if let lastAuthData = try? secureStorage.retrieveSecureData(forKey: "LastAuthenticationTime"),
-               let lastAuth = try? JSONDecoder().decode(Date.self, from: lastAuthData) {
-                lastAuthenticationTime = lastAuth
-            }
-            
-            if let failedAttemptsData = try? secureStorage.retrieveSecureData(forKey: "FailedAttempts"),
-               let failedAttempts = try? JSONDecoder().decode(Int.self, from: failedAttemptsData) {
-                self.failedAttempts = failedAttempts
-            }
-        } catch {
-            print("Failed to load authentication state: \(error)")
+        if let lastAuthData = try? secureStorage.retrieveSecureData(forKey: "LastAuthenticationTime"),
+           let lastAuth = try? JSONDecoder().decode(Date.self, from: lastAuthData) {
+            lastAuthenticationTime = lastAuth
+        }
+        
+        if let failedAttemptsData = try? secureStorage.retrieveSecureData(forKey: "FailedAttempts"),
+           let failedAttempts = try? JSONDecoder().decode(Int.self, from: failedAttemptsData) {
+            self.failedAttempts = failedAttempts
         }
     }
     
@@ -463,6 +459,8 @@ class AuthenticationManager: ObservableObject {
             return "Face ID"
         case .touchID:
             return "Touch ID"
+        case .opticID:
+            return "Optic ID"
         case .none:
             return "Passcode"
         @unknown default:

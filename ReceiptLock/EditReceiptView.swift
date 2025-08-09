@@ -81,355 +81,231 @@ struct EditReceiptView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Receipt Information") {
-                    ValidatedTextField(
-                        title: "Title",
-                        placeholder: "Enter receipt title",
-                        text: $title,
-                        fieldKey: "title",
-                        validationManager: validationManager,
-                        validationRule: validationManager.validateApplianceName
-                    )
-                    .onChange(of: title) { _, _ in
-                        checkForChanges()
-                    }
-                    
-                    ValidatedTextField(
-                        title: "Store",
-                        placeholder: "Enter store name",
-                        text: $store,
-                        fieldKey: "store",
-                        validationManager: validationManager,
-                        validationRule: validationManager.validateStoreName
-                    )
-                    .onChange(of: store) { _, _ in
-                        checkForChanges()
-                    }
-                    
-                    ValidatedDateField(
-                        title: "Purchase Date",
-                        date: $purchaseDate,
-                        fieldKey: "date",
-                        validationManager: validationManager
-                    )
-                    .onChange(of: purchaseDate) { _, _ in
-                        checkForChanges()
-                    }
-                    
-                    ValidatedPriceField(
-                        title: "Price",
-                        price: $price,
-                        fieldKey: "price",
-                        validationManager: validationManager
-                    )
-                    .onChange(of: price) { _, _ in
-                        checkForChanges()
-                    }
-                    
-                    ValidatedStepperField(
-                        title: "Warranty",
-                        value: $warrantyMonths,
-                        range: 0...120,
-                        fieldKey: "warranty",
-                        validationManager: validationManager,
-                        validationRule: validationManager.validateWarrantyMonths
-                    )
-                    .onChange(of: warrantyMonths) { _, _ in
-                        checkForChanges()
-                    }
-                }
-                
-                Section("Receipt Image") {
-                    if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
-                        VStack(spacing: 12) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxHeight: 200)
-                                .accessibilityLabel("Receipt image")
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .onTapGesture {
-                                    editedImage = uiImage
-                                    showingImageEditor = true
-                                }
-                            
-                            HStack {
-                                Button("Edit Image") {
-                                    editedImage = uiImage
-                                    showingImageEditor = true
-                                }
-                                .buttonStyle(.bordered)
-                                
-                                Spacer()
-                                
-                                Button("Process with OCR") {
-                                    Task {
-                                        await processImageWithOCR(uiImage)
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(isProcessingOCR)
-                            }
-                            
-                            if isProcessingOCR {
-                                VStack(spacing: 8) {
-                                    ProgressView(value: PDFService.shared.isProcessing ? PDFService.shared.processingProgress : OCRService.shared.processingProgress)
-                                        .progressViewStyle(LinearProgressViewStyle())
-                                        .scaleEffect(0.8)
-                                    
-                                    Text(PDFService.shared.isProcessing ? "Processing PDF..." : "Processing OCR...")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    
-                    HStack {
-                        Button(action: {
-                            showingCamera = true
-                        }) {
-                            Label("Take New Photo", systemImage: "camera")
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Spacer()
-                        
-                        PhotosPicker(selection: $selectedImage, matching: .images) {
-                            Label("Choose New Photo", systemImage: "photo.on.rectangle")
-                        }
-                        .buttonStyle(.bordered)
-                        .onChange(of: selectedImage) { _, _ in
-                            Task {
-                                await loadImage()
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        Button("Select PDF") {
-                            showingDocumentPicker = true
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-                
-                // PDF Preview Section
-                if let selectedPDFURL = selectedPDFURL {
-                    Section("PDF Document") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "doc.text.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.title2)
-                                
-                                VStack(alignment: .leading) {
-                                    Text(selectedPDFURL.lastPathComponent)
-                                        .font(.headline)
-                                    if let metadata = pdfMetadata {
-                                        Text("\(metadata.pageCount) page(s)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Button("Remove") {
-                                    selectedPDFURL = nil
-                                    pdfMetadata = nil
-                                    checkForChanges()
-                                }
-                                .buttonStyle(.bordered)
-                                .foregroundColor(.red)
-                            }
-                            
-                            if let metadata = pdfMetadata {
-                                PDFPreviewView(url: selectedPDFURL)
-                                    .frame(height: 200)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-                    }
-                }
-                
-                if let ocrData = ocrData, !ocrData.rawText.isEmpty {
-                    Section("OCR Results") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if let extractedTitle = ocrData.title, !extractedTitle.isEmpty {
-                                OCRResultRow(
-                                    title: "Title",
-                                    value: extractedTitle,
-                                    isApplied: title == extractedTitle,
-                                    onApply: { 
-                                        title = extractedTitle
-                                        checkForChanges()
-                                    }
-                                )
-                            }
-                            
-                            if let extractedStore = ocrData.store, !extractedStore.isEmpty {
-                                OCRResultRow(
-                                    title: "Store",
-                                    value: extractedStore,
-                                    isApplied: store == extractedStore,
-                                    onApply: { 
-                                        store = extractedStore
-                                        checkForChanges()
-                                    }
-                                )
-                            }
-                            
-                            if let extractedPrice = ocrData.price, extractedPrice > 0 {
-                                OCRResultRow(
-                                    title: "Price",
-                                    value: String(format: "$%.2f", extractedPrice),
-                                    isApplied: abs(price - extractedPrice) < 0.01,
-                                    onApply: { 
-                                        price = extractedPrice
-                                        checkForChanges()
-                                    }
-                                )
-                            }
-                            
-                            if let extractedDate = ocrData.purchaseDate {
-                                let dateString = DateFormatter.localizedString(from: extractedDate, dateStyle: .medium, timeStyle: .none)
-                                OCRResultRow(
-                                    title: "Date",
-                                    value: dateString,
-                                    isApplied: Calendar.current.isDate(purchaseDate, inSameDayAs: extractedDate),
-                                    onApply: { 
-                                        purchaseDate = extractedDate
-                                        checkForChanges()
-                                    }
-                                )
-                            }
-                            
-                            if let extractedTax = ocrData.taxAmount, extractedTax > 0 {
-                                OCRResultRow(
-                                    title: "Tax",
-                                    value: String(format: "$%.2f", extractedTax),
-                                    isApplied: false,
-                                    onApply: { }
-                                )
-                            }
-                            
-                            if let extractedTotal = ocrData.totalAmount, extractedTotal > 0 {
-                                OCRResultRow(
-                                    title: "Total",
-                                    value: String(format: "$%.2f", extractedTotal),
-                                    isApplied: false,
-                                    onApply: { }
-                                )
-                            }
-                            
-                            if let extractedPayment = ocrData.paymentMethod, !extractedPayment.isEmpty {
-                                OCRResultRow(
-                                    title: "Payment",
-                                    value: extractedPayment,
-                                    isApplied: false,
-                                    onApply: { }
-                                )
-                            }
-                            
-                            if let extractedWarranty = ocrData.warrantyInfo, !extractedWarranty.isEmpty {
-                                OCRResultRow(
-                                    title: "Warranty Info",
-                                    value: extractedWarranty,
-                                    isApplied: warrantySummary == extractedWarranty,
-                                    onApply: { 
-                                        warrantySummary = extractedWarranty
-                                        checkForChanges()
-                                    }
-                                )
-                            }
-                            
-                            Divider()
-                            
-                            Button("Apply All OCR Data") {
-                                applyAllOCRData()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                }
-                
-                if !warrantySummary.isEmpty {
-                    Section("Warranty Summary") {
-                        TextEditor(text: $warrantySummary)
-                            .frame(minHeight: 80)
-                            .onChange(of: warrantySummary) { _, _ in
-                                checkForChanges()
-                            }
-                    }
-                }
-                
-                // Validation errors banner
-                if validationManager.hasErrors() {
-                    Section {
-                        ValidationErrorBanner(validationManager: validationManager)
-                    }
-                }
+                receiptInformationSection
+                receiptImageSection
+                documentSection
+                ocrResultsSection
             }
             .navigationTitle("Edit Receipt")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        if hasChanges {
-                            // Show confirmation dialog
-                            // For now, just dismiss
-                            dismiss()
-                        } else {
-                            dismiss()
-                        }
+                        dismiss()
                     }
                 }
                 
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        if validateForm() {
-                            updateReceipt()
-                        }
+                        saveChanges()
                     }
-                    .disabled(title.isEmpty || store.isEmpty || !hasChanges)
+                    .disabled(!hasChanges)
                 }
             }
-            .onChange(of: purchaseDate) { _, _ in
-                updateExpiryDate()
+            .sheet(isPresented: $showingImageEditor) {
+                if let editedImage = editedImage {
+                    ImageEditorView(image: editedImage) { editedImage in
+                        self.editedImage = editedImage
+                        if let imageData = editedImage?.jpegData(compressionQuality: 0.8) {
+                            self.selectedImageData = imageData
+                        }
+                    }
+                }
             }
-            .onChange(of: warrantyMonths) { _, _ in
-                updateExpiryDate()
+            .sheet(isPresented: $showingOCRResults) {
+                if let ocrData = ocrData {
+                    VStack {
+                        Text("OCR Results")
+                            .font(.title)
+                            .padding()
+                        
+                        Text("Extracted text: \(ocrData.rawText)")
+                            .padding()
+                        
+                        Button("Apply Data") {
+                            applyOCRData(ocrData)
+                            showingOCRResults = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding()
+                    }
+                }
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK") { }
             } message: {
                 Text(errorMessage)
             }
-            .sheet(isPresented: $showingCamera) {
-                CameraView()
+        }
+    }
+    
+    // MARK: - Receipt Information Section
+    private var receiptInformationSection: some View {
+        Section("Receipt Information") {
+            ValidatedTextField(
+                title: "Title",
+                placeholder: "Enter receipt title",
+                text: $title,
+                fieldKey: "title",
+                validationManager: validationManager,
+                validationRule: validationManager.validateApplianceName
+            )
+            .onChange(of: title) { _, _ in
+                checkForChanges()
             }
-            .sheet(isPresented: $showingImageEditor) {
-                if let image = editedImage {
-                    ImageEditorView(image: image) { editedImage in
-                        if let editedImage = editedImage,
-                           let imageData = editedImage.jpegData(compressionQuality: 0.8) {
-                            selectedImageData = imageData
-                            checkForChanges()
+            
+            ValidatedTextField(
+                title: "Store",
+                placeholder: "Enter store name",
+                text: $store,
+                fieldKey: "store",
+                validationManager: validationManager,
+                validationRule: validationManager.validateStoreName
+            )
+            .onChange(of: store) { _, _ in
+                checkForChanges()
+            }
+            
+            ValidatedDateField(
+                title: "Purchase Date",
+                date: $purchaseDate,
+                fieldKey: "date",
+                validationManager: validationManager
+            )
+            .onChange(of: purchaseDate) { _, _ in
+                checkForChanges()
+            }
+            
+            ValidatedPriceField(
+                title: "Price",
+                price: $price,
+                fieldKey: "price",
+                validationManager: validationManager
+            )
+            .onChange(of: price) { _, _ in
+                checkForChanges()
+            }
+            
+            ValidatedStepperField(
+                title: "Warranty",
+                value: $warrantyMonths,
+                range: 0...120,
+                fieldKey: "warranty",
+                validationManager: validationManager,
+                validationRule: validationManager.validateWarrantyMonths
+            )
+            .onChange(of: warrantyMonths) { _, _ in
+                checkForChanges()
+            }
+        }
+    }
+    
+    // MARK: - Receipt Image Section
+    private var receiptImageSection: some View {
+        Section("Receipt Image") {
+            if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
+                VStack(spacing: 12) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .accessibilityLabel("Receipt image")
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                        .onTapGesture {
+                            editedImage = uiImage
+                            showingImageEditor = true
+                        }
+                    
+                    HStack {
+                        Button("Edit Image") {
+                            editedImage = uiImage
+                            showingImageEditor = true
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Spacer()
+                        
+                        Button("Process with OCR") {
+                            Task {
+                                await processImageWithOCR(uiImage)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isProcessingOCR)
+                    }
+                    
+                    if isProcessingOCR {
+                        VStack(spacing: 8) {
+                            ProgressView(value: PDFService.shared.isProcessing ? PDFService.shared.processingProgress : OCRService.shared.processingProgress)
+                                .progressViewStyle(LinearProgressViewStyle())
+                                .scaleEffect(0.8)
+                            
+                            Text(PDFService.shared.isProcessing ? "Processing PDF..." : "Processing OCR...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
+            } else {
+                VStack(spacing: 16) {
+                    HStack {
+                        Button(action: { showingCamera = true }) {
+                            Label("Camera", systemImage: "camera")
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: { showingDocumentPicker = true }) {
+                            Label("Photo Library", systemImage: "photo.on.rectangle")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    
+                    Text("Select an image to get started")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
             }
-            .fileImporter(
-                isPresented: $showingDocumentPicker,
-                allowedContentTypes: [.pdf],
-                allowsMultipleSelection: false
-            ) { result in
-                handlePDFSelection(result: result)
+        }
+    }
+    
+    // MARK: - Document Section
+    private var documentSection: some View {
+        Section("Document Options") {
+            HStack {
+                Button(action: { showingCamera = true }) {
+                    Label("Camera", systemImage: "camera")
+                }
+                .buttonStyle(.bordered)
+                
+                Button(action: { showingDocumentPicker = true }) {
+                    Label("Photo Library", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+    
+    // MARK: - OCR Results Section
+    private var ocrResultsSection: some View {
+        Group {
+            if !ocrText.isEmpty {
+                Section("OCR Results") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Extracted Text:")
+                            .font(.headline)
+                        
+                        Text(ocrText)
+                            .font(.body)
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                }
             }
         }
     }
@@ -700,6 +576,41 @@ struct EditReceiptView: View {
             let fileName = ImageStorageManager.shared.saveReceiptImage(uiImage, for: receipt)
             receipt.fileName = fileName
         }
+    }
+    
+    private func saveChanges() {
+        if validateForm() {
+            updateReceipt()
+        }
+    }
+    
+    private func applyOCRData(_ ocrData: ReceiptData) {
+        // Apply all available OCR data
+        if let extractedTitle = ocrData.title, !extractedTitle.isEmpty {
+            title = extractedTitle
+        }
+        
+        if let extractedStore = ocrData.store, !extractedStore.isEmpty {
+            store = extractedStore
+        }
+        
+        if let extractedPrice = ocrData.price, extractedPrice > 0 {
+            price = extractedPrice
+        }
+        
+        if let extractedDate = ocrData.purchaseDate {
+            purchaseDate = extractedDate
+        }
+        
+        if let extractedWarranty = ocrData.warrantyInfo, !extractedWarranty.isEmpty {
+            warrantySummary = extractedWarranty
+        }
+        
+        // Clear validation errors after applying
+        validationManager.clearErrors()
+        
+        // Check for changes after applying OCR data
+        checkForChanges()
     }
 }
 
