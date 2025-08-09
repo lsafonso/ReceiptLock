@@ -82,9 +82,9 @@ struct ProfileView: View {
                 
                 VStack(spacing: AppTheme.smallSpacing) {
                     HStack {
-                        Text("Default Reminder Days")
+                        Text("Active Reminders")
                         Spacer()
-                        Text("\(profileManager.currentProfile.preferences.defaultReminderDays)")
+                        Text("\(ReminderManager.shared.preferences.enabledReminders.count) configured")
                             .foregroundColor(AppTheme.secondaryText)
                     }
                     .padding()

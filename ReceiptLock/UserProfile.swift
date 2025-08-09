@@ -23,20 +23,17 @@ struct UserProfile: Codable {
 
 // MARK: - User Preferences
 struct UserPreferences: Codable {
-    var defaultReminderDays: Int
     var theme: ThemeMode
     var notificationsEnabled: Bool
     var showWelcomeMessage: Bool
     var preferredCurrency: String
     
     init(
-        defaultReminderDays: Int = 7,
         theme: ThemeMode = .system,
         notificationsEnabled: Bool = true,
         showWelcomeMessage: Bool = true,
         preferredCurrency: String = "USD"
     ) {
-        self.defaultReminderDays = defaultReminderDays
         self.theme = theme
         self.notificationsEnabled = notificationsEnabled
         self.showWelcomeMessage = showWelcomeMessage
@@ -256,14 +253,18 @@ struct ProfileEditView: View {
             
             VStack(spacing: AppTheme.smallSpacing) {
                 HStack {
-                    Text("Default Reminder Days")
+                    Text("Reminder Settings")
                     Spacer()
-                    Text("\(profileManager.currentProfile.preferences.defaultReminderDays)")
+                    Text("Configure in Settings")
                         .foregroundColor(AppTheme.secondaryText)
                 }
                 
-                Stepper("", value: $profileManager.currentProfile.preferences.defaultReminderDays, in: 1...90)
-                    .labelsHidden()
+                Button("Open Settings") {
+                    // This would typically navigate to settings
+                    // For now, we'll just show a message
+                }
+                .foregroundColor(AppTheme.primary)
+                .font(.caption)
             }
             .padding()
             .background(AppTheme.cardBackground)

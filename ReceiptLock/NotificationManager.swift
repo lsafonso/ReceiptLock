@@ -23,6 +23,38 @@ class NotificationManager: ObservableObject {
     }
     
     func scheduleNotification(for receipt: Receipt) {
+        // Delegate to ReminderManager for multiple reminders
+        Task {
+            await ReminderManager.shared.scheduleNotifications(for: receipt)
+        }
+    }
+    
+    func cancelNotification(for receipt: Receipt) {
+        // Delegate to ReminderManager for multiple reminders
+        ReminderManager.shared.cancelNotifications(for: receipt)
+    }
+    
+    func cancelAllNotifications() {
+        ReminderManager.shared.cancelAllNotifications()
+    }
+    
+    func scheduleNotificationsForAllReceipts(context: NSManagedObjectContext) {
+        let request: NSFetchRequest<Receipt> = Receipt.fetchRequest()
+        
+        do {
+            let receipts = try context.fetch(request)
+            for receipt in receipts {
+                scheduleNotification(for: receipt)
+            }
+        } catch {
+            print("Error fetching receipts for notifications: \(error)")
+        }
+    }
+    
+    // MARK: - Legacy Support (for backward compatibility)
+    
+    @available(*, deprecated, message: "Use ReminderManager.shared.scheduleNotifications instead")
+    func scheduleLegacyNotification(for receipt: Receipt) {
         guard let expiryDate = receipt.expiryDate,
               let receiptId = receipt.id else { return }
         
@@ -57,29 +89,6 @@ class NotificationManager: ObservableObject {
             if let error = error {
                 print("Error scheduling notification: \(error)")
             }
-        }
-    }
-    
-    func cancelNotification(for receipt: Receipt) {
-        guard let receiptId = receipt.id else { return }
-        
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["receipt-\(receiptId.uuidString)"])
-    }
-    
-    func cancelAllNotifications() {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-    }
-    
-    func scheduleNotificationsForAllReceipts(context: NSManagedObjectContext) {
-        let request: NSFetchRequest<Receipt> = Receipt.fetchRequest()
-        
-        do {
-            let receipts = try context.fetch(request)
-            for receipt in receipts {
-                scheduleNotification(for: receipt)
-            }
-        } catch {
-            print("Error fetching receipts for notifications: \(error)")
         }
     }
 } 

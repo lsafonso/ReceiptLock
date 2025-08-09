@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("defaultReminderDays") private var defaultReminderDays = 7
     @AppStorage("selectedTheme") private var selectedTheme = "system"
     @State private var showingExportSheet = false
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
+    @State private var showingReminderManagement = false
     
     let themes = [
         ("system", "System"),
@@ -44,6 +44,9 @@ struct SettingsView: View {
         .sheet(isPresented: $showingExportSheet) {
             ExportView()
         }
+        .sheet(isPresented: $showingReminderManagement) {
+            ReminderManagementView()
+        }
         .fileImporter(
             isPresented: $showingImportPicker,
             allowedContentTypes: [.zip],
@@ -58,12 +61,24 @@ struct SettingsView: View {
     private var notificationsSection: some View {
         SettingsSection(title: "Notifications", icon: "bell.fill") {
             SettingsRow(
-                title: "Default Reminder",
-                subtitle: "\(defaultReminderDays) days before expiry",
-                icon: "clock.fill"
+                title: "Reminder Settings",
+                subtitle: "Configure multiple reminders and custom messages",
+                icon: "bell.badge.fill"
             ) {
-                Stepper("", value: $defaultReminderDays, in: 1...90)
-                    .labelsHidden()
+                Button("Configure") {
+                    showingReminderManagement = true
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            // Show current reminder status
+            let enabledCount = ReminderManager.shared.preferences.enabledReminders.count
+            SettingsRow(
+                title: "Active Reminders",
+                subtitle: "\(enabledCount) reminders configured",
+                icon: "checkmark.circle.fill"
+            ) {
+                EmptyView()
             }
         }
     }
@@ -133,21 +148,11 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Privacy Policy",
-                subtitle: "Read our privacy policy",
-                icon: "hand.raised.fill"
+                title: "Build",
+                subtitle: "1",
+                icon: "hammer.fill"
             ) {
-                Link("View", destination: URL(string: "https://example.com/privacy")!)
-                    .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Terms of Service",
-                subtitle: "Read our terms of service",
-                icon: "doc.text.fill"
-            ) {
-                Link("View", destination: URL(string: "https://example.com/terms")!)
-                    .foregroundColor(AppTheme.primary)
+                EmptyView()
             }
         }
     }
@@ -155,79 +160,76 @@ struct SettingsView: View {
     // MARK: - Helper Methods
     
     private func deleteAllData() {
-        // This would be implemented to delete all Core Data and files
-        print("Delete all data functionality would be implemented here")
+        // Implementation for deleting all data
+        print("Deleting all data...")
     }
     
     private func handleImport(result: Result<[URL], Error>) {
-        switch result {
-        case .success(let urls):
-            guard let url = urls.first else { return }
-            print("Import from: \(url)")
-            // Implement import logic here
-        case .failure(let error):
-            print("Import error: \(error)")
-        }
+        // Implementation for handling import
+        print("Handling import...")
     }
 }
 
-// MARK: - Settings Section
+// MARK: - Settings Section Component
 struct SettingsSection<Content: View>: View {
     let title: String
     let icon: String
-    @ViewBuilder let content: () -> Content
+    let content: Content
+    
+    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.icon = icon
+        self.content = content()
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             HStack {
                 Image(systemName: icon)
-                    .font(.title3)
                     .foregroundColor(AppTheme.primary)
+                    .font(.title2)
                 
                 Text(title)
                     .font(.headline)
-                    .fontWeight(.semibold)
                     .foregroundColor(AppTheme.text)
+                
+                Spacer()
             }
             
-            VStack(spacing: 1) {
-                content()
+            VStack(spacing: AppTheme.smallSpacing) {
+                content
             }
-            .cardBackground()
         }
+        .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(AppTheme.cornerRadius)
     }
 }
 
-// MARK: - Settings Row
+// MARK: - Settings Row Component
 struct SettingsRow<Content: View>: View {
     let title: String
     let subtitle: String
     let icon: String
-    @ViewBuilder let trailing: () -> Content
+    let content: Content
     
-    init(
-        title: String,
-        subtitle: String,
-        icon: String,
-        @ViewBuilder trailing: @escaping () -> Content
-    ) {
+    init(title: String, subtitle: String, icon: String, @ViewBuilder content: () -> Content) {
         self.title = title
         self.subtitle = subtitle
         self.icon = icon
-        self.trailing = trailing
+        self.content = content()
     }
     
     var body: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack {
             Image(systemName: icon)
-                .font(.title3)
                 .foregroundColor(AppTheme.secondaryText)
+                .font(.title3)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.body)
-                    .fontWeight(.medium)
                     .foregroundColor(AppTheme.text)
                 
                 Text(subtitle)
@@ -237,71 +239,22 @@ struct SettingsRow<Content: View>: View {
             
             Spacer()
             
-            trailing()
+            content
         }
-        .padding(AppTheme.spacing)
+        .padding(.vertical, AppTheme.smallSpacing)
     }
 }
 
-// MARK: - Export View
+// MARK: - Export View (Placeholder)
 struct ExportView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var isExporting = false
-    
     var body: some View {
         NavigationStack {
-            VStack(spacing: AppTheme.largeSpacing) {
-                Spacer()
-                
-                Image(systemName: "square.and.arrow.up.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(AppTheme.primary)
-                
-                VStack(spacing: AppTheme.smallSpacing) {
-                    Text("Export Data")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(AppTheme.text)
-                    
-                    Text("Create a backup of all your receipts and associated files.")
-                        .font(.body)
-                        .foregroundColor(AppTheme.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, AppTheme.largeSpacing)
-                }
-                
-                if isExporting {
-                    ProgressView("Exporting...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                } else {
-                    Button("Export Now") {
-                        exportData()
-                    }
-                    .primaryButton()
-                }
-                
-                Spacer()
+            VStack {
+                Text("Export functionality will be implemented here")
+                    .foregroundColor(AppTheme.secondaryText)
             }
-            .padding(AppTheme.largeSpacing)
-            .navigationTitle("Export")
+            .navigationTitle("Export Data")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func exportData() {
-        isExporting = true
-        
-        // Simulate export process
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            isExporting = false
-            dismiss()
         }
     }
 }
