@@ -18,6 +18,17 @@ struct PersistenceController {
         
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // Enable CloudKit sync
+            container.persistentStoreDescriptions.forEach { storeDescription in
+                storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+                storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+                
+                // Enable CloudKit container
+                if let cloudKitContainerIdentifier = storeDescription.cloudKitContainerOptions?.containerIdentifier {
+                    print("CloudKit container enabled: \(cloudKitContainerIdentifier)")
+                }
+            }
         }
         
         container.loadPersistentStores { _, error in

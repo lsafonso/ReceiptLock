@@ -26,6 +26,7 @@ struct SettingsView: View {
                 LazyVStack(spacing: AppTheme.largeSpacing) {
                     notificationsSection
                     appearanceSection
+                    backupSyncSection
                     dataManagementSection
                     aboutSection
                 }
@@ -96,6 +97,43 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
+        }
+    }
+    
+    private var backupSyncSection: some View {
+        SettingsSection(title: "Backup & Sync", icon: "icloud.fill") {
+            SettingsRow(
+                title: "iCloud Sync",
+                subtitle: "Automatically sync across devices",
+                icon: "icloud"
+            ) {
+                Toggle("", isOn: Binding(
+                    get: { DataBackupManager.shared.isCloudKitEnabled() },
+                    set: { DataBackupManager.shared.setCloudKitEnabled($0) }
+                ))
+                .labelsHidden()
+            }
+            
+            SettingsRow(
+                title: "Backup Settings",
+                subtitle: "Manage data backup and restore",
+                icon: "externaldrive.fill"
+            ) {
+                NavigationLink("Configure") {
+                    BackupSettingsView()
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            if let lastBackup = DataBackupManager.shared.lastBackupDate {
+                SettingsRow(
+                    title: "Last Backup",
+                    subtitle: lastBackup.formatted(date: .abbreviated, time: .shortened),
+                    icon: "clock.fill"
+                ) {
+                    EmptyView()
+                }
             }
         }
     }

@@ -18,6 +18,8 @@ struct ReceiptLockApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .onAppear {
                     NotificationManager.shared.requestPermission()
+                    // Initialize backup manager
+                    _ = DataBackupManager.shared
                 }
         }
     }
