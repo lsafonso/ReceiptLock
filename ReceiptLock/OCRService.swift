@@ -119,21 +119,24 @@ class OCRService: ObservableObject {
     
     private func extractPrice(from text: String) -> Double? {
         // Enhanced price patterns for receipts
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        
         let pricePatterns = [
-            #"total[\s:]*\$?(\d+\.?\d*)"#,
-            #"amount[\s:]*\$?(\d+\.?\d*)"#,
-            #"subtotal[\s:]*\$?(\d+\.?\d*)"#,
-            #"grand[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
-            #"balance[\s:]*\$?(\d+\.?\d*)"#,
-            #"due[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
-            #"amount[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
-            #"balance[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
-            #"total[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*balance[\s:]*\$?(\d+\.?\d*)"#,
-            #"\$(\d+\.?\d*)"#,
-            #"(\d+\.?\d*)[\s]*\$"#,
+            #"total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"amount[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"subtotal[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"grand[\s]*total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"balance[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"due[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"amount[\s]*due[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*amount[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"balance[\s]*due[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"total[\s]*amount[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*balance[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"\#(escapedSymbol)(\d+\.?\d*)"#,
+            #"(\d+\.?\d*)[\s]*\#(escapedSymbol)"#,
             #"(\d+\.?\d*)"#
         ]
         
@@ -141,7 +144,7 @@ class OCRService: ObservableObject {
             if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                 let matchedText = String(text[match])
                 let cleanText = matchedText
-                    .replacingOccurrences(of: "$", with: "")
+                    .replacingOccurrences(of: CurrencyManager.shared.currencySymbol, with: "")
                     .replacingOccurrences(of: "total", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "amount", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "subtotal", with: "", options: .caseInsensitive)
@@ -191,7 +194,7 @@ class OCRService: ObservableObject {
         for line in firstLines {
             let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if cleanLine.count > 3 && cleanLine.count < 50 && 
-               !cleanLine.contains("$") && 
+               !cleanLine.contains(CurrencyManager.shared.currencySymbol) && 
                !cleanLine.contains("total") &&
                !cleanLine.contains("date") &&
                !cleanLine.contains("time") &&
@@ -288,7 +291,7 @@ class OCRService: ObservableObject {
         for line in middleLines {
             let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
             if cleanLine.count > 5 && cleanLine.count < 80 && 
-               !cleanLine.contains("$") && 
+               !cleanLine.contains(CurrencyManager.shared.currencySymbol) && 
                !cleanLine.contains("total") &&
                !cleanLine.contains("date") &&
                !cleanLine.contains("time") &&
@@ -331,22 +334,25 @@ class OCRService: ObservableObject {
     }
     
     private func extractTaxAmount(from text: String) -> Double? {
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        
         let taxPatterns = [
-            #"tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"sales[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"vat[\s:]*\$?(\d+\.?\d*)"#,
-            #"gst[\s:]*\$?(\d+\.?\d*)"#,
-            #"state[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"local[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"provincial[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"federal[\s]*tax[\s:]*\$?(\d+\.?\d*)"#
+            #"tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"sales[\s]*tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"vat[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"gst[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"state[\s]*tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"local[\s]*tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"provincial[\s]*tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"federal[\s]*tax[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#
         ]
         
         for pattern in taxPatterns {
             if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                 let matchedText = String(text[match])
                 let cleanText = matchedText
-                    .replacingOccurrences(of: "$", with: "")
+                    .replacingOccurrences(of: CurrencyManager.shared.currencySymbol, with: "")
                     .replacingOccurrences(of: "tax", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "sales", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "vat", with: "", options: .caseInsensitive)
@@ -367,22 +373,25 @@ class OCRService: ObservableObject {
     }
     
     private func extractTotalAmount(from text: String) -> Double? {
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        
         let totalPatterns = [
-            #"total[\s:]*\$?(\d+\.?\d*)"#,
-            #"grand[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
-            #"amount[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
-            #"balance[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
-            #"total[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
-            #"final[\s]*balance[\s:]*\$?(\d+\.?\d*)"#
+            #"total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"grand[\s]*total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*total[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"amount[\s]*due[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"balance[\s]*due[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"total[\s]*amount[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*amount[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#,
+            #"final[\s]*balance[\s:]*\#(escapedSymbol)?(\d+\.?\d*)"#
         ]
         
         for pattern in totalPatterns {
             if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                 let matchedText = String(text[match])
                 let cleanText = matchedText
-                    .replacingOccurrences(of: "$", with: "")
+                    .replacingOccurrences(of: CurrencyManager.shared.currencySymbol, with: "")
                     .replacingOccurrences(of: "total", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "grand", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "final", with: "", options: .caseInsensitive)

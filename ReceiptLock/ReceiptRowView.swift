@@ -63,7 +63,7 @@ struct ReceiptRowView: View {
                     
                     Spacer()
                     
-                    Text(receipt.price, format: .currency(code: "USD"))
+                    Text(receipt.price, format: .currency(code: CurrencyManager.shared.currencyCode))
                         .font(.subheadline.weight(.medium))
                         .foregroundColor(AppTheme.primary)
                         .contentTransition(.numericText())

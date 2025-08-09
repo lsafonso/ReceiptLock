@@ -270,7 +270,7 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedPrice: String {
-        return appliance.price.formatted(.currency(code: "USD"))
+        return appliance.price.formatted(.currency(code: CurrencyManager.shared.currencyCode))
     }
     
     private var formattedCreatedDate: String {
@@ -423,7 +423,7 @@ struct EditApplianceView: View {
                     TextField("Appliance Name", text: $title)
                     TextField("Store/Brand", text: $store)
                     DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
-                    TextField("Price", value: $price, format: .currency(code: "USD"))
+                    TextField("Price", value: $price, format: .currency(code: CurrencyManager.shared.currencyCode))
                         .keyboardType(.decimalPad)
                 }
                 

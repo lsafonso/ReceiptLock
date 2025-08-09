@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var showingReminderManagement = false
+    @StateObject private var currencyManager = CurrencyManager.shared
     
     let themes = [
         ("system", "System"),
@@ -26,6 +27,7 @@ struct SettingsView: View {
                 LazyVStack(spacing: AppTheme.largeSpacing) {
                     notificationsSection
                     appearanceSection
+                    currencySection
                     securitySection
                     backupSyncSection
                     dataManagementSection
@@ -99,6 +101,45 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.menu)
             }
+        }
+    }
+    
+    private var currencySection: some View {
+        SettingsSection(title: "Currency", icon: "dollarsign.circle.fill") {
+            SettingsRow(
+                title: "Currency",
+                subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
+                icon: "creditcard.fill"
+            ) {
+                Picker("Currency", selection: $currencyManager.currentCurrency) {
+                    ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
+                        Text(currency.1).tag(currency.0)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            
+            // Currency preview
+            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                Text("Preview")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+                
+                HStack {
+                    Text("Sample Price:")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                    
+                    Spacer()
+                    
+                    Text(999.99.formattedCurrency())
+                        .font(.caption)
+                        .foregroundColor(AppTheme.primary)
+                        .fontWeight(.medium)
+                }
+            }
+            .padding(.horizontal, AppTheme.spacing)
+            .padding(.vertical, AppTheme.smallSpacing)
         }
     }
     
@@ -326,4 +367,5 @@ struct ExportView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(CurrencyManager.shared)
 } 

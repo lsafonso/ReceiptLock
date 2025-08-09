@@ -428,7 +428,9 @@ struct AddApplianceView: View {
     }
     
     private func extractPrice(from string: String) -> Double? {
-        let pattern = #"\$?(\d+(?:\.\d{2})?)"#
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        let pattern = #"\#(escapedSymbol)?(\d+(?:\.\d{2})?)"#
         let regex = try? NSRegularExpression(pattern: pattern)
         let range = NSRange(string.startIndex..<string.endIndex, in: string)
         

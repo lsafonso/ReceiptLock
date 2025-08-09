@@ -77,6 +77,9 @@ class UserProfileManager: ObservableObject {
         }
         
         self.hasCompletedOnboarding = userDefaults.bool(forKey: onboardingKey)
+        
+        // Sync currency manager with user preferences
+        CurrencyManager.shared.changeCurrency(to: currentProfile.preferences.preferredCurrency)
     }
     
     // MARK: - Profile Management
@@ -98,6 +101,9 @@ class UserProfileManager: ObservableObject {
     func updatePreferences(_ preferences: UserPreferences) {
         currentProfile.preferences = preferences
         saveProfile()
+        
+        // Update currency manager when preferences change
+        CurrencyManager.shared.changeCurrency(to: preferences.preferredCurrency)
     }
     
     private func saveProfile() {
@@ -187,6 +193,9 @@ struct ProfileEditView: View {
                     
                     // Preferences Section
                     preferencesSection
+                    
+                    // Currency Section
+                    currencySection
                 }
                 .padding(AppTheme.spacing)
             }
@@ -265,6 +274,30 @@ struct ProfileEditView: View {
                 }
                 .foregroundColor(AppTheme.primary)
                 .font(.caption)
+            }
+            .padding()
+            .background(AppTheme.cardBackground)
+            .cornerRadius(AppTheme.cornerRadius)
+        }
+    }
+    
+    private var currencySection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+            Text("Currency")
+                .font(.headline)
+                .foregroundColor(AppTheme.text)
+            
+            VStack(spacing: AppTheme.smallSpacing) {
+                HStack {
+                    Text("Preferred Currency")
+                    Spacer()
+                    Text("\(CurrencyManager.shared.currencySymbol) \(CurrencyManager.shared.currencyName)")
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                Text("Change currency in Settings > Currency")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
             }
             .padding()
             .background(AppTheme.cardBackground)

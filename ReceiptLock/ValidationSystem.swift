@@ -33,7 +33,7 @@ enum ValidationError: LocalizedError {
         case .futureDateRequired:
             return "Purchase date cannot be in the future"
         case .priceTooHigh:
-            return "Price cannot exceed $999,999"
+            return "Price cannot exceed \(CurrencyManager.shared.currencySymbol)999,999"
         case .warrantyTooLong:
             return "Warranty cannot exceed 10 years"
         case .invalidStoreName:
@@ -283,7 +283,7 @@ struct ValidatedPriceField: View {
             }
             
             HStack {
-                Text("$")
+                Text(CurrencyManager.shared.currencySymbol)
                     .font(.body)
                     .foregroundColor(AppTheme.secondaryText)
                 

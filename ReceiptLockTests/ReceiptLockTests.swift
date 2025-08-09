@@ -48,8 +48,10 @@ final class ReceiptLockTests: XCTestCase {
         let formattedPrice = String(format: "%.2f", price)
         XCTAssertEqual(formattedPrice, "999.99")
         
-        let currencyFormatted = "$\(formattedPrice)"
-        XCTAssertEqual(currencyFormatted, "$999.99")
+        // Test with currency manager
+        let currencyFormatted = price.formattedCurrencyWithSymbol()
+        XCTAssertTrue(currencyFormatted.contains(formattedPrice))
+        XCTAssertTrue(currencyFormatted.contains(CurrencyManager.shared.currencySymbol))
     }
     
     func testWarrantyMonthsValidation() {
