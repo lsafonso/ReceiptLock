@@ -24,7 +24,14 @@ struct ReceiptDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Receipt Image/PDF
-                if let fileName = receipt.fileName {
+                if let imageData = receipt.imageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 300)
+                        .cornerRadius(12)
+                        .clipped()
+                } else if let fileName = receipt.fileName {
                     ReceiptImageView(fileName: fileName)
                         .frame(height: 300)
                         .cornerRadius(12)
@@ -41,6 +48,34 @@ struct ReceiptDetailView: View {
                                     .foregroundColor(.secondary)
                             }
                         )
+                }
+                
+                // OCR Information (if available)
+                if let ocrText = receipt.ocrText, !ocrText.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "text.viewfinder")
+                                .foregroundColor(.blue)
+                            Text("OCR Data")
+                                .font(.headline)
+                            Spacer()
+                            if receipt.ocrProcessed {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        
+                        Text(ocrText)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(radius: 2)
                 }
                 
                 // Receipt Information

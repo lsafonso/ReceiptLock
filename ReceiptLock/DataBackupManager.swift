@@ -198,10 +198,11 @@ class DataBackupManager: ObservableObject {
         
         let receipts = try fetchReceipts(context: context)
         let userProfile = UserProfileManager.shared.currentProfile
-        let reminderPreferences = ReminderPreferences(
-            notificationsEnabled: ReminderManager.shared.preferences.notificationsEnabled,
-            reminders: ReminderManager.shared.preferences.reminders
-        )
+        var reminderPreferences = ReminderPreferences()
+        reminderPreferences.defaultReminders = ReminderManager.shared.preferences.defaultReminders
+        reminderPreferences.customReminderMessage = ReminderManager.shared.preferences.customReminderMessage
+        reminderPreferences.reminderTime = ReminderManager.shared.preferences.reminderTime
+        reminderPreferences.notificationsEnabled = ReminderManager.shared.preferences.notificationsEnabled
         
         return BackupData(
             receipts: receipts,
@@ -249,7 +250,9 @@ class DataBackupManager: ObservableObject {
         
         // Restore reminder preferences
         ReminderManager.shared.preferences.notificationsEnabled = backupData.reminderPreferences.notificationsEnabled
-        ReminderManager.shared.preferences.reminders = backupData.reminderPreferences.reminders
+        ReminderManager.shared.preferences.defaultReminders = backupData.reminderPreferences.defaultReminders
+        ReminderManager.shared.preferences.customReminderMessage = backupData.reminderPreferences.customReminderMessage
+        ReminderManager.shared.preferences.reminderTime = backupData.reminderPreferences.reminderTime
     }
     
     private func clearExistingData(context: NSManagedObjectContext) throws {
@@ -276,7 +279,7 @@ class DataBackupManager: ObservableObject {
         
         do {
             // Trigger CloudKit sync
-            try await container.viewContext.save()
+            try container.viewContext.save()
             
             await MainActor.run {
                 self.syncProgress = 0.5

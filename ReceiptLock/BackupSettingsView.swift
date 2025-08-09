@@ -53,7 +53,7 @@ struct BackupSettingsView: View {
                 Text("Are you sure you want to delete this backup? This action cannot be undone.")
             }
             .sheet(isPresented: $showingExportSheet) {
-                ShareSheet(activityItems: [backupManager.lastBackupDate?.ISO8601String() ?? "No backup available"])
+                ShareSheet(items: [backupManager.lastBackupDate?.ISO8601String() ?? "No backup available"])
             }
             .fileImporter(
                 isPresented: $showingImportPicker,
@@ -299,20 +299,7 @@ struct BackupHistoryRow: View {
     }
 }
 
-// MARK: - Share Sheet
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: nil
-        )
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
+
 
 // MARK: - Preview
 #Preview {

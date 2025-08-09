@@ -21,6 +21,7 @@ struct AppTheme {
     static let error = Color(red: 220/255, green: 53/255, blue: 69/255) // Red for expired warranties
     static let warning = Color(red: 255/255, green: 149/255, blue: 0/255) // Orange for expiring warranties
     static let success = Color(red: 52/255, green: 199/255, blue: 89/255) // Green for valid warranties
+    static let border = Color(red: 200/255, green: 200/255, blue: 200/255) // Light gray for borders
     
     // MARK: - Gradients
     static let primaryGradient = LinearGradient(
@@ -138,6 +139,11 @@ struct SecondaryButtonStyle: ButtonStyle {
 
 struct FloatingActionButtonStyle: ButtonStyle {
     @State private var isPressed = false
+    let backgroundColor: Color
+    
+    init(backgroundColor: Color = AppTheme.primary) {
+        self.backgroundColor = backgroundColor
+    }
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -145,12 +151,12 @@ struct FloatingActionButtonStyle: ButtonStyle {
             .foregroundColor(.white)
             .frame(width: 56, height: 56)
             .background(
-                AppTheme.primary
+                backgroundColor
                     .opacity(configuration.isPressed ? 0.8 : 1.0)
             )
             .clipShape(Circle())
             .shadow(
-                color: AppTheme.primary.opacity(0.3),
+                color: backgroundColor.opacity(0.3),
                 radius: configuration.isPressed ? 8 : 12,
                 x: 0,
                 y: configuration.isPressed ? 3 : 6
@@ -176,6 +182,10 @@ extension View {
     
     func floatingActionButton() -> some View {
         buttonStyle(FloatingActionButtonStyle())
+    }
+    
+    func floatingActionButton(backgroundColor: Color) -> some View {
+        buttonStyle(FloatingActionButtonStyle(backgroundColor: backgroundColor))
     }
     
     func slideInTransition() -> some View {

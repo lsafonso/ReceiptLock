@@ -15,6 +15,8 @@ struct AddReceiptView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
+    @StateObject private var validationManager = ValidationManager()
+    
     @State private var title = ""
     @State private var store = ""
     @State private var purchaseDate = Date()
@@ -25,64 +27,225 @@ struct AddReceiptView: View {
     @State private var selectedImageData: Data?
     @State private var isProcessingOCR = false
     @State private var showingDocumentPicker = false
+    @State private var showingCamera = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var ocrText = ""
+    @State private var showingOCRResults = false
+    @State private var ocrData: ReceiptData?
+    @State private var showingImageEditor = false
+    @State private var editedImage: UIImage?
+    
+    // Initialize with a pre-selected image (from camera)
+    init(selectedImage: UIImage? = nil) {
+        if let image = selectedImage {
+            _selectedImageData = State(initialValue: image.jpegData(compressionQuality: 0.8))
+            _editedImage = State(initialValue: image)
+        }
+    }
     
     var body: some View {
         NavigationStack {
             Form {
                 Section("Receipt Information") {
-                    TextField("Title", text: $title)
-                        .accessibilityLabel("Receipt title")
+                    ValidatedTextField(
+                        title: "Title",
+                        placeholder: "Enter receipt title",
+                        text: $title,
+                        fieldKey: "title",
+                        validationManager: validationManager,
+                        validationRule: validationManager.validateApplianceName
+                    )
                     
-                    TextField("Store", text: $store)
-                        .accessibilityLabel("Store name")
+                    ValidatedTextField(
+                        title: "Store",
+                        placeholder: "Enter store name",
+                        text: $store,
+                        fieldKey: "store",
+                        validationManager: validationManager,
+                        validationRule: validationManager.validateStoreName
+                    )
                     
-                    DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
-                        .accessibilityLabel("Purchase date")
+                    ValidatedDateField(
+                        title: "Purchase Date",
+                        date: $purchaseDate,
+                        fieldKey: "date",
+                        validationManager: validationManager
+                    )
                     
-                    HStack {
-                        Text("Price")
-                        Spacer()
-                        TextField("0.00", value: $price, format: .currency(code: "USD"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityLabel("Price amount")
-                    }
+                    ValidatedPriceField(
+                        title: "Price",
+                        price: $price,
+                        fieldKey: "price",
+                        validationManager: validationManager
+                    )
                     
-                    Stepper("Warranty: \(warrantyMonths) months", value: $warrantyMonths, in: 0...120)
-                        .accessibilityLabel("Warranty duration in months")
+                    ValidatedStepperField(
+                        title: "Warranty",
+                        value: $warrantyMonths,
+                        range: 0...120,
+                        fieldKey: "warranty",
+                        validationManager: validationManager,
+                        validationRule: validationManager.validateWarrantyMonths
+                    )
                 }
                 
-                Section("Receipt Image/PDF") {
+                Section("Receipt Image") {
                     if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 200)
-                            .accessibilityLabel("Selected receipt image")
+                        VStack(spacing: 12) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                                .accessibilityLabel("Selected receipt image")
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                                .onTapGesture {
+                                    editedImage = uiImage
+                                    showingImageEditor = true
+                                }
+                            
+                            HStack {
+                                Button("Edit Image") {
+                                    editedImage = uiImage
+                                    showingImageEditor = true
+                                }
+                                .buttonStyle(.bordered)
+                                
+                                Spacer()
+                                
+                                Button("Process with OCR") {
+                                    Task {
+                                        await processImageWithOCR(uiImage)
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(isProcessingOCR)
+                            }
+                            
+                            if isProcessingOCR {
+                                VStack(spacing: 8) {
+                                    ProgressView(value: OCRService.shared.processingProgress)
+                                        .progressViewStyle(LinearProgressViewStyle())
+                                        .scaleEffect(0.8)
+                                    
+                                    Text("Processing OCR...")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
                     }
                     
                     HStack {
-                        PhotosPicker(selection: $selectedImage, matching: .images) {
-                            Label("Select Image", systemImage: "photo")
+                        Button(action: {
+                            showingCamera = true
+                        }) {
+                            Label("Take Photo", systemImage: "camera")
                         }
-                        .accessibilityLabel("Select receipt image from photo library")
+                        .buttonStyle(.bordered)
+                        
+                        Spacer()
+                        
+                        PhotosPicker(selection: $selectedImage, matching: .images) {
+                            Label("Photo Library", systemImage: "photo.on.rectangle")
+                        }
+                        .buttonStyle(.bordered)
                         
                         Spacer()
                         
                         Button("Select PDF") {
                             showingDocumentPicker = true
                         }
-                        .accessibilityLabel("Select receipt PDF document")
+                        .buttonStyle(.bordered)
                     }
-                    
-                    if isProcessingOCR {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Processing OCR...")
-                                .foregroundColor(.secondary)
+                }
+                
+                if let ocrData = ocrData, !ocrData.rawText.isEmpty {
+                    Section("OCR Results") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if let extractedTitle = ocrData.title, !extractedTitle.isEmpty {
+                                OCRResultRow(
+                                    title: "Title",
+                                    value: extractedTitle,
+                                    isApplied: title == extractedTitle,
+                                    onApply: { title = extractedTitle }
+                                )
+                            }
+                            
+                            if let extractedStore = ocrData.store, !extractedStore.isEmpty {
+                                OCRResultRow(
+                                    title: "Store",
+                                    value: extractedStore,
+                                    isApplied: store == extractedStore,
+                                    onApply: { store = extractedStore }
+                                )
+                            }
+                            
+                            if let extractedPrice = ocrData.price, extractedPrice > 0 {
+                                OCRResultRow(
+                                    title: "Price",
+                                    value: String(format: "$%.2f", extractedPrice),
+                                    isApplied: abs(price - extractedPrice) < 0.01,
+                                    onApply: { price = extractedPrice }
+                                )
+                            }
+                            
+                            if let extractedDate = ocrData.purchaseDate {
+                                let dateString = DateFormatter.localizedString(from: extractedDate, dateStyle: .medium, timeStyle: .none)
+                                OCRResultRow(
+                                    title: "Date",
+                                    value: dateString,
+                                    isApplied: Calendar.current.isDate(purchaseDate, inSameDayAs: extractedDate),
+                                    onApply: { purchaseDate = extractedDate }
+                                )
+                            }
+                            
+                            if let extractedTax = ocrData.taxAmount, extractedTax > 0 {
+                                OCRResultRow(
+                                    title: "Tax",
+                                    value: String(format: "$%.2f", extractedTax),
+                                    isApplied: false,
+                                    onApply: { }
+                                )
+                            }
+                            
+                            if let extractedTotal = ocrData.totalAmount, extractedTotal > 0 {
+                                OCRResultRow(
+                                    title: "Total",
+                                    value: String(format: "$%.2f", extractedTotal),
+                                    isApplied: false,
+                                    onApply: { }
+                                )
+                            }
+                            
+                            if let extractedPayment = ocrData.paymentMethod, !extractedPayment.isEmpty {
+                                OCRResultRow(
+                                    title: "Payment",
+                                    value: extractedPayment,
+                                    isApplied: false,
+                                    onApply: { }
+                                )
+                            }
+                            
+                            if let extractedWarranty = ocrData.warrantyInfo, !extractedWarranty.isEmpty {
+                                OCRResultRow(
+                                    title: "Warranty Info",
+                                    value: extractedWarranty,
+                                    isApplied: warrantySummary == extractedWarranty,
+                                    onApply: { warrantySummary = extractedWarranty }
+                                )
+                            }
+                            
+                            Divider()
+                            
+                            Button("Apply All OCR Data") {
+                                applyAllOCRData()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .frame(maxWidth: .infinity)
                         }
                     }
                 }
@@ -92,6 +255,13 @@ struct AddReceiptView: View {
                         Text(warrantySummary)
                             .font(.caption)
                             .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Validation errors banner
+                if validationManager.hasErrors() {
+                    Section {
+                        ValidationErrorBanner(validationManager: validationManager)
                     }
                 }
             }
@@ -106,7 +276,9 @@ struct AddReceiptView: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        saveReceipt()
+                        if validateForm() {
+                            saveReceipt()
+                        }
                     }
                     .disabled(title.isEmpty || store.isEmpty)
                 }
@@ -127,6 +299,19 @@ struct AddReceiptView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showingCamera) {
+                CameraView()
+            }
+            .sheet(isPresented: $showingImageEditor) {
+                if let image = editedImage {
+                    ImageEditorView(image: image) { editedImage in
+                        if let editedImage = editedImage,
+                           let imageData = editedImage.jpegData(compressionQuality: 0.8) {
+                            selectedImageData = imageData
+                        }
+                    }
+                }
+            }
             .fileImporter(
                 isPresented: $showingDocumentPicker,
                 allowedContentTypes: [.pdf],
@@ -139,13 +324,25 @@ struct AddReceiptView: View {
     
     // MARK: - Helper Methods
     
+    private func validateForm() -> Bool {
+        return validationManager.validateApplianceForm(
+            title: title,
+            store: store,
+            price: price,
+            warrantyMonths: warrantyMonths,
+            purchaseDate: purchaseDate
+        )
+    }
+    
     private func loadImage() async {
         guard let selectedImage = selectedImage else { return }
         
         do {
             if let data = try await selectedImage.loadTransferable(type: Data.self) {
                 selectedImageData = data
-                await processOCR()
+                if let uiImage = UIImage(data: data) {
+                    editedImage = uiImage
+                }
             }
         } catch {
             await MainActor.run {
@@ -155,19 +352,45 @@ struct AddReceiptView: View {
         }
     }
     
-    private func processOCR() async {
-        guard let imageData = selectedImageData,
-              let uiImage = UIImage(data: imageData) else { return }
-        
+    private func processImageWithOCR(_ image: UIImage) async {
         await MainActor.run {
             isProcessingOCR = true
         }
         
         do {
-            let text = try await performOCR(on: uiImage)
+            let receiptData = try await OCRService.shared.processReceiptImage(image)
+            
             await MainActor.run {
-                processOCRResults(text: text)
+                // Store OCR results
+                ocrText = receiptData.rawText
+                ocrData = receiptData
+                
+                // Auto-fill fields if they're empty
+                if title.isEmpty, let extractedTitle = receiptData.title {
+                    title = extractedTitle
+                }
+                
+                if store.isEmpty, let extractedStore = receiptData.store {
+                    store = extractedStore
+                }
+                
+                if price == 0.0, let extractedPrice = receiptData.price {
+                    price = extractedPrice
+                }
+                
+                if let extractedDate = receiptData.purchaseDate {
+                    purchaseDate = extractedDate
+                }
+                
+                if let extractedWarranty = receiptData.warrantyInfo {
+                    warrantySummary = extractedWarranty
+                }
+                
                 isProcessingOCR = false
+                showingOCRResults = true
+                
+                // Clear validation errors after auto-filling
+                validationManager.clearErrors()
             }
         } catch {
             await MainActor.run {
@@ -178,60 +401,34 @@ struct AddReceiptView: View {
         }
     }
     
-    private func performOCR(on image: UIImage) async throws -> String {
-        guard let cgImage = image.cgImage else {
-            throw OCRError.invalidImage
+    private func applyAllOCRData() {
+        guard let ocrData = ocrData else { return }
+        
+        // Apply all available OCR data
+        if let extractedTitle = ocrData.title, !extractedTitle.isEmpty {
+            title = extractedTitle
         }
         
-        let request = VNRecognizeTextRequest { request, error in
-            if let error = error {
-                print("OCR error: \(error)")
-            }
+        if let extractedStore = ocrData.store, !extractedStore.isEmpty {
+            store = extractedStore
         }
         
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-        
-        guard let observations = request.results else {
-            throw OCRError.noResults
+        if let extractedPrice = ocrData.price, extractedPrice > 0 {
+            price = extractedPrice
         }
         
-        return observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
-    }
-    
-    private func processOCRResults(text: String) {
-        // Simple OCR result processing - in a real app, this would be more sophisticated
-        let lowercasedText = text.lowercased()
-        
-        // Try to extract price
-        let pricePattern = #"\$(\d+\.?\d*)"#
-        if let priceMatch = lowercasedText.range(of: pricePattern, options: .regularExpression),
-           let priceValue = Double(String(text[priceMatch]).replacingOccurrences(of: "$", with: "")) {
-            price = priceValue
+        if let extractedDate = ocrData.purchaseDate {
+            purchaseDate = extractedDate
         }
         
-        // Try to extract store name (simple heuristic)
-        let storeKeywords = ["store", "shop", "market", "retail", "outlet"]
-        for keyword in storeKeywords {
-            if lowercasedText.contains(keyword) {
-                // Extract surrounding text as store name
-                if let range = lowercasedText.range(of: keyword) {
-                    let start = lowercasedText.index(range.lowerBound, offsetBy: -20, limitedBy: lowercasedText.startIndex) ?? lowercasedText.startIndex
-                    let end = lowercasedText.index(range.upperBound, offsetBy: 20, limitedBy: lowercasedText.endIndex) ?? lowercasedText.endIndex
-                    let storeText = String(text[start..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !storeText.isEmpty {
-                        store = storeText
-                        break
-                    }
-                }
-            }
+        if let extractedWarranty = ocrData.warrantyInfo, !extractedWarranty.isEmpty {
+            warrantySummary = extractedWarranty
         }
         
-        // Generate warranty summary
-        warrantySummary = "OCR detected text: \(String(text.prefix(200)))..."
+        showingOCRResults = false
+        
+        // Clear validation errors after applying
+        validationManager.clearErrors()
     }
     
     private func handlePDFSelection(result: Result<[URL], Error>) {
@@ -262,6 +459,8 @@ struct AddReceiptView: View {
         receipt.warrantySummary = warrantySummary
         receipt.createdAt = Date()
         receipt.updatedAt = Date()
+        receipt.ocrProcessed = !ocrText.isEmpty
+        receipt.ocrText = ocrText
         
         // Calculate expiry date
         if warrantyMonths > 0 {
@@ -270,6 +469,7 @@ struct AddReceiptView: View {
         
         // Save image if exists
         if let imageData = selectedImageData {
+            receipt.imageData = imageData
             saveReceiptImage(data: imageData, receipt: receipt)
         }
         
@@ -304,9 +504,132 @@ struct AddReceiptView: View {
     }
 }
 
-enum OCRError: Error {
-    case invalidImage
-    case noResults
+// MARK: - OCR Result Row View
+
+struct OCRResultRow: View {
+    let title: String
+    let value: String
+    let isApplied: Bool
+    let onApply: () -> Void
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(value)
+                    .font(.body)
+                    .foregroundColor(.primary)
+            }
+            
+            Spacer()
+            
+            if isApplied {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.title3)
+            } else {
+                Button("Apply") {
+                    onApply()
+                }
+                .buttonStyle(.bordered)
+                .scaleEffect(0.8)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Image Editor View
+
+struct ImageEditorView: View {
+    let image: UIImage
+    let onSave: (UIImage?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var editedImage: UIImage
+    @State private var brightness: Double = 0.0
+    @State private var contrast: Double = 1.0
+    @State private var saturation: Double = 0.0
+    
+    init(image: UIImage, onSave: @escaping (UIImage?) -> Void) {
+        self.image = image
+        self.onSave = onSave
+        self._editedImage = State(initialValue: image)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Image(uiImage: editedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .padding()
+                
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Brightness")
+                            .font(.caption)
+                        Slider(value: $brightness, in: -1.0...1.0) { _ in
+                            applyFilters()
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Contrast")
+                            .font(.caption)
+                        Slider(value: $contrast, in: 0.5...2.0) { _ in
+                            applyFilters()
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Saturation")
+                            .font(.caption)
+                        Slider(value: $saturation, in: 0.0...2.0) { _ in
+                            applyFilters()
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Edit Image")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(editedImage)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func applyFilters() {
+        guard let cgImage = image.cgImage else { return }
+        
+        let ciImage = CIImage(cgImage: cgImage)
+        
+        let filter = CIFilter(name: "CIColorControls")
+        filter?.setValue(ciImage, forKey: kCIInputImageKey)
+        filter?.setValue(brightness, forKey: kCIInputBrightnessKey)
+        filter?.setValue(contrast, forKey: kCIInputContrastKey)
+        filter?.setValue(saturation, forKey: kCIInputSaturationKey)
+        
+        if let outputImage = filter?.outputImage {
+            let context = CIContext()
+            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+                editedImage = UIImage(cgImage: cgImage)
+            }
+        }
+    }
 }
 
 #Preview {

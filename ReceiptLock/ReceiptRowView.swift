@@ -14,6 +14,28 @@ struct ReceiptRowView: View {
     
     var body: some View {
         HStack(spacing: AppTheme.spacing) {
+            // Receipt thumbnail image
+            if let imageData = receipt.imageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(AppTheme.border, lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(AppTheme.secondaryBackground)
+                    .frame(width: 50, height: 50)
+                    .overlay(
+                        Image(systemName: "doc.text")
+                            .font(.title2)
+                            .foregroundColor(AppTheme.secondaryText)
+                    )
+            }
+            
             // Status indicator with pulse animation
             ZStack {
                 if showPulse {
