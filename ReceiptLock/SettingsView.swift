@@ -26,6 +26,7 @@ struct SettingsView: View {
                 LazyVStack(spacing: AppTheme.largeSpacing) {
                     notificationsSection
                     appearanceSection
+                    securitySection
                     backupSyncSection
                     dataManagementSection
                     aboutSection
@@ -97,6 +98,32 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
+        }
+    }
+    
+    private var securitySection: some View {
+        SettingsSection(title: "Security & Privacy", icon: "lock.shield.fill") {
+            SettingsRow(
+                title: "Security Settings",
+                subtitle: "Biometric lock, encryption, and privacy controls",
+                icon: "faceid"
+            ) {
+                NavigationLink("Configure") {
+                    SecuritySettingsView()
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            SettingsRow(
+                title: "Privacy Controls",
+                subtitle: "Manage data sharing and consent",
+                icon: "hand.raised.fill"
+            ) {
+                NavigationLink("Manage") {
+                    SecuritySettingsView()
+                }
+                .foregroundColor(AppTheme.primary)
             }
         }
     }

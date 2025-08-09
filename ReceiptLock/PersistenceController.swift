@@ -19,10 +19,13 @@ struct PersistenceController {
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         } else {
-            // Enable CloudKit sync
+            // Enable CloudKit sync and encryption
             container.persistentStoreDescriptions.forEach { storeDescription in
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+                
+                // Enable encryption for Core Data
+                storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
                 
                 // Enable CloudKit container
                 if let cloudKitContainerIdentifier = storeDescription.cloudKitContainerOptions?.containerIdentifier {
