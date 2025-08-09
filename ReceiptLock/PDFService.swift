@@ -17,6 +17,7 @@ import Foundation
 import PDFKit
 import Vision
 import UIKit
+import SwiftUI
 
 // MARK: - PDF Processing Result
 struct PDFProcessingResult {
