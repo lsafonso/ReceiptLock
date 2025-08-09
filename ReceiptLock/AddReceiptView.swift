@@ -10,6 +10,7 @@ import CoreData
 import PhotosUI
 import Vision
 import VisionKit
+import PDFKit
 
 struct AddReceiptView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -35,6 +36,8 @@ struct AddReceiptView: View {
     @State private var ocrData: ReceiptData?
     @State private var showingImageEditor = false
     @State private var editedImage: UIImage?
+    @State private var selectedPDFURL: URL?
+    @State private var pdfMetadata: PDFMetadata?
     
     // Initialize with a pre-selected image (from camera)
     init(selectedImage: UIImage? = nil) {
@@ -127,11 +130,11 @@ struct AddReceiptView: View {
                             
                             if isProcessingOCR {
                                 VStack(spacing: 8) {
-                                    ProgressView(value: OCRService.shared.processingProgress)
+                                    ProgressView(value: PDFService.shared.isProcessing ? PDFService.shared.processingProgress : OCRService.shared.processingProgress)
                                         .progressViewStyle(LinearProgressViewStyle())
                                         .scaleEffect(0.8)
                                     
-                                    Text("Processing OCR...")
+                                    Text(PDFService.shared.isProcessing ? "Processing PDF..." : "Processing OCR...")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -160,6 +163,44 @@ struct AddReceiptView: View {
                             showingDocumentPicker = true
                         }
                         .buttonStyle(.bordered)
+                    }
+                }
+                
+                // PDF Preview Section
+                if let selectedPDFURL = selectedPDFURL {
+                    Section("PDF Document") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "doc.text.fill")
+                                    .foregroundColor(.blue)
+                                    .font(.title2)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(selectedPDFURL.lastPathComponent)
+                                        .font(.headline)
+                                    if let metadata = pdfMetadata {
+                                        Text("\(metadata.pageCount) page(s)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Button("Remove") {
+                                    selectedPDFURL = nil
+                                    pdfMetadata = nil
+                                }
+                                .buttonStyle(.bordered)
+                                .foregroundColor(.red)
+                            }
+                            
+                            if let metadata = pdfMetadata {
+                                PDFPreviewView(url: selectedPDFURL)
+                                    .frame(height: 200)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
                     }
                 }
                 
@@ -435,11 +476,64 @@ struct AddReceiptView: View {
         switch result {
         case .success(let urls):
             guard let url = urls.first else { return }
-            // PDF processing would be implemented here
-            print("Selected PDF: \(url)")
+            selectedPDFURL = url
+            
+            // Get PDF metadata
+            if let metadata = PDFService.shared.getPDFMetadata(at: url) {
+                pdfMetadata = metadata
+            }
+            
+            Task {
+                await processPDFWithOCR(url: url)
+            }
         case .failure(let error):
             errorMessage = "Failed to select PDF: \(error.localizedDescription)"
             showingError = true
+        }
+    }
+    
+    private func processPDFWithOCR(url: URL) async {
+        await MainActor.run {
+            isProcessingOCR = true
+        }
+        
+        do {
+            let pdfResult = try await PDFService.shared.processPDFWithOCR(at: url)
+            
+            await MainActor.run {
+                if pdfResult.success {
+                    ocrText = pdfResult.extractedText
+                    
+                    // Extract receipt data from PDF text
+                    Task {
+                        let receiptData = try await OCRService.shared.processReceiptImage(pdfResult.extractedImages.first ?? UIImage())
+                        await MainActor.run {
+                            ocrData = receiptData
+                            
+                            // Auto-fill fields if they're empty
+                            if title.isEmpty, let extractedTitle = receiptData.title { title = extractedTitle }
+                            if store.isEmpty, let extractedStore = receiptData.store { store = extractedStore }
+                            if price == 0.0, let extractedPrice = receiptData.price { price = extractedPrice }
+                            if let extractedDate = receiptData.purchaseDate { purchaseDate = extractedDate }
+                            if let extractedWarranty = receiptData.warrantyInfo { warrantySummary = extractedWarranty }
+                            
+                            isProcessingOCR = false
+                            showingOCRResults = true
+                            validationManager.clearErrors()
+                        }
+                    }
+                } else {
+                    isProcessingOCR = false
+                    errorMessage = "Failed to process PDF"
+                    showingError = true
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "PDF processing failed: \(error.localizedDescription)"
+                showingError = true
+                isProcessingOCR = false
+            }
         }
     }
     
@@ -471,6 +565,13 @@ struct AddReceiptView: View {
         if let imageData = selectedImageData {
             receipt.imageData = imageData
             saveReceiptImage(data: imageData, receipt: receipt)
+        }
+        
+        // Save PDF data if exists
+        if let pdfURL = selectedPDFURL {
+            receipt.pdfURL = pdfURL.absoluteString
+            receipt.pdfPageCount = Int16(pdfMetadata?.pageCount ?? 0)
+            receipt.pdfProcessed = true
         }
         
         do {

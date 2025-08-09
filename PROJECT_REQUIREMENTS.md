@@ -49,7 +49,9 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
 - **Smart Data Extraction**: Auto-fill receipt fields from scanned images with intelligent parsing
 - **Image Storage**: Store receipt images alongside data with automatic optimization
 - **Image Editing**: Built-in image editor with filters for better OCR results
-- **PDF Support**: Import and process PDF documents
+- **PDF Support**: Import and process PDF documents with OCR text extraction
+- **PDF Processing**: Convert PDF pages to images for enhanced OCR accuracy
+- **Multi-format Support**: Handle both image-based and text-based PDFs
 - **OCR Results Management**: Review and selectively apply extracted data
 
 ### 6. Dashboard (Home)

@@ -61,7 +61,8 @@ ReceiptLock/
    - Vision framework for text extraction
    - Automatic field suggestion and auto-fill
    - Image processing, editing, and storage
-   - PDF document support
+   - PDF document support with OCR text extraction
+   - PDF page conversion to images for enhanced OCR
    - OCR results management and selective application
 
 5. **File Management**
@@ -104,6 +105,9 @@ Receipt Entity:
 - imageData: Data (optional)
 - ocrProcessed: Bool
 - ocrText: String (optional)
+- pdfURL: String (optional)
+- pdfPageCount: Int16 (optional)
+- pdfProcessed: Bool (optional)
 ```
 
 **Receipt Scanning & OCR Architecture:**
@@ -213,6 +217,36 @@ Run with `Cmd+Shift+U` in Xcode. Tests cover:
 - Tab switching
 - Add receipt flow
 - Settings navigation
+
+## PDF Processing & OCR Features
+
+### PDF Document Support
+- **Multi-format Support**: Handle both text-based and image-based PDFs
+- **Page Conversion**: Convert PDF pages to high-resolution images for OCR
+- **Text Extraction**: Direct text extraction from PDF documents
+- **OCR Enhancement**: Process PDF images with Vision framework for better accuracy
+- **Progress Tracking**: Real-time progress indication during PDF processing
+- **File Validation**: Check PDF integrity and file size limits (50MB max)
+
+### PDF Processing Workflow
+1. **File Selection**: Import PDF documents via document picker
+2. **Validation**: Check file format, size, and integrity
+3. **Text Extraction**: Attempt direct text extraction from PDF
+4. **Image Conversion**: Convert PDF pages to images for OCR processing
+5. **OCR Processing**: Apply Vision framework to extracted images
+6. **Data Combination**: Merge direct text with OCR results
+7. **Results Display**: Show extracted data for user review
+
+### PDF Service Architecture
+```swift
+PDFService: PDF processing and OCR integration
+├── PDF validation and metadata extraction
+├── Text extraction from PDF documents
+├── Page-to-image conversion for OCR
+├── Progress tracking and error handling
+├── File size and format validation
+└── Integration with existing OCR pipeline
+```
 
 ## Camera Integration Features
 

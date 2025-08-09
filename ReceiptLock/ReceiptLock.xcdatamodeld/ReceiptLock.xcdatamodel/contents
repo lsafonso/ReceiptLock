@@ -15,5 +15,8 @@
         <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="warrantyMonths" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="warrantySummary" optional="YES" attributeType="String"/>
+        <attribute name="pdfURL" optional="YES" attributeType="String"/>
+        <attribute name="pdfPageCount" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="pdfProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
     </entity>
 </model> 
