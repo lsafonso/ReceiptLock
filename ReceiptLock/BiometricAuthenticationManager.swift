@@ -70,7 +70,7 @@ class BiometricAuthenticationManager: ObservableObject {
         }
     }
     
-    private func authenticateWithPasscode() async -> Bool {
+    func authenticateWithPasscode() async -> Bool {
         do {
             let success = try await context.evaluatePolicy(
                 .deviceOwnerAuthentication,
