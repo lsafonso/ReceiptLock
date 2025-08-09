@@ -11,9 +11,9 @@ import CoreData
 struct ApplianceListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Receipt.createdAt, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \Appliance.createdAt, ascending: false)],
         animation: .default)
-    private var receipts: FetchedResults<Receipt>
+    private var appliances: FetchedResults<Appliance>
     
     @State private var searchText = ""
     @State private var selectedFilter: ApplianceFilter = .all
@@ -114,9 +114,9 @@ struct ApplianceListView: View {
     // MARK: - Appliance List
     private var applianceList: some View {
         List {
-            ForEach(Array(filteredAppliances.enumerated()), id: \.element.id) { index, receipt in
-                NavigationLink(destination: ApplianceDetailView(receipt: receipt)) {
-                    ApplianceRowView(receipt: receipt)
+            ForEach(Array(filteredAppliances.enumerated()), id: \.element.id) { index, appliance in
+                NavigationLink(destination: ApplianceDetailView(appliance: appliance)) {
+                    ApplianceRowView(appliance: appliance)
                         .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
@@ -156,13 +156,14 @@ struct ApplianceListView: View {
     
     // MARK: - Computed Properties
     
-    private var filteredAppliances: [Receipt] {
-        let filtered = receipts.filter { receipt in
+    private var filteredAppliances: [Appliance] {
+        let filtered = appliances.filter { appliance in
             let matchesSearch = searchText.isEmpty || 
-                (receipt.title?.localizedCaseInsensitiveContains(searchText) == true) ||
-                (receipt.store?.localizedCaseInsensitiveContains(searchText) == true)
+                (appliance.name?.localizedCaseInsensitiveContains(searchText) == true) ||
+                (appliance.brand?.localizedCaseInsensitiveContains(searchText) == true) ||
+                (appliance.model?.localizedCaseInsensitiveContains(searchText) == true)
             
-            let matchesFilter = matchesFilterCriteria(receipt)
+            let matchesFilter = matchesFilterCriteria(appliance)
             
             return matchesSearch && matchesFilter
         }
@@ -170,8 +171,8 @@ struct ApplianceListView: View {
         return Array(filtered)
     }
     
-    private func matchesFilterCriteria(_ receipt: Receipt) -> Bool {
-        guard let expiryDate = receipt.expiryDate else { return selectedFilter == .all }
+    private func matchesFilterCriteria(_ appliance: Appliance) -> Bool {
+        guard let expiryDate = appliance.warrantyExpiryDate else { return selectedFilter == .all }
         
         let now = Date()
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
@@ -189,8 +190,8 @@ struct ApplianceListView: View {
     }
     
     private func countForFilter(_ filter: ApplianceFilter) -> Int {
-        receipts.filter { receipt in
-            guard let expiryDate = receipt.expiryDate else { return filter == .all }
+        appliances.filter { appliance in
+            guard let expiryDate = appliance.warrantyExpiryDate else { return filter == .all }
             
             let now = Date()
             let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0

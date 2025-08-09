@@ -164,6 +164,16 @@ class ReminderManager: ObservableObject {
         }
     }
     
+    func scheduleNotifications(for appliance: Appliance) async {
+        guard preferences.notificationsEnabled,
+              let _ = appliance.warrantyExpiryDate,
+              let _ = appliance.id else { return }
+        
+        for reminder in preferences.enabledReminders {
+            await scheduleNotification(for: appliance, reminder: reminder)
+        }
+    }
+    
     private func scheduleNotification(for receipt: Receipt, reminder: Reminder) async {
         guard let expiryDate = receipt.expiryDate,
               let receiptId = receipt.id else { return }
@@ -227,12 +237,85 @@ class ReminderManager: ObservableObject {
         }
     }
     
+    private func scheduleNotification(for appliance: Appliance, reminder: Reminder) async {
+        guard let expiryDate = appliance.warrantyExpiryDate,
+              let applianceId = appliance.id else { return }
+        
+        // Calculate reminder date
+        guard let reminderDate = Calendar.current.date(byAdding: .day, value: -reminder.daysBeforeExpiry, to: expiryDate) else {
+            return
+        }
+        
+        // Only schedule if reminder date is in the future
+        guard reminderDate > Date() else { return }
+        
+        // Use custom time if available, otherwise use default reminder time
+        let reminderTime = reminder.customTime ?? preferences.reminderTime
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        
+        // Combine reminder date with reminder time
+        var finalReminderDate = calendar.date(bySettingHour: timeComponents.hour ?? 9, minute: timeComponents.minute ?? 0, second: 0, of: reminderDate) ?? reminderDate
+        
+        // If the combined time is in the past, move to next day
+        if finalReminderDate <= Date() {
+            finalReminderDate = calendar.date(byAdding: .day, value: 1, to: finalReminderDate) ?? finalReminderDate
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Warranty Reminder"
+        
+        // Use custom message if available, otherwise use default
+        let message = reminder.message.isEmpty ? 
+            "Your warranty for \(appliance.name ?? "appliance") expires on \(expiryDate.formatted(date: .abbreviated, time: .omitted))" :
+            reminder.message.replacingOccurrences(of: "{appliance}", with: appliance.name ?? "appliance")
+            .replacingOccurrences(of: "{expiryDate}", with: expiryDate.formatted(date: .abbreviated, time: .omitted))
+            .replacingOccurrences(of: "{daysLeft}", with: "\(reminder.daysBeforeExpiry)")
+        
+        content.body = message
+        content.sound = .default
+        content.badge = 1
+        
+        // Add user info for deep linking
+        content.userInfo = [
+            "applianceId": applianceId.uuidString,
+            "reminderType": "warranty",
+            "daysBeforeExpiry": reminder.daysBeforeExpiry
+        ]
+        
+        let triggerDate = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: finalReminderDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: "\(applianceId.uuidString)-\(reminder.daysBeforeExpiry)",
+            content: content,
+            trigger: trigger
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("Scheduled notification for \(appliance.name ?? "appliance") \(reminder.displayText)")
+        } catch {
+            print("Error scheduling notification: \(error)")
+        }
+    }
+    
     func cancelNotifications(for receipt: Receipt) {
         guard let receiptId = receipt.id else { return }
         
         // Cancel all reminders for this receipt
         for reminder in preferences.defaultReminders {
             let identifier = "\(receiptId.uuidString)-\(reminder.daysBeforeExpiry)"
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        }
+    }
+    
+    func cancelNotifications(for appliance: Appliance) {
+        guard let applianceId = appliance.id else { return }
+        
+        // Cancel all reminders for this appliance
+        for reminder in preferences.defaultReminders {
+            let identifier = "\(applianceId.uuidString)-\(reminder.daysBeforeExpiry)"
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
         }
     }

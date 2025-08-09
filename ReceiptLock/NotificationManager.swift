@@ -29,9 +29,21 @@ class NotificationManager: ObservableObject {
         }
     }
     
+    func scheduleNotification(for appliance: Appliance) {
+        // Delegate to ReminderManager for multiple reminders
+        Task {
+            await ReminderManager.shared.scheduleNotifications(for: appliance)
+        }
+    }
+    
     func cancelNotification(for receipt: Receipt) {
         // Delegate to ReminderManager for multiple reminders
         ReminderManager.shared.cancelNotifications(for: receipt)
+    }
+    
+    func cancelNotification(for appliance: Appliance) {
+        // Delegate to ReminderManager for multiple reminders
+        ReminderManager.shared.cancelNotifications(for: appliance)
     }
     
     func cancelAllNotifications() {

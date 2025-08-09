@@ -18,5 +18,24 @@
         <attribute name="pdfURL" optional="YES" attributeType="String"/>
         <attribute name="pdfPageCount" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="pdfProcessed" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="appliance" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Appliance" inverseName="receipts" inverseEntity="Appliance"/>
+    </entity>
+    
+    <entity name="Appliance" representedClassName="Appliance" syncable="YES" codeGenerationType="class">
+        <attribute name="brand" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="model" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="purchaseDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="serialNumber" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="warrantyExpiryDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="warrantyMonths" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="warrantySummary" optional="YES" attributeType="String"/>
+        <attribute name="price" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="receipts" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Receipt" inverseName="appliance" inverseEntity="Receipt"/>
     </entity>
 </model> 

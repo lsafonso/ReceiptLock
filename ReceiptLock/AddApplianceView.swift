@@ -460,18 +460,18 @@ struct AddApplianceView: View {
             return
         }
         
-        let receipt = Receipt(context: viewContext)
-        receipt.id = UUID()
-        receipt.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        receipt.store = store.trimmingCharacters(in: .whitespacesAndNewlines)
-        receipt.purchaseDate = purchaseDate
-        receipt.price = price
-        receipt.warrantyMonths = Int16(warrantyMonths)
-        receipt.createdAt = Date()
+        let appliance = Appliance(context: viewContext)
+        appliance.id = UUID()
+        appliance.name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        appliance.brand = store.trimmingCharacters(in: .whitespacesAndNewlines)
+        appliance.purchaseDate = purchaseDate
+        appliance.price = price
+        appliance.warrantyMonths = Int16(warrantyMonths)
+        appliance.createdAt = Date()
         
         // Calculate expiry date
         if let expiryDate = Calendar.current.date(byAdding: .month, value: warrantyMonths, to: purchaseDate) {
-            receipt.expiryDate = expiryDate
+            appliance.warrantyExpiryDate = expiryDate
         }
         
         // Note: imageData property doesn't exist in Receipt entity
@@ -482,7 +482,7 @@ struct AddApplianceView: View {
             try viewContext.save()
             
             // Schedule notification for warranty expiry
-            NotificationManager.shared.scheduleNotification(for: receipt)
+            NotificationManager.shared.scheduleNotification(for: appliance)
             
             // Haptic feedback for successful save
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ApplianceDetailView: View {
-    let receipt: Receipt
+    let appliance: Appliance
     @Environment(\.dismiss) private var dismiss
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
@@ -54,7 +54,7 @@ struct ApplianceDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditSheet) {
-            EditApplianceView(receipt: receipt)
+            EditApplianceView(appliance: appliance)
         }
         .alert("Delete Appliance", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
@@ -78,12 +78,12 @@ struct ApplianceDetailView: View {
                 .cornerRadius(AppTheme.largeCornerRadius)
             
             VStack(spacing: AppTheme.smallSpacing) {
-                Text(receipt.title ?? "Untitled Appliance")
+                Text(appliance.name ?? "Untitled Appliance")
                     .font(.title2.weight(.bold))
                     .foregroundColor(AppTheme.text)
                     .multilineTextAlignment(.center)
                 
-                Text(receipt.store ?? "Unknown Brand")
+                Text(appliance.brand ?? "Unknown Brand")
                     .font(.subheadline)
                     .foregroundColor(AppTheme.secondaryText)
             }
@@ -102,7 +102,7 @@ struct ApplianceDetailView: View {
             VStack(spacing: AppTheme.smallSpacing) {
                 ApplianceInfoRow(title: "Purchase Date", value: formattedPurchaseDate)
                 ApplianceInfoRow(title: "Price", value: formattedPrice)
-                ApplianceInfoRow(title: "Warranty Duration", value: "\(receipt.warrantyMonths) months")
+                ApplianceInfoRow(title: "Warranty Duration", value: "\(appliance.warrantyMonths) months")
                 ApplianceInfoRow(title: "Added", value: formattedCreatedDate)
             }
         }
@@ -151,7 +151,7 @@ struct ApplianceDetailView: View {
                 }
                 
                 // Expiry date
-                if receipt.expiryDate != nil {
+                if appliance.warrantyExpiryDate != nil {
                     HStack {
                         Image(systemName: "calendar")
                             .font(.caption)
@@ -204,7 +204,7 @@ struct ApplianceDetailView: View {
     // MARK: - Computed Properties
     
     private var warrantyStatusColor: Color {
-        guard let expiryDate = receipt.expiryDate else { return AppTheme.secondaryText }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return AppTheme.secondaryText }
         
         let now = Date()
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
@@ -221,7 +221,7 @@ struct ApplianceDetailView: View {
     }
     
     private var warrantyStatusText: String {
-        guard let expiryDate = receipt.expiryDate else { return "Unknown Status" }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown Status" }
         
         let now = Date()
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
@@ -238,8 +238,8 @@ struct ApplianceDetailView: View {
     }
     
     private var progressValue: Double {
-        guard let purchaseDate = receipt.purchaseDate,
-              let expiryDate = receipt.expiryDate else { return 0.0 }
+        guard let purchaseDate = appliance.purchaseDate,
+              let expiryDate = appliance.warrantyExpiryDate else { return 0.0 }
         
         let now = Date()
         let totalDuration = expiryDate.timeIntervalSince(purchaseDate)
@@ -250,7 +250,7 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedPurchaseDate: String {
-        guard let purchaseDate = receipt.purchaseDate else { return "Unknown" }
+        guard let purchaseDate = appliance.purchaseDate else { return "Unknown" }
         
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -260,7 +260,7 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedExpiryDate: String {
-        guard let expiryDate = receipt.expiryDate else { return "Unknown" }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown" }
         
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -270,7 +270,7 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedPrice: String {
-        return receipt.price.formatted(.currency(code: "USD"))
+        return appliance.price.formatted(.currency(code: "USD"))
     }
     
     private var formattedCreatedDate: String {
@@ -278,13 +278,13 @@ struct ApplianceDetailView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         
-        return formatter.string(from: receipt.createdAt ?? Date())
+        return formatter.string(from: appliance.createdAt ?? Date())
     }
     
     // MARK: - Helper Methods
     
     private func getApplianceIcon() -> String {
-        let title = receipt.title?.lowercased() ?? ""
+        let title = appliance.name?.lowercased() ?? ""
         
         if title.contains("laptop") || title.contains("computer") {
             return "laptopcomputer"
@@ -322,7 +322,7 @@ struct ApplianceDetailView: View {
     }
     
     private func getApplianceColor() -> Color {
-        let title = receipt.title?.lowercased() ?? ""
+        let title = appliance.name?.lowercased() ?? ""
         
         if title.contains("laptop") || title.contains("computer") || title.contains("mobile") || title.contains("phone") || title.contains("tablet") || title.contains("watch") {
             return .indigo
@@ -353,10 +353,10 @@ struct ApplianceDetailView: View {
     
     private func shareAppliance() {
         let text = """
-        Appliance: \(receipt.title ?? "Unknown")
-        Brand: \(receipt.store ?? "Unknown")
+        Appliance: \(appliance.name ?? "Unknown")
+        Brand: \(appliance.brand ?? "Unknown")
         Price: \(formattedPrice)
-        Warranty: \(receipt.warrantyMonths) months
+        Warranty: \(appliance.warrantyMonths) months
         Expires: \(formattedExpiryDate)
         """
         
@@ -397,7 +397,7 @@ struct ApplianceInfoRow: View {
 
 // MARK: - Edit Appliance View
 struct EditApplianceView: View {
-    let receipt: Receipt
+    let appliance: Appliance
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
@@ -407,13 +407,13 @@ struct EditApplianceView: View {
     @State private var price: Double
     @State private var warrantyMonths: Int
     
-    init(receipt: Receipt) {
-        self.receipt = receipt
-        self._title = State(initialValue: receipt.title ?? "")
-        self._store = State(initialValue: receipt.store ?? "")
-        self._purchaseDate = State(initialValue: receipt.purchaseDate ?? Date())
-        self._price = State(initialValue: receipt.price)
-        self._warrantyMonths = State(initialValue: Int(receipt.warrantyMonths))
+    init(appliance: Appliance) {
+        self.appliance = appliance
+        self._title = State(initialValue: appliance.name ?? "")
+        self._store = State(initialValue: appliance.brand ?? "")
+        self._purchaseDate = State(initialValue: appliance.purchaseDate ?? Date())
+        self._price = State(initialValue: appliance.price)
+        self._warrantyMonths = State(initialValue: Int(appliance.warrantyMonths))
     }
     
     var body: some View {
@@ -451,11 +451,11 @@ struct EditApplianceView: View {
     }
     
     private func saveChanges() {
-        receipt.title = title
-        receipt.store = store
-        receipt.purchaseDate = purchaseDate
-        receipt.price = price
-        receipt.warrantyMonths = Int16(warrantyMonths)
+        appliance.name = title
+        appliance.brand = store
+        appliance.purchaseDate = purchaseDate
+        appliance.price = price
+        appliance.warrantyMonths = Int16(warrantyMonths)
         
         do {
             try viewContext.save()

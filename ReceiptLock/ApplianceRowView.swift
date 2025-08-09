@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ApplianceRowView: View {
-    let receipt: Receipt
+    let appliance: Appliance
     @State private var isPressed = false
     @State private var showPulse = false
     @State private var showingEditSheet = false
@@ -28,7 +28,7 @@ struct ApplianceRowView: View {
             // Appliance details
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(receipt.title ?? "Untitled Appliance")
+                    Text(appliance.name ?? "Untitled Appliance")
                         .font(.headline.weight(.semibold))
                         .foregroundColor(AppTheme.text)
                         .lineLimit(1)
@@ -46,7 +46,7 @@ struct ApplianceRowView: View {
                 }
                 
                 HStack {
-                    Text("Will expire on: \(formattedExpiryDate)")
+                    Text("Warranty expires: \(formattedExpiryDate)")
                         .font(.caption.weight(.medium))
                         .foregroundColor(expiryStatusColor)
                     
@@ -145,7 +145,7 @@ struct ApplianceRowView: View {
                 deleteAppliance()
             }
         } message: {
-            Text("Are you sure you want to delete '\(receipt.title ?? "this appliance")'? This action cannot be undone.")
+            Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
         }
     }
     
@@ -156,7 +156,7 @@ struct ApplianceRowView: View {
         NotificationManager.shared.cancelNotification(for: receipt)
         
         // Delete associated file if exists
-        if let fileName = receipt.fileName {
+        if let fileName = appliance.name {
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fileURL = documentsPath.appendingPathComponent("receipts").appendingPathComponent(fileName)
             
@@ -179,9 +179,9 @@ struct ApplianceRowView: View {
     
     private func shareAppliance() {
         // Create share content
-        let title = receipt.title ?? "Appliance"
-        let store = receipt.store ?? "Unknown Store"
-        let price = String(format: "%.2f", receipt.price)
+        let title = appliance.name ?? "Appliance"
+        let brand = appliance.brand ?? "Unknown Brand"
+        let model = appliance.model ?? "Unknown Model"
         let expiryDate = formattedExpiryDate
         
         let shareText = """
@@ -207,7 +207,7 @@ struct ApplianceRowView: View {
     // MARK: - Computed Properties
     
     private var expiryStatusColor: Color {
-        guard let expiryDate = receipt.expiryDate else { return AppTheme.secondaryText }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return AppTheme.secondaryText }
         
         let now = Date()
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
