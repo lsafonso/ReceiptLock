@@ -272,7 +272,11 @@ class CameraService: NSObject, ObservableObject {
         
         // Configure compression
         if let photoOutputConnection = photoOutput.connection(with: .video) {
-            photoOutputConnection.videoOrientation = .portrait
+            if #available(iOS 17.0, *) {
+                photoOutputConnection.videoRotationAngle = 0.0 // 0° = portrait
+            } else {
+                photoOutputConnection.videoOrientation = .portrait
+            }
         }
         
         photoOutput.capturePhoto(with: settings, delegate: self)
