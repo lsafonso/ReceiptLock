@@ -137,7 +137,7 @@ struct ApplianceRowView: View {
             .tint(AppTheme.secondary)
         }
         .sheet(isPresented: $showingEditSheet) {
-            EditApplianceView(receipt: receipt)
+            EditApplianceView(appliance: appliance)
         }
         .alert("Delete Appliance", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
@@ -153,7 +153,7 @@ struct ApplianceRowView: View {
     
     private func deleteAppliance() {
         // Cancel any scheduled notifications
-        NotificationManager.shared.cancelNotification(for: receipt)
+        NotificationManager.shared.cancelNotification(for: appliance)
         
         // Delete associated file if exists
         if let fileName = appliance.name {
@@ -164,7 +164,7 @@ struct ApplianceRowView: View {
         }
         
         // Delete from Core Data
-        viewContext.delete(receipt)
+        viewContext.delete(appliance)
         
         do {
             try viewContext.save()
@@ -186,8 +186,8 @@ struct ApplianceRowView: View {
         
         let shareText = """
         Appliance: \(title)
-        Store: \(store)
-        Price: $\(price)
+        Brand: \(brand)
+        Model: \(model)
         Expires: \(expiryDate)
         
         Shared from Appliance Warranty Tracker
@@ -224,7 +224,7 @@ struct ApplianceRowView: View {
     }
     
     private var formattedExpiryDate: String {
-        guard let expiryDate = receipt.expiryDate else { return "Unknown" }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown" }
         
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -234,8 +234,8 @@ struct ApplianceRowView: View {
     }
     
     private var progressValue: Double {
-        guard let purchaseDate = receipt.purchaseDate,
-              let expiryDate = receipt.expiryDate else { return 0.0 }
+        guard let purchaseDate = appliance.purchaseDate,
+              let expiryDate = appliance.warrantyExpiryDate else { return 0.0 }
         
         let now = Date()
         let totalDuration = expiryDate.timeIntervalSince(purchaseDate)
@@ -246,7 +246,7 @@ struct ApplianceRowView: View {
     }
     
     private var isUrgent: Bool {
-        guard let expiryDate = receipt.expiryDate else { return false }
+        guard let expiryDate = appliance.warrantyExpiryDate else { return false }
         
         let now = Date()
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
@@ -257,7 +257,7 @@ struct ApplianceRowView: View {
     // MARK: - Helper Methods
     
     private func getApplianceIcon() -> String {
-        let title = receipt.title?.lowercased() ?? ""
+        let title = appliance.name?.lowercased() ?? ""
         
         if title.contains("laptop") || title.contains("computer") {
             return "laptopcomputer"
@@ -295,7 +295,7 @@ struct ApplianceRowView: View {
     }
     
     private func getApplianceColor() -> Color {
-        let title = receipt.title?.lowercased() ?? ""
+        let title = appliance.name?.lowercased() ?? ""
         
         if title.contains("laptop") || title.contains("computer") || title.contains("mobile") || title.contains("phone") || title.contains("tablet") || title.contains("watch") {
             return .indigo

@@ -11,9 +11,9 @@ import CoreData
 struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Receipt.createdAt, ascending: false)],
+        sortDescriptors: [NSSortDescriptor(keyPath: \Appliance.createdAt, ascending: false)],
         animation: .default)
-    private var receipts: FetchedResults<Receipt>
+    private var appliances: FetchedResults<Appliance>
     
     @State private var showingAddAppliance = false
     @State private var selectedCard: Int? = nil
@@ -96,7 +96,7 @@ struct DashboardView: View {
                     .font(.title2)
                     .foregroundColor(AppTheme.primary)
                 
-                Text("\(receipts.count)")
+                Text("\(appliances.count)")
                     .font(.title.weight(.bold))
                     .foregroundColor(AppTheme.text)
                 
@@ -162,7 +162,7 @@ struct DashboardView: View {
                 .font(.headline.weight(.semibold))
                 .foregroundColor(AppTheme.text)
             
-            if receipts.isEmpty {
+            if appliances.isEmpty {
                 EmptyStateView(
                     title: "No Appliances Yet",
                     message: "Start by adding your first appliance to track warranties.",
@@ -172,9 +172,9 @@ struct DashboardView: View {
                 )
             } else {
                 LazyVStack(spacing: AppTheme.smallSpacing) {
-                    ForEach(Array(receipts.prefix(3)), id: \.id) { receipt in
-                        NavigationLink(destination: ApplianceDetailView(receipt: receipt)) {
-                            ApplianceRowView(receipt: receipt)
+                    ForEach(Array(appliances.prefix(3)), id: \.id) { appliance in
+                        NavigationLink(destination: ApplianceDetailView(appliance: appliance)) {
+                            ApplianceRowView(appliance: appliance)
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
@@ -205,18 +205,18 @@ struct DashboardView: View {
     
     // MARK: - Computed Properties
     
-    private var validWarranties: [Receipt] {
+    private var validWarranties: [Appliance] {
         let now = Date()
-        return receipts.filter { receipt in
-            guard let expiryDate = receipt.expiryDate else { return false }
+        return appliances.filter { appliance in
+            guard let expiryDate = appliance.warrantyExpiryDate else { return false }
             return expiryDate > now
         }
     }
     
-    private var expiredWarranties: [Receipt] {
+    private var expiredWarranties: [Appliance] {
         let now = Date()
-        return receipts.filter { receipt in
-            guard let expiryDate = receipt.expiryDate else { return false }
+        return appliances.filter { appliance in
+            guard let expiryDate = appliance.warrantyExpiryDate else { return false }
             return expiryDate < now
         }
     }
