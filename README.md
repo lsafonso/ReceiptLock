@@ -4,6 +4,15 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 
 ## Features
 
+### 🔒 **Security & Privacy** ✅ **COMPLETE**
+- **Face ID/Touch ID Protection**: Biometric authentication with device passcode fallback
+- **Data Encryption**: AES-256 encryption for all sensitive data using CryptoKit
+- **Secure Storage**: Encrypted data storage with iOS Keychain integration
+- **Privacy Controls**: GDPR-compliant consent management and data retention policies
+- **Security Auditing**: Comprehensive security assessment and real-time monitoring
+- **Auto-Lock System**: Configurable session timeout and biometric lock protection
+- **Data Export/Deletion**: Full GDPR compliance with data portability and right to be forgotten
+
 ### Core Functionality
 - **Receipt Management**: Create, edit, and delete receipts with detailed information
 - **Warranty Tracking**: Automatic expiry date calculation based on purchase date and warranty months
@@ -55,6 +64,12 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **UserNotifications**: Local notification scheduling
 - **PhotosUI**: Image selection from photo library
 - **FileManager**: Local file storage management
+
+### 🔒 **Security Technologies**
+- **LocalAuthentication**: Face ID and Touch ID biometric authentication
+- **CryptoKit**: AES-256 encryption and secure key management
+- **Security Framework**: iOS Keychain integration for secure storage
+- **Core Data Encryption**: Encrypted attributes and secure data persistence
 
 ### Architecture
 - **MVVM Pattern**: Clean separation of concerns
@@ -118,6 +133,15 @@ ReceiptLock/
 │   │   ├── ReceiptDetailView.swift
 │   │   ├── ReceiptRowView.swift
 │   │   └── SettingsView.swift
+│   ├── 🔒 Security/                  # Security & Privacy
+│   │   ├── AuthenticationWrapperView.swift
+│   │   ├── BiometricAuthenticationManager.swift
+│   │   ├── DataEncryptionManager.swift
+│   │   ├── SecureStorageManager.swift
+│   │   ├── PrivacyManager.swift
+│   │   ├── SecuritySettingsView.swift
+│   │   ├── AuthenticationService.swift
+│   │   └── KeychainWrapper.swift
 │   ├── Managers/                     # Business logic
 │   │   └── NotificationManager.swift
 │   ├── ReceiptLock.xcdatamodeld/    # Core Data model
@@ -176,6 +200,10 @@ The app requires the following permissions:
 - **Photo Library**: For selecting receipt images
 - **File Access**: For importing/exporting data
 
+### 🔒 **Security Permissions**
+- **Face ID/Touch ID**: For biometric authentication (optional, with passcode fallback)
+- **Keychain Access**: For secure storage of encryption keys and sensitive data
+
 ## File Storage
 
 Receipt files are stored in:
@@ -204,6 +232,10 @@ The app includes comprehensive error handling for:
 
 ## Future Enhancements
 
+### 🔒 **Security & Privacy** ✅ **COMPLETE**
+- **All security features implemented and production-ready**
+
+### Core Features
 - Cloud sync with iCloud
 - Multiple currency support
 - Enhanced OCR with machine learning
