@@ -7,223 +7,196 @@
 
 import SwiftUI
 import CoreData
-import PDFKit
-import UIKit
 
 struct ReceiptDetailView: View {
+    let receipt: Receipt
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var imageStorageManager = ImageStorageManager.shared
     
-    let receipt: Receipt
-    @State private var showingEditSheet = false
+    @State private var showingImageFullScreen = false
+    @State private var showingEditReceipt = false
     @State private var showingDeleteAlert = false
     @State private var showingShareSheet = false
-    @State private var shareURL: URL?
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Receipt Image/PDF
+            VStack(spacing: 20) {
+                // Receipt Image Section
                 if let imageData = receipt.imageData, let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 300)
-                        .cornerRadius(12)
-                        .clipped()
-                } else if let fileName = receipt.fileName {
-                    ReceiptImageView(fileName: fileName)
-                        .frame(height: 300)
-                        .cornerRadius(12)
-                } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemGray5))
-                        .frame(height: 200)
-                        .overlay(
-                            VStack {
-                                Image(systemName: "doc.text")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.secondary)
-                                Text("No receipt image")
-                                    .foregroundColor(.secondary)
+                    VStack(spacing: 12) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(radius: 4)
+                            .onTapGesture {
+                                showingImageFullScreen = true
                             }
-                        )
+                        
+                        HStack {
+                            Button("View Full Screen") {
+                                showingImageFullScreen = true
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Spacer()
+                            
+                            Button("Share") {
+                                showingShareSheet = true
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(.horizontal)
+                    }
                 }
                 
-                // OCR Information (if available)
-                if let ocrText = receipt.ocrText, !ocrText.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "text.viewfinder")
-                                .foregroundColor(.blue)
-                            Text("OCR Data")
-                                .font(.headline)
-                            Spacer()
-                            if receipt.ocrProcessed {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
+                // Receipt Information Section
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeader(title: "Receipt Information")
+                    
+                    VStack(spacing: 12) {
+                        InfoRow(title: "Title", value: receipt.title ?? "N/A")
+                        InfoRow(title: "Store", value: receipt.store ?? "N/A")
+                        InfoRow(title: "Price", value: formatPrice(receipt.price))
+                        InfoRow(title: "Purchase Date", value: formatDate(receipt.purchaseDate))
+                        InfoRow(title: "Warranty", value: formatWarranty(receipt.warrantyMonths))
+                        
+                        if let expiryDate = receipt.expiryDate {
+                            InfoRow(title: "Expiry Date", value: formatDate(expiryDate))
                         }
                         
-                        Text(ocrText)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                        if let warrantySummary = receipt.warrantySummary, !warrantySummary.isEmpty {
+                            InfoRow(title: "Warranty Details", value: warrantySummary)
+                        }
                     }
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(Color(.systemGray6))
                     .cornerRadius(12)
-                    .shadow(radius: 2)
                 }
                 
-                // Receipt Information
-                VStack(alignment: .leading, spacing: 16) {
-                    InfoRow(title: "Title", value: receipt.title ?? "Untitled Receipt")
-                    InfoRow(title: "Store", value: receipt.store ?? "Unknown Store")
-                    InfoRow(title: "Purchase Date", value: receipt.purchaseDate?.formatted(date: .long, time: .omitted) ?? "Unknown")
-                    InfoRow(title: "Price", value: "$\(String(format: "%.2f", receipt.price))")
-                    InfoRow(title: "Warranty", value: "\(receipt.warrantyMonths) months")
-                    
-                    if let expiryDate = receipt.expiryDate {
-                        InfoRow(
-                            title: "Expiry Date",
-                            value: expiryDate.formatted(date: .long, time: .omitted),
-                            valueColor: expiryStatusColor(for: expiryDate)
-                        )
+                // OCR Data Section (if available)
+                if let ocrText = receipt.ocrText, !ocrText.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "OCR Extracted Data")
                         
-                        // Expiry status
-                        HStack {
-                            Image(systemName: expiryStatusIcon(for: expiryDate))
-                                .foregroundColor(expiryStatusColor(for: expiryDate))
-                            Text(expiryStatusText(for: expiryDate))
-                                .foregroundColor(expiryStatusColor(for: expiryDate))
-                                .fontWeight(.medium)
-                            Spacer()
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(expiryStatusColor(for: expiryDate).opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    
-                    if let warrantySummary = receipt.warrantySummary, !warrantySummary.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Warranty Summary")
-                                .font(.headline)
-                            Text(warrantySummary)
-                                .font(.body)
+                            Text("Raw OCR Text")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
+                            
+                            Text(ocrText)
+                                .font(.caption)
+                                .foregroundColor(.primary)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
                         }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
                     }
                 }
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(12)
-                .shadow(radius: 2)
+                
+                // Metadata Section
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionHeader(title: "Metadata")
+                    
+                    VStack(spacing: 12) {
+                        InfoRow(title: "Created", value: formatDate(receipt.createdAt))
+                        InfoRow(title: "Last Updated", value: formatDate(receipt.updatedAt))
+                        InfoRow(title: "OCR Processed", value: receipt.ocrProcessed ? "Yes" : "No")
+                        
+                        if let fileName = receipt.fileName {
+                            InfoRow(title: "Image File", value: fileName)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                
+                // Action Buttons
+                VStack(spacing: 12) {
+                    Button("Edit Receipt") {
+                        showingEditReceipt = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    
+                    Button("Delete Receipt") {
+                        showingDeleteAlert = true
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal)
             }
             .padding()
         }
         .navigationTitle("Receipt Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button("Edit") {
-                        showingEditSheet = true
-                    }
-                    
-                    Button("Share as PDF") {
-                        generateAndSharePDF()
-                    }
-                    
-                    Button("Delete", role: .destructive) {
-                        showingDeleteAlert = true
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Edit") {
+                    showingEditReceipt = true
                 }
             }
         }
-        .sheet(isPresented: $showingEditSheet) {
+        .sheet(isPresented: $showingImageFullScreen) {
+            if let imageData = receipt.imageData, let uiImage = UIImage(data: imageData) {
+                ImageFullScreenView(image: uiImage)
+            }
+        }
+        .sheet(isPresented: $showingEditReceipt) {
             EditReceiptView(receipt: receipt)
         }
         .alert("Delete Receipt", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 deleteReceipt()
             }
+            Button("Cancel", role: .cancel) { }
         } message: {
             Text("Are you sure you want to delete this receipt? This action cannot be undone.")
         }
         .sheet(isPresented: $showingShareSheet) {
-            if let url = shareURL {
-                ShareSheet(items: [url])
+            if let imageData = receipt.imageData, let uiImage = UIImage(data: imageData) {
+                ShareSheet(items: [uiImage])
             }
         }
     }
     
     // MARK: - Helper Methods
     
-    private func expiryStatusColor(for date: Date) -> Color {
-        let now = Date()
-        let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: date).day ?? 0
-        
-        if date < now {
-            return .red
-        } else if daysUntilExpiry <= 7 {
-            return .orange
-        } else if daysUntilExpiry <= 30 {
-            return .yellow
-        } else {
-            return .green
-        }
+    private func formatPrice(_ price: Double) -> String {
+        return String(format: "$%.2f", price)
     }
     
-    private func expiryStatusIcon(for date: Date) -> String {
-        let now = Date()
-        let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: date).day ?? 0
-        
-        if date < now {
-            return "exclamationmark.triangle.fill"
-        } else if daysUntilExpiry <= 7 {
-            return "clock.fill"
-        } else if daysUntilExpiry <= 30 {
-            return "clock"
-        } else {
-            return "checkmark.circle.fill"
-        }
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "N/A" }
+        return DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none)
     }
     
-    private func expiryStatusText(for date: Date) -> String {
-        let now = Date()
-        let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: date).day ?? 0
-        
-        if date < now {
-            return "Warranty Expired"
-        } else if daysUntilExpiry == 0 {
-            return "Expires Today"
-        } else if daysUntilExpiry == 1 {
-            return "Expires Tomorrow"
-        } else if daysUntilExpiry <= 7 {
-            return "Expires in \(daysUntilExpiry) days"
-        } else if daysUntilExpiry <= 30 {
-            return "Expires in \(daysUntilExpiry) days"
+    private func formatWarranty(_ months: Int16) -> String {
+        if months == 0 {
+            return "No warranty"
+        } else if months == 1 {
+            return "1 month"
+        } else if months == 12 {
+            return "1 year"
+        } else if months % 12 == 0 {
+            return "\(months / 12) years"
         } else {
-            return "Warranty Active"
+            return "\(months) months"
         }
     }
     
     private func deleteReceipt() {
-        // Delete associated file if exists
+        // Delete associated image file
         if let fileName = receipt.fileName {
-            deleteReceiptFile(fileName: fileName)
+            imageStorageManager.deleteReceiptImage(fileName: fileName)
         }
         
+        // Delete from Core Data
         viewContext.delete(receipt)
         
         do {
@@ -233,164 +206,116 @@ struct ReceiptDetailView: View {
             print("Error deleting receipt: \(error)")
         }
     }
+}
+
+// MARK: - Supporting Views
+
+struct SectionHeader: View {
+    let title: String
     
-    private func deleteReceiptFile(fileName: String) {
-        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-        
-        let receiptsPath = documentsPath.appendingPathComponent("receipts")
-        let fileURL = receiptsPath.appendingPathComponent(fileName)
-        
-        do {
-            try FileManager.default.removeItem(at: fileURL)
-        } catch {
-            print("Error deleting file: \(error)")
-        }
-    }
-    
-    private func generateAndSharePDF() {
-        // Generate PDF summary
-        let pdfData = generatePDFSummary()
-        
-        // Save to temporary file
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("receipt_summary.pdf")
-        
-        do {
-            try pdfData.write(to: tempURL)
-            shareURL = tempURL
-            showingShareSheet = true
-        } catch {
-            print("Error creating PDF: \(error)")
-        }
-    }
-    
-    private func generatePDFSummary() -> Data {
-        let pdfMetaData = [
-            kCGPDFContextCreator: "ReceiptLock",
-            kCGPDFContextAuthor: "ReceiptLock App"
-        ]
-        let format = UIGraphicsPDFRendererFormat()
-        format.documentInfo = pdfMetaData as [String: Any]
-        
-        let pageRect = CGRect(x: 0, y: 0, width: 595.2, height: 841.8) // A4 size
-        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
-        
-        let data = renderer.pdfData { context in
-            context.beginPage()
-            
-            let titleFont = UIFont.boldSystemFont(ofSize: 24)
-            let headerFont = UIFont.boldSystemFont(ofSize: 16)
-            let bodyFont = UIFont.systemFont(ofSize: 14)
-            
-            var yPosition: CGFloat = 50
-            
-            // Title
-            let title = "Receipt Summary"
-            title.draw(at: CGPoint(x: 50, y: yPosition), withAttributes: [.font: titleFont])
-            yPosition += 40
-            
-            // Receipt details
-            let details = [
-                "Title: \(receipt.title ?? "Untitled")",
-                "Store: \(receipt.store ?? "Unknown")",
-                "Purchase Date: \(receipt.purchaseDate?.formatted(date: .long, time: .omitted) ?? "Unknown")",
-                "Price: $\(String(format: "%.2f", receipt.price))",
-                "Warranty: \(receipt.warrantyMonths) months"
-            ]
-            
-            for detail in details {
-                detail.draw(at: CGPoint(x: 50, y: yPosition), withAttributes: [.font: bodyFont])
-                yPosition += 20
-            }
-            
-            if let expiryDate = receipt.expiryDate {
-                yPosition += 10
-                let expiryText = "Expiry Date: \(expiryDate.formatted(date: .long, time: .omitted))"
-                expiryText.draw(at: CGPoint(x: 50, y: yPosition), withAttributes: [.font: bodyFont])
-                yPosition += 20
-            }
-            
-            if let warrantySummary = receipt.warrantySummary, !warrantySummary.isEmpty {
-                yPosition += 20
-                "Warranty Summary:".draw(at: CGPoint(x: 50, y: yPosition), withAttributes: [.font: headerFont])
-                yPosition += 20
-                warrantySummary.draw(at: CGPoint(x: 50, y: yPosition), withAttributes: [.font: bodyFont])
-            }
-        }
-        
-        return data
+    var body: some View {
+        Text(title)
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundColor(.primary)
     }
 }
 
 struct InfoRow: View {
     let title: String
     let value: String
-    var valueColor: Color = .primary
     
     var body: some View {
         HStack {
             Text(title)
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundColor(.secondary)
+                .frame(width: 100, alignment: .leading)
+            
             Spacer()
+            
             Text(value)
-                .font(.body)
-                .foregroundColor(valueColor)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.trailing)
         }
     }
 }
 
-struct ReceiptImageView: View {
-    let fileName: String
-    @State private var image: UIImage?
-    @State private var isLoading = true
+struct ImageFullScreenView: View {
+    let image: UIImage
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
     
     var body: some View {
-        Group {
-            if let image = image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-            } else if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray5))
-                    .overlay(
-                        VStack {
-                            Image(systemName: "doc.text")
-                                .font(.largeTitle)
-                                .foregroundColor(.secondary)
-                            Text("Image not found")
-                                .foregroundColor(.secondary)
+        NavigationStack {
+            GeometryReader { geometry in
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            SimultaneousGesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        let delta = value / lastScale
+                                        lastScale = value
+                                        scale = scale * delta
+                                    }
+                                    .onEnded { _ in
+                                        lastScale = 1.0
+                                    },
+                                DragGesture()
+                                    .onChanged { value in
+                                        let delta = CGSize(
+                                            width: value.translation.width - lastOffset.width,
+                                            height: value.translation.height - lastOffset.height
+                                        )
+                                        lastOffset = value.translation
+                                        offset = CGSize(
+                                            width: offset.width + delta.width,
+                                            height: offset.height + delta.height
+                                        )
+                                    }
+                                    .onEnded { _ in
+                                        lastOffset = .zero
+                                    }
+                            )
+                        )
+                        .onTapGesture(count: 2) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                scale = 1.0
+                                offset = .zero
+                            }
                         }
-                    )
+                }
+            }
+            .navigationTitle("Receipt Image")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Reset") {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scale = 1.0
+                            offset = .zero
+                        }
+                    }
+                }
             }
         }
-        .onAppear {
-            loadImage()
-        }
-    }
-    
-    private func loadImage() {
-        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            isLoading = false
-            return
-        }
-        
-        let receiptsPath = documentsPath.appendingPathComponent("receipts")
-        let fileURL = receiptsPath.appendingPathComponent(fileName)
-        
-        do {
-            let imageData = try Data(contentsOf: fileURL)
-            image = UIImage(data: imageData)
-        } catch {
-            print("Error loading image: \(error)")
-        }
-        
-        isLoading = false
     }
 }
 
@@ -398,25 +323,16 @@ struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let receipt = Receipt(context: context)
-    receipt.id = UUID()
-    receipt.title = "iPhone 15 Pro"
-    receipt.store = "Apple Store"
-    receipt.price = 999.99
-    receipt.purchaseDate = Date()
-    receipt.warrantyMonths = 12
-    receipt.expiryDate = Calendar.current.date(byAdding: .month, value: 12, to: Date())
-    
-    return NavigationStack {
-        ReceiptDetailView(receipt: receipt)
+    NavigationStack {
+        ReceiptDetailView(receipt: Receipt())
+            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
     }
-    .environment(\.managedObjectContext, context)
 } 

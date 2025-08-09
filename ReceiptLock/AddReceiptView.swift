@@ -483,23 +483,9 @@ struct AddReceiptView: View {
     }
     
     private func saveReceiptImage(data: Data, receipt: Receipt) {
-        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-        
-        let receiptsPath = documentsPath.appendingPathComponent("receipts")
-        
-        // Create receipts directory if it doesn't exist
-        try? FileManager.default.createDirectory(at: receiptsPath, withIntermediateDirectories: true)
-        
-        let fileName = "\(receipt.id?.uuidString ?? UUID().uuidString).jpg"
-        let fileURL = receiptsPath.appendingPathComponent(fileName)
-        
-        do {
-            try data.write(to: fileURL)
+        if let uiImage = UIImage(data: data) {
+            let fileName = ImageStorageManager.shared.saveReceiptImage(uiImage, for: receipt)
             receipt.fileName = fileName
-        } catch {
-            print("Error saving image: \(error)")
         }
     }
 }

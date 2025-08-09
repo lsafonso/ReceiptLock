@@ -108,6 +108,11 @@ class OCRService: ObservableObject {
         extractedData.taxAmount = extractTaxAmount(from: text)
         extractedData.totalAmount = extractTotalAmount(from: text)
         extractedData.paymentMethod = extractPaymentMethod(from: text)
+        extractedData.receiptNumber = extractReceiptNumber(from: text)
+        extractedData.cashierInfo = extractCashierInfo(from: text)
+        extractedData.storeAddress = extractStoreAddress(from: text)
+        extractedData.storePhone = extractStorePhone(from: text)
+        extractedData.storeWebsite = extractStoreWebsite(from: text)
         
         return extractedData
     }
@@ -123,6 +128,10 @@ class OCRService: ObservableObject {
             #"due[\s:]*\$?(\d+\.?\d*)"#,
             #"final[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
             #"amount[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
+            #"final[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
+            #"balance[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
+            #"total[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
+            #"final[\s]*balance[\s:]*\$?(\d+\.?\d*)"#,
             #"\$(\d+\.?\d*)"#,
             #"(\d+\.?\d*)[\s]*\$"#,
             #"(\d+\.?\d*)"#
@@ -157,7 +166,8 @@ class OCRService: ObservableObject {
             "store:", "shop:", "retailer:", "merchant:", "vendor:",
             "company:", "business:", "outlet:", "market:", "location:",
             "branch:", "franchise:", "chain:", "establishment:",
-            "from:", "purchased at:", "bought at:"
+            "from:", "purchased at:", "bought at:", "retailer:",
+            "merchant:", "vendor:", "dealer:", "distributor:"
         ]
         
         for indicator in storeIndicators {
@@ -187,7 +197,9 @@ class OCRService: ObservableObject {
                !cleanLine.contains("time") &&
                !cleanLine.contains("receipt") &&
                !cleanLine.contains("subtotal") &&
-               !cleanLine.contains("tax") {
+               !cleanLine.contains("tax") &&
+               !cleanLine.contains("cashier") &&
+               !cleanLine.contains("register") {
                 return cleanLine
             }
         }
@@ -208,7 +220,9 @@ class OCRService: ObservableObject {
             DateFormatter(format: "dd.MM.yyyy"),
             DateFormatter(format: "yyyy-MM-dd"),
             DateFormatter(format: "MMM dd, yyyy"),
-            DateFormatter(format: "MMMM dd, yyyy")
+            DateFormatter(format: "MMMM dd, yyyy"),
+            DateFormatter(format: "MMM dd yyyy"),
+            DateFormatter(format: "MMMM dd yyyy")
         ]
         
         // Enhanced date patterns for receipts
@@ -221,7 +235,9 @@ class OCRService: ObservableObject {
             #"(\d{1,2})\.(\d{1,2})\.(\d{2})"#,
             #"(\d{4})-(\d{1,2})-(\d{1,2})"#,
             #"(\w{3})\s+(\d{1,2}),?\s+(\d{4})"#,
-            #"(\w+)\s+(\d{1,2}),?\s+(\d{4})"#
+            #"(\w+)\s+(\d{1,2}),?\s+(\d{4})"#,
+            #"(\w{3})\s+(\d{1,2})\s+(\d{4})"#,
+            #"(\w+)\s+(\d{1,2})\s+(\d{4})"#
         ]
         
         for pattern in datePatterns {
@@ -245,7 +261,8 @@ class OCRService: ObservableObject {
         let productIndicators = [
             "item:", "product:", "description:", "name:", "goods:",
             "merchandise:", "article:", "commodity:", "purchase:",
-            "model:", "brand:", "type:", "category:"
+            "model:", "brand:", "type:", "category:", "service:",
+            "work:", "labor:", "installation:", "delivery:"
         ]
         
         for indicator in productIndicators {
@@ -279,7 +296,9 @@ class OCRService: ObservableObject {
                !cleanLine.contains("subtotal") &&
                !cleanLine.contains("tax") &&
                !cleanLine.contains("change") &&
-               !cleanLine.contains("cash") {
+               !cleanLine.contains("cash") &&
+               !cleanLine.contains("cashier") &&
+               !cleanLine.contains("register") {
                 return cleanLine
             }
         }
@@ -291,7 +310,8 @@ class OCRService: ObservableObject {
         let warrantyKeywords = [
             "warranty", "guarantee", "coverage", "protection", "assurance",
             "guaranty", "warrant", "coverage period", "warranty period",
-            "limited warranty", "extended warranty", "manufacturer warranty"
+            "limited warranty", "extended warranty", "manufacturer warranty",
+            "return policy", "exchange policy", "refund policy"
         ]
         
         for keyword in warrantyKeywords {
@@ -317,7 +337,9 @@ class OCRService: ObservableObject {
             #"vat[\s:]*\$?(\d+\.?\d*)"#,
             #"gst[\s:]*\$?(\d+\.?\d*)"#,
             #"state[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
-            #"local[\s]*tax[\s:]*\$?(\d+\.?\d*)"#
+            #"local[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
+            #"provincial[\s]*tax[\s:]*\$?(\d+\.?\d*)"#,
+            #"federal[\s]*tax[\s:]*\$?(\d+\.?\d*)"#
         ]
         
         for pattern in taxPatterns {
@@ -331,6 +353,8 @@ class OCRService: ObservableObject {
                     .replacingOccurrences(of: "gst", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "state", with: "", options: .caseInsensitive)
                     .replacingOccurrences(of: "local", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "provincial", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "federal", with: "", options: .caseInsensitive)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 if let taxValue = Double(cleanText) {
@@ -349,7 +373,9 @@ class OCRService: ObservableObject {
             #"final[\s]*total[\s:]*\$?(\d+\.?\d*)"#,
             #"amount[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
             #"balance[\s]*due[\s:]*\$?(\d+\.?\d*)"#,
-            #"total[\s]*amount[\s:]*\$?(\d+\.?\d*)"#
+            #"total[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
+            #"final[\s]*amount[\s:]*\$?(\d+\.?\d*)"#,
+            #"final[\s]*balance[\s:]*\$?(\d+\.?\d*)"#
         ]
         
         for pattern in totalPatterns {
@@ -379,12 +405,163 @@ class OCRService: ObservableObject {
             "cash", "credit card", "debit card", "visa", "mastercard",
             "amex", "american express", "paypal", "apple pay", "google pay",
             "check", "money order", "gift card", "store credit", "bank transfer",
-            "venmo", "zelle", "bitcoin", "crypto"
+            "venmo", "zelle", "bitcoin", "crypto", "contactless",
+            "chip card", "swipe card", "tap to pay"
         ]
         
         for method in paymentMethods {
             if text.range(of: method, options: .caseInsensitive) != nil {
                 return method.capitalized
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractReceiptNumber(from text: String) -> String? {
+        let receiptPatterns = [
+            #"receipt[\s]*#?[\s:]*(\w+)"#,
+            #"receipt[\s]*number[\s:]*(\w+)"#,
+            #"transaction[\s]*#?[\s:]*(\w+)"#,
+            #"transaction[\s]*id[\s:]*(\w+)"#,
+            #"order[\s]*#?[\s:]*(\w+)"#,
+            #"order[\s]*number[\s:]*(\w+)"#,
+            #"invoice[\s]*#?[\s:]*(\w+)"#,
+            #"invoice[\s]*number[\s:]*(\w+)"#
+        ]
+        
+        for pattern in receiptPatterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matchedText = String(text[match])
+                let cleanText = matchedText
+                    .replacingOccurrences(of: "receipt", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "transaction", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "order", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "invoice", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "number", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "#", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: ":", with: "", options: .caseInsensitive)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty {
+                    return cleanText
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractCashierInfo(from text: String) -> String? {
+        let cashierPatterns = [
+            #"cashier[\s:]*(\w+)"#,
+            #"clerk[\s:]*(\w+)"#,
+            #"associate[\s:]*(\w+)"#,
+            #"employee[\s:]*(\w+)"#,
+            #"staff[\s:]*(\w+)"#,
+            #"register[\s:]*(\w+)"#
+        ]
+        
+        for pattern in cashierPatterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matchedText = String(text[match])
+                let cleanText = matchedText
+                    .replacingOccurrences(of: "cashier", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "clerk", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "associate", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "employee", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "staff", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "register", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: ":", with: "", options: .caseInsensitive)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty {
+                    return cleanText
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractStoreAddress(from text: String) -> String? {
+        let addressPatterns = [
+            #"address[\s:]*([^\n]+)"#,
+            #"location[\s:]*([^\n]+)"#,
+            #"street[\s:]*([^\n]+)"#,
+            #"(\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl))"#
+        ]
+        
+        for pattern in addressPatterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matchedText = String(text[match])
+                let cleanText = matchedText
+                    .replacingOccurrences(of: "address", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "location", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "street", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: ":", with: "", options: .caseInsensitive)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty && cleanText.count > 10 {
+                    return cleanText
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractStorePhone(from text: String) -> String? {
+        let phonePatterns = [
+            #"phone[\s:]*([\d\-\(\)\s]+)"#,
+            #"tel[\s:]*([\d\-\(\)\s]+)"#,
+            #"call[\s:]*([\d\-\(\)\s]+)"#,
+            #"(\(\d{3}\)\s*\d{3}-\d{4})"#,
+            #"(\d{3}-\d{3}-\d{4})"#,
+            #"(\d{3}\.\d{3}\.\d{4})"#
+        ]
+        
+        for pattern in phonePatterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matchedText = String(text[match])
+                let cleanText = matchedText
+                    .replacingOccurrences(of: "phone", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "tel", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "call", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: ":", with: "", options: .caseInsensitive)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty && cleanText.count >= 10 {
+                    return cleanText
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractStoreWebsite(from text: String) -> String? {
+        let websitePatterns = [
+            #"website[\s:]*([^\s\n]+)"#,
+            #"web[\s:]*([^\s\n]+)"#,
+            #"site[\s:]*([^\s\n]+)"#,
+            #"(https?://[^\s\n]+)"#,
+            #"(www\.[^\s\n]+)"#
+        ]
+        
+        for pattern in websitePatterns {
+            if let match = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                let matchedText = String(text[match])
+                let cleanText = matchedText
+                    .replacingOccurrences(of: "website", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "web", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: "site", with: "", options: .caseInsensitive)
+                    .replacingOccurrences(of: ":", with: "", options: .caseInsensitive)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !cleanText.isEmpty && (cleanText.hasPrefix("http") || cleanText.hasPrefix("www")) {
+                    return cleanText
+                }
             }
         }
         
@@ -403,6 +580,11 @@ struct ReceiptData {
     var taxAmount: Double?
     var totalAmount: Double?
     var paymentMethod: String?
+    var receiptNumber: String?
+    var cashierInfo: String?
+    var storeAddress: String?
+    var storePhone: String?
+    var storeWebsite: String?
     var rawText: String = ""
 }
 
