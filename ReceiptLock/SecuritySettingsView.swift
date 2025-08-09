@@ -30,7 +30,7 @@ struct SecuritySettingsView: View {
                         Text("Biometric Authentication")
                         Spacer()
                         Toggle("", isOn: $privacyManager.privacySettings.biometricLockEnabled)
-                            .onChange(of: privacyManager.privacySettings.biometricLockEnabled) { newValue in
+                            .onChange(of: privacyManager.privacySettings.biometricLockEnabled) { _, newValue in
                                 if newValue {
                                     checkBiometricAvailability()
                                 }
@@ -116,7 +116,7 @@ struct SecuritySettingsView: View {
                         Text("Analytics")
                         Spacer()
                         Toggle("", isOn: $privacyManager.privacySettings.analyticsEnabled)
-                            .onChange(of: privacyManager.privacySettings.analyticsEnabled) { newValue in
+                            .onChange(of: privacyManager.privacySettings.analyticsEnabled) { _, newValue in
                                 if newValue {
                                     privacyManager.grantConsent(for: .analytics)
                                 } else {
@@ -131,7 +131,7 @@ struct SecuritySettingsView: View {
                         Text("Crash Reporting")
                         Spacer()
                         Toggle("", isOn: $privacyManager.privacySettings.crashReportingEnabled)
-                            .onChange(of: privacyManager.privacySettings.crashReportingEnabled) { newValue in
+                            .onChange(of: privacyManager.privacySettings.crashReportingEnabled) { _, newValue in
                                 if newValue {
                                     privacyManager.grantConsent(for: .crashReporting)
                                 } else {

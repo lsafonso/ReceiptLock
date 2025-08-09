@@ -80,7 +80,7 @@ class PrivacyManager: ObservableObject {
             clearUserSettings()
             
             // Clear keychain
-            keychain.clearAll()
+            _ = keychain.clearAll()
             
             // Reset privacy settings
             resetPrivacySettings()
@@ -94,18 +94,14 @@ class PrivacyManager: ObservableObject {
     
     func anonymizeUserData() -> Bool {
         // Anonymize personal data while keeping receipt information
-        do {
-            // Anonymize personal information
-            anonymizePersonalInfo()
-            
-            // Keep receipt data but remove personal identifiers
-            anonymizeReceipts()
-            
-            return true
-        } catch {
-            print("Error anonymizing user data: \(error)")
-            return false
-        }
+        
+        // Anonymize personal information
+        anonymizePersonalInfo()
+        
+        // Keep receipt data but remove personal identifiers
+        anonymizeReceipts()
+        
+        return true
     }
     
     // MARK: - Privacy Controls
@@ -223,11 +219,12 @@ class PrivacyManager: ObservableObject {
     
     private func exportPersonalInfo() -> PersonalInfoExport {
         // Export personal information
+        let profileManager = UserProfileManager.shared
         return PersonalInfoExport(
-            name: UserProfile.shared.name,
-            email: UserProfile.shared.email,
-            createdAt: UserProfile.shared.createdAt,
-            lastUpdated: UserProfile.shared.updatedAt
+            name: profileManager.currentProfile.name,
+            email: "", // UserProfile doesn't have email field
+            createdAt: Date(), // UserProfile doesn't have createdAt field
+            lastUpdated: Date() // UserProfile doesn't have updatedAt field
         )
     }
     
@@ -250,8 +247,9 @@ class PrivacyManager: ObservableObject {
     
     private func anonymizePersonalInfo() {
         // Anonymize personal information
-        UserProfile.shared.name = "Anonymous User"
-        UserProfile.shared.email = "anonymous@example.com"
+        let profileManager = UserProfileManager.shared
+        profileManager.updateName("Anonymous User")
+        // Note: UserProfile doesn't have email field
     }
     
     private func anonymizeReceipts() {
@@ -262,8 +260,33 @@ class PrivacyManager: ObservableObject {
 
 // MARK: - Data Models
 
+enum RetentionPeriod: String, Codable, CaseIterable {
+    case day = "day"
+    case week = "week"
+    case month = "month"
+    case year = "year"
+    
+    var calendarComponent: Calendar.Component {
+        switch self {
+        case .day: return .day
+        case .week: return .weekOfYear
+        case .month: return .month
+        case .year: return .year
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .day: return "Day"
+        case .week: return "Week"
+        case .month: return "Month"
+        case .year: return "Year"
+        }
+    }
+}
+
 struct PrivacySettings: Codable {
-    var theme: AppTheme = .system
+    var theme: ThemeMode = .system
     var notificationsEnabled: Bool = true
     var dataSharingEnabled: Bool = false
     var analyticsEnabled: Bool = false
@@ -273,21 +296,34 @@ struct PrivacySettings: Codable {
 }
 
 struct DataRetentionPolicy: Codable {
-    var receiptRetentionPeriod: Calendar.Component = .year
+    var receiptRetentionPeriod: RetentionPeriod = .year
     var receiptRetentionValue: Int = 7 // 7 years
-    var imageRetentionPeriod: Calendar.Component = .year
+    var imageRetentionPeriod: RetentionPeriod = .year
     var imageRetentionValue: Int = 7 // 7 years
-    var logRetentionPeriod: Calendar.Component = .month
+    var logRetentionPeriod: RetentionPeriod = .month
     var logRetentionValue: Int = 3 // 3 months
     
     func retentionPeriod(for dataType: DataType) -> DateComponents {
         switch dataType {
         case .receipt:
-            return DateComponents(component: receiptRetentionPeriod, value: receiptRetentionValue)
+            return createDateComponents(for: receiptRetentionPeriod, value: receiptRetentionValue)
         case .image:
-            return DateComponents(component: imageRetentionPeriod, value: imageRetentionValue)
+            return createDateComponents(for: imageRetentionPeriod, value: imageRetentionValue)
         case .log:
-            return DateComponents(component: logRetentionPeriod, value: logRetentionValue)
+            return createDateComponents(for: logRetentionPeriod, value: logRetentionValue)
+        }
+    }
+    
+    private func createDateComponents(for period: RetentionPeriod, value: Int) -> DateComponents {
+        switch period {
+        case .day:
+            return DateComponents(day: value)
+        case .week:
+            return DateComponents(weekOfYear: value)
+        case .month:
+            return DateComponents(month: value)
+        case .year:
+            return DateComponents(year: value)
         }
     }
 }
@@ -347,11 +383,7 @@ enum DataType: String, CaseIterable {
     case log = "log"
 }
 
-enum AppTheme: String, Codable, CaseIterable {
-    case light = "light"
-    case dark = "dark"
-    case system = "system"
-}
+
 
 // MARK: - Export Models
 
@@ -383,7 +415,7 @@ struct ReceiptExport: Codable {
 }
 
 struct SettingsExport: Codable {
-    let theme: AppTheme
+    let theme: ThemeMode
     let notifications: Bool
     let dataSharing: Bool
     let analytics: Bool

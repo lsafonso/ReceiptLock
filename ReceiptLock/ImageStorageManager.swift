@@ -154,7 +154,7 @@ class ImageStorageManager: ObservableObject {
             
             for imageFile in imageFiles {
                 let fileName = imageFile.lastPathComponent
-                let receiptId = fileName.replacingOccurrences(of: ".jpg", with: "")
+                _ = fileName.replacingOccurrences(of: ".jpg", with: "") // receiptId not used yet
                 
                 // Check if receipt exists in Core Data
                 // This would require a Core Data context to be passed in

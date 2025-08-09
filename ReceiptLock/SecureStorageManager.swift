@@ -14,7 +14,10 @@ class SecureStorageManager: ObservableObject {
     
     func storeSecureData(_ data: Data, forKey key: String) throws {
         let encryptedData = try encryptionManager.encrypt(data)
-        KeychainWrapper.standard.set(encryptedData, forKey: key)
+        let success = KeychainWrapper.standard.set(encryptedData, forKey: key)
+        guard success else {
+            throw SecureStorageError.keychainWriteFailed
+        }
     }
     
     func retrieveSecureData(forKey key: String) throws -> Data {
@@ -27,7 +30,10 @@ class SecureStorageManager: ObservableObject {
     
     func storeSecureString(_ string: String, forKey key: String) throws {
         let encryptedData = try encryptionManager.encrypt(string)
-        KeychainWrapper.standard.set(encryptedData, forKey: key)
+        let success = KeychainWrapper.standard.set(encryptedData, forKey: key)
+        guard success else {
+            throw SecureStorageError.keychainWriteFailed
+        }
     }
     
     func retrieveSecureString(forKey key: String) throws -> String {
@@ -53,32 +59,44 @@ class SecureStorageManager: ObservableObject {
     func storeReceiptSecurely(_ receipt: Receipt) throws {
         // Encrypt sensitive fields before storing
         if let title = receipt.title {
-            receipt.title = try encryptAttribute(title)
+            let encryptedTitle = try encryptAttribute(title)
+            receipt.title = encryptedTitle.base64EncodedString()
         }
         
         if let store = receipt.store {
-            receipt.store = try encryptAttribute(store)
+            let encryptedStore = try encryptAttribute(store)
+            receipt.store = encryptedStore.base64EncodedString()
         }
         
         // Store encrypted image if exists
-        if let imageFileName = receipt.imageFileName {
-            try encryptReceiptImage(imageFileName)
+        if let imageData = receipt.imageData {
+            let encryptedImageData = try encryptionManager.encrypt(imageData)
+            receipt.imageData = encryptedImageData
         }
     }
     
     func retrieveReceiptSecurely(_ receipt: Receipt) throws {
         // Decrypt sensitive fields after retrieving
         if let encryptedTitle = receipt.title {
-            receipt.title = try decryptAttribute(encryptedTitle)
+            guard let titleData = Data(base64Encoded: encryptedTitle) else {
+                throw SecureStorageError.decryptionFailed
+            }
+            let decryptedTitle = try decryptAttribute(titleData)
+            receipt.title = decryptedTitle
         }
         
         if let encryptedStore = receipt.store {
-            receipt.store = try decryptAttribute(encryptedStore)
+            guard let storeData = Data(base64Encoded: encryptedStore) else {
+                throw SecureStorageError.decryptionFailed
+            }
+            let decryptedStore = try decryptAttribute(storeData)
+            receipt.store = decryptedStore
         }
         
         // Decrypt image if exists
-        if let imageFileName = receipt.imageFileName {
-            try decryptReceiptImage(imageFileName)
+        if let encryptedImageData = receipt.imageData {
+            let decryptedImageData = try encryptionManager.decrypt(encryptedImageData)
+            receipt.imageData = decryptedImageData
         }
     }
     
@@ -133,8 +151,9 @@ class SecureStorageManager: ObservableObject {
                         context.delete(receipt)
                         
                         // Delete associated image
-                        if let imageFileName = receipt.imageFileName {
-                            ImageStorageManager.shared.deleteReceiptImage(fileName: imageFileName)
+                        if receipt.imageData != nil {
+                            // Clear the image data
+                            receipt.imageData = nil
                         }
                     }
                 }
@@ -258,6 +277,7 @@ enum SecureStorageError: LocalizedError {
     case invalidBackupFormat
     case encryptionFailed
     case decryptionFailed
+    case keychainWriteFailed
     
     var errorDescription: String? {
         switch self {
@@ -273,6 +293,8 @@ enum SecureStorageError: LocalizedError {
             return "Failed to encrypt data"
         case .decryptionFailed:
             return "Failed to decrypt data"
+        case .keychainWriteFailed:
+            return "Failed to write to keychain"
         }
     }
 }

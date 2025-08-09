@@ -96,12 +96,14 @@ class KeychainWrapper {
     
     func date(forKey key: String) -> Date? {
         guard let data = data(forKey: key) else { return nil }
-        return data.withUnsafeBytes { $0.load(as: Date.self) }
+        let timeInterval = data.withUnsafeBytes { $0.load(as: TimeInterval.self) }
+        return Date(timeIntervalSinceReferenceDate: timeInterval)
     }
     
     func set(_ value: Date, forKey key: String) -> Bool {
-        var dateValue = value
-        let data = Data(bytes: &dateValue, count: MemoryLayout<Date>.size)
+        let timeInterval = value.timeIntervalSinceReferenceDate
+        var timeIntervalValue = timeInterval
+        let data = Data(bytes: &timeIntervalValue, count: MemoryLayout<TimeInterval>.size)
         return set(data, forKey: key)
     }
     
