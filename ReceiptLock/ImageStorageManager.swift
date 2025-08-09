@@ -130,9 +130,9 @@ class ImageStorageManager: ObservableObject {
             let totalSpace = attributes[.systemSize] as? Int64 ?? 0
             
             let receiptFiles = try fileManager.contentsOfDirectory(at: receiptsPath, includingPropertiesForKeys: [.fileSizeKey])
-            let usedSpace = receiptFiles.reduce(0) { total, url in
-                let fileSize = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-                return total + Int64(fileSize)
+            let usedSpace = receiptFiles.reduce(Int64(0)) { (total: Int64, url: URL) in
+                let fileSize = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                return total + fileSize
             }
             
             return (usedSpace, totalSpace)
