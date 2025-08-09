@@ -7,8 +7,17 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 ### Core Functionality
 - **Receipt Management**: Create, edit, and delete receipts with detailed information
 - **Warranty Tracking**: Automatic expiry date calculation based on purchase date and warranty months
-- **OCR Integration**: Extract text from receipt images using Vision framework
+- **Receipt Scanning & OCR**: Complete camera integration with intelligent text extraction
 - **File Management**: Store receipt images and PDFs locally in Documents/receipts directory
+
+### Receipt Scanning & OCR Features
+- **Camera Integration**: Take photos of receipts directly in the app with optimized settings
+- **OCR Processing**: Automatically extract text and data from receipt images using Vision framework
+- **Smart Data Extraction**: Auto-fill receipt fields from scanned images with intelligent parsing
+- **Image Storage**: Store receipt images alongside data with automatic optimization
+- **Image Editing**: Built-in image editor with filters for better OCR results
+- **PDF Support**: Import and process PDF documents
+- **OCR Results Management**: Review and selectively apply extracted data
 
 ### Dashboard
 - **Upcoming Expirations**: Shows warranties expiring within 30 days
@@ -29,7 +38,7 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 ### Receipt Details
 - **Full Information Display**: All receipt fields with expiry status
 - **Image/PDF Preview**: View attached receipt files
-- **Edit Capability**: Modify receipt information
+- **Edit Capability**: Modify receipt information with OCR reprocessing
 - **PDF Export**: Generate and share receipt summaries as PDF
 - **Delete Function**: Remove receipts with confirmation
 
@@ -39,6 +48,7 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **SwiftUI**: Modern declarative UI framework
 - **Core Data**: Local data persistence with lightweight migrations
 - **Vision Framework**: On-device OCR for text extraction
+- **AVFoundation**: Camera integration for receipt scanning
 - **PDFKit**: PDF generation and preview
 - **UserNotifications**: Local notification scheduling
 - **PhotosUI**: Image selection from photo library
@@ -118,10 +128,12 @@ ReceiptLock/
 
 ### Adding a Receipt
 1. Tap the "+" button on Dashboard or Receipts tab
-2. Fill in receipt information (title, store, date, price, warranty)
-3. Optionally attach an image or PDF
-4. OCR will automatically process attached images
-5. Save the receipt
+2. **Camera Integration**: Take photos directly in the app or choose from photo library
+3. **OCR Processing**: Automatically extract text and data from receipt images
+4. **Smart Data Extraction**: Auto-fill receipt fields from scanned images
+5. **Image Storage**: Store receipt images alongside data
+6. Fill in any remaining receipt information (title, store, date, price, warranty)
+7. Save the receipt
 
 ### Managing Receipts
 - **View**: Tap any receipt in the list to see details
@@ -192,11 +204,14 @@ The app includes comprehensive error handling for:
 
 - Cloud sync with iCloud
 - Multiple currency support
-- Advanced OCR with better field extraction
+- Enhanced OCR with machine learning
 - Receipt categorization
 - Statistics and analytics
 - Widget support
 - Apple Watch companion app
+- Batch OCR processing for multiple receipts
+- Receipt template recognition for different store formats
+- Advanced image preprocessing for better OCR accuracy
 
 ## License
 

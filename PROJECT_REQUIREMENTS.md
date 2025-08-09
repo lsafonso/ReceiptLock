@@ -43,7 +43,16 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
 - **Auto-fill**: Suggest field values from OCR results
 - **Summary Generation**: Create warranty summary from extracted text
 
-### 5. Dashboard (Home)
+### 5. Receipt Scanning & OCR
+- **Camera Integration**: Take photos of receipts directly in the app with optimized settings
+- **OCR Processing**: Automatically extract text and data from receipt images using Vision framework
+- **Smart Data Extraction**: Auto-fill receipt fields from scanned images with intelligent parsing
+- **Image Storage**: Store receipt images alongside data with automatic optimization
+- **Image Editing**: Built-in image editor with filters for better OCR results
+- **PDF Support**: Import and process PDF documents
+- **OCR Results Management**: Review and selectively apply extracted data
+
+### 6. Dashboard (Home)
 - **Warranty Summary Card**: Three-column display showing:
   - All devices (total count)
   - Valid warranties (active count)
@@ -52,34 +61,34 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
 - **Quick Actions**: Add new appliance button
 - **Clean Design**: No navigation title, minimal interface
 
-### 6. Appliance List
+### 7. Appliance List
 - **Search**: Text-based search across all fields
 - **Filters**: All, Valid, Expired, Expiring Soon
 - **Interactive Chips**: Animated filter selection with counts
 - **Actions**: Edit, delete, share
 - **Progress Indicators**: Visual warranty progress bars
 
-### 7. Navigation Structure
+### 8. Navigation Structure
 - **Tab Bar**: 4 main sections
   - Home: Dashboard with warranty overview
   - Appliances: Complete appliance list
   - Add: Central floating action button
   - Profile: User settings and preferences
 
-### 8. Notifications
+### 9. Notifications
 - **Local Reminders**: Before warranty expiry
 - **Configurable**: Default reminder days (7, 14, 30)
 - **Smart Scheduling**: Only for future expiry dates
 - **Permission Handling**: Request notification access
 
-### 9. Settings (Profile)
+### 10. Settings (Profile)
 - **Default Reminder Days**: Configurable (7, 14, 30 days)
 - **Theme**: System, Light, Dark modes
 - **Data Export**: ZIP with JSON + assets
 - **Data Import**: Restore from exported data
 - **Data Management**: Delete all data option
 
-### 10. Share Functionality
+### 11. Share Functionality
 - **PDF Export**: Single appliance as PDF summary
 - **Content**: Appliance details + attached image
 - **Share Sheet**: Native iOS sharing

@@ -56,10 +56,13 @@ ReceiptLock/
    - Search and filter functionality
    - Swipe-to-delete with file cleanup
 
-4. **OCR Integration**
+4. **Receipt Scanning & OCR**
+   - Camera integration with AVFoundation
    - Vision framework for text extraction
-   - Automatic field suggestion
-   - Image processing and storage
+   - Automatic field suggestion and auto-fill
+   - Image processing, editing, and storage
+   - PDF document support
+   - OCR results management and selective application
 
 5. **File Management**
    - Local storage in Documents/receipts/
@@ -98,6 +101,53 @@ Receipt Entity:
 - warrantySummary: String (optional)
 - createdAt: Date
 - updatedAt: Date
+- imageData: Data (optional)
+- ocrProcessed: Bool
+- ocrText: String (optional)
+```
+
+**Receipt Scanning & OCR Architecture:**
+```swift
+CameraService: AVFoundation-based camera management
+├── Camera authorization and setup
+├── Photo capture with receipt-optimized settings
+├── Image preprocessing for better OCR results
+└── Flash and zoom controls
+
+OCRService: Vision framework integration
+├── Text recognition with high accuracy
+├── Smart data extraction patterns
+├── Progress tracking and error handling
+└── ReceiptData structure for extracted information
+
+ImageStorageManager: File system management
+├── Optimized image compression and storage
+├── Thumbnail generation
+├── Storage usage monitoring
+└── Automatic cleanup of orphaned files
+
+ImageEditorView: Built-in image editing
+├── Brightness, contrast, saturation filters
+├── Receipt-specific image enhancement
+└── Real-time preview for OCR optimization
+```
+
+**OCR Data Extraction Capabilities:**
+```swift
+ReceiptData Structure:
+├── title: Product/description extraction
+├── store: Store name and branding detection
+├── price: Multiple price pattern recognition
+├── purchaseDate: Various date format parsing
+├── warrantyInfo: Warranty terms and conditions
+├── taxAmount: Tax calculation extraction
+├── totalAmount: Total payment amount
+├── paymentMethod: Payment type detection
+├── receiptNumber: Transaction ID extraction
+├── storeAddress: Location information
+├── storePhone: Contact number extraction
+├── storeWebsite: Web presence detection
+└── rawText: Complete OCR text for review
 ```
 
 **Key Dependencies:**
@@ -164,6 +214,24 @@ Run with `Cmd+Shift+U` in Xcode. Tests cover:
 - Add receipt flow
 - Settings navigation
 
+## Camera Integration Features
+
+### Receipt-Optimized Camera Settings
+- **High Resolution**: Photo quality preset for optimal OCR results
+- **Auto-Focus**: Tap-to-focus for precise receipt capture
+- **Flash Control**: Manual flash settings (Off/On/Auto)
+- **Zoom Support**: Pinch-to-zoom for detailed text capture
+- **Receipt Guide**: Visual overlay for optimal positioning
+- **Image Enhancement**: Automatic preprocessing for better text recognition
+
+### Camera Workflow
+1. **Authorization**: Request camera permissions on first use
+2. **Setup**: Initialize camera with receipt-optimized settings
+3. **Capture**: High-quality photo with progress indication
+4. **Preview**: Review captured image before processing
+5. **OCR**: Automatic text extraction with progress tracking
+6. **Results**: Display extracted data for user review and application
+
 ## Common Issues and Solutions
 
 ### 1. Core Data Model Not Found
@@ -185,13 +253,39 @@ Run with `Cmd+Shift+U` in Xcode. Tests cover:
 - Ensure device/simulator supports Vision
 - Check image format compatibility
 - Verify Vision framework is linked
+- Check image quality and preprocessing
+- Verify OCR text extraction patterns
 
-### 4. Notifications Not Appearing
+### 4. Camera Permission Issues
+**Issue:** Camera access denied
+**Solution:**
+- Check Info.plist has camera usage description
+- Request permissions at runtime
+- Guide user to Settings if denied
+- Test on physical device (simulator limitations)
+
+### 5. Notifications Not Appearing
 **Issue:** Local notifications not showing
 **Solution:**
 - Check notification permissions
 - Verify notification scheduling logic
 - Test on physical device (simulator limitations)
+
+## OCR Processing Workflow
+
+### Text Extraction Process
+1. **Image Preprocessing**: Enhance contrast, sharpen text, optimize for OCR
+2. **Vision Framework**: Use VNRecognizeTextRequest for high-accuracy text recognition
+3. **Language Support**: English language correction and recognition
+4. **Progress Tracking**: Real-time progress updates during processing
+5. **Error Handling**: Graceful fallback for failed OCR attempts
+
+### Smart Data Extraction
+- **Pattern Recognition**: Multiple regex patterns for different data types
+- **Context Awareness**: Intelligent field mapping based on receipt structure
+- **Validation**: Verify extracted data against expected formats
+- **Auto-fill Logic**: Smart field population with user confirmation
+- **Fallback Handling**: Manual entry when OCR extraction fails
 
 ## File Storage
 
@@ -221,6 +315,21 @@ The app includes comprehensive error handling for:
 
 All errors are logged and user-friendly messages are displayed.
 
+## Image Editing & Enhancement
+
+### Built-in Image Editor
+- **Filter Controls**: Brightness, contrast, saturation adjustment
+- **Receipt Optimization**: Pre-configured settings for better OCR results
+- **Real-time Preview**: Instant feedback on image adjustments
+- **Quality Preservation**: Maintain image quality for optimal text recognition
+- **Batch Processing**: Apply enhancements to multiple images
+
+### Image Storage Optimization
+- **Compression**: JPEG compression with quality control (0.8)
+- **Resizing**: Automatic resizing for large images (max 2048px)
+- **Thumbnail Generation**: Fast loading of receipt lists
+- **Storage Monitoring**: Track disk usage and cleanup orphaned files
+
 ## Performance Considerations
 
 - Images are compressed before storage
@@ -228,6 +337,7 @@ All errors are logged and user-friendly messages are displayed.
 - Core Data operations are performed on background queues
 - File operations include proper error handling
 - Memory management for large images
+- Camera capture optimization for receipt scanning
 
 ## Security
 
