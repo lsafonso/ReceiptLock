@@ -40,11 +40,47 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **Swipe to Delete**: Easy deletion with associated file cleanup
 - **Navigation**: Tap to view detailed receipt information
 
-### Settings
-- **Notification Preferences**: Configure default reminder days (1-90 days)
-- **Theme Selection**: System, Light, or Dark theme
-- **Data Management**: Export/Import functionality and data deletion
-- **About Section**: App version and legal links
+### ⚙️ **Enhanced Settings Structure** ✅ **COMPLETE**
+The app features a comprehensive, logically organized settings hierarchy:
+
+#### **1. Profile & Personalization**
+- **Profile Photo & Name**: Update avatar and display name with integrated profile management
+- **Currency Preferences**: Full currency selection with 20+ supported currencies
+- **Language/Locale**: Comprehensive language selection (10+ languages)
+- **Theme & Appearance**: System, Light, or Dark theme with dynamic switching
+
+#### **2. Receipt & Appliance Settings**
+- **Receipt Categories**: Manage receipt organization and categorization
+- **Warranty Reminder Defaults**: Configure default reminder periods and behavior
+- **Receipt Storage Preferences**: Manage storage compression and optimization
+
+#### **3. Notifications & Reminders**
+- **Reminder Settings**: Configure multiple reminders and custom messages
+- **Active Reminders**: View and manage configured reminder counts
+- **Notification Preferences**: Sound, badges, and alert style configuration
+- **Custom Reminder Messages**: Personalize notification content
+
+#### **4. Security & Privacy**
+- **Biometric Authentication**: Face ID, Touch ID, and passcode configuration
+- **Encryption Settings**: Data encryption levels and security configuration
+- **Privacy Controls**: Data sharing consent and retention management
+
+#### **5. Backup & Sync**
+- **iCloud Sync**: Automatic cross-device synchronization
+- **Backup Settings**: Data backup and restore management
+- **Import/Export**: Manual backup and restore functionality
+- **Last Backup Tracking**: Monitor backup status and timestamps
+
+#### **6. Data Management**
+- **Storage Usage**: View app storage and cleanup options
+- **Data Export**: Export all receipts and files with compression
+- **Data Deletion**: Permanently remove data with confirmation
+
+#### **7. About & Support**
+- **App Version**: Current version and build information
+- **Terms & Privacy**: Legal documentation and privacy policy
+- **Support & Feedback**: Help resources and feedback channels
+- **Onboarding Reset**: Reset onboarding flow for new users
 
 ### Receipt Details
 - **Full Information Display**: All receipt fields with expiry status
@@ -132,7 +168,7 @@ ReceiptLock/
 │   │   ├── EditReceiptView.swift
 │   │   ├── ReceiptDetailView.swift
 │   │   ├── ReceiptRowView.swift
-│   │   └── SettingsView.swift
+│   │   └── SettingsView.swift        # Enhanced settings hierarchy
 │   ├── 🔒 Security/                  # Security & Privacy
 │   │   ├── AuthenticationWrapperView.swift
 │   │   ├── BiometricAuthenticationManager.swift
@@ -143,7 +179,12 @@ ReceiptLock/
 │   │   ├── AuthenticationService.swift
 │   │   └── KeychainWrapper.swift
 │   ├── Managers/                     # Business logic
-│   │   └── NotificationManager.swift
+│   │   ├── NotificationManager.swift
+│   │   ├── CurrencyManager.swift     # Multi-currency support
+│   │   ├── UserProfileManager.swift  # Profile management
+│   │   ├── ReminderManager.swift     # Advanced reminder system
+│   │   ├── DataBackupManager.swift   # Backup and sync
+│   │   └── StorageManager.swift      # Storage optimization
 │   ├── ReceiptLock.xcdatamodeld/    # Core Data model
 │   └── Assets.xcassets/             # App assets
 ├── ReceiptLockTests/                 # Unit tests
@@ -167,6 +208,36 @@ ReceiptLock/
 - **Delete**: Swipe left on list items or use menu in details
 - **Search**: Use the search bar in the Receipts tab
 - **Filter**: Use the segmented control to filter by status
+
+### ⚙️ **Settings Configuration**
+The enhanced settings provide comprehensive control over your app experience:
+
+#### **Profile & Personalization**
+- Update your profile photo and display name
+- Select your preferred currency from 20+ options
+- Choose your language and locale
+- Switch between system, light, or dark themes
+
+#### **Receipt & Appliance Management**
+- Organize receipts with custom categories
+- Set default warranty reminder periods
+- Configure storage preferences and optimization
+
+#### **Notifications & Reminders**
+- Set up multiple reminder notifications
+- Customize notification sounds and styles
+- Create personalized reminder messages
+
+#### **Security & Privacy**
+- Enable biometric authentication (Face ID/Touch ID)
+- Configure encryption settings
+- Manage privacy controls and data consent
+
+#### **Backup & Data Management**
+- Enable iCloud sync for cross-device access
+- Export your data for backup
+- Import data from previous backups
+- Monitor storage usage and cleanup options
 
 ### Notifications
 - Configure default reminder days in Settings
@@ -235,11 +306,14 @@ The app includes comprehensive error handling for:
 ### 🔒 **Security & Privacy** ✅ **COMPLETE**
 - **All security features implemented and production-ready**
 
+### ⚙️ **Settings & Configuration** ✅ **COMPLETE**
+- **Enhanced settings hierarchy fully implemented and production-ready**
+
 ### Core Features
-- Cloud sync with iCloud
-- Multiple currency support
+- Cloud sync with iCloud ✅ **IMPLEMENTED**
+- Multiple currency support ✅ **IMPLEMENTED**
 - Enhanced OCR with machine learning
-- Receipt categorization
+- Receipt categorization ✅ **IMPLEMENTED**
 - Statistics and analytics
 - Widget support
 - Apple Watch companion app

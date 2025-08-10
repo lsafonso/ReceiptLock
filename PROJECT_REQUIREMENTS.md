@@ -83,12 +83,47 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
 - **Smart Scheduling**: Only for future expiry dates
 - **Permission Handling**: Request notification access
 
-### 10. Settings (Profile)
-- **Default Reminder Days**: Configurable (7, 14, 30 days)
-- **Theme**: System, Light, Dark modes
-- **Data Export**: ZIP with JSON + assets
-- **Data Import**: Restore from exported data
-- **Data Management**: Delete all data option
+### 10. ⚙️ **Enhanced Settings Structure** ✅ **COMPLETE**
+The app features a comprehensive, logically organized settings hierarchy that provides users with complete control over their experience:
+
+#### **10.1 Profile & Personalization**
+- **Profile Photo & Name**: Update avatar and display name with integrated profile management
+- **Currency Preferences**: Full currency selection with 20+ supported currencies
+- **Language/Locale**: Comprehensive language selection (10+ languages)
+- **Theme & Appearance**: System, Light, or Dark theme with dynamic switching
+
+#### **10.2 Receipt & Appliance Settings**
+- **Receipt Categories**: Manage receipt organization and categorization
+- **Warranty Reminder Defaults**: Configure default reminder periods and behavior
+- **Receipt Storage Preferences**: Manage storage compression and optimization
+
+#### **10.3 Notifications & Reminders**
+- **Reminder Settings**: Configure multiple reminders and custom messages
+- **Active Reminders**: View and manage configured reminder counts
+- **Notification Preferences**: Sound, badges, and alert style configuration
+- **Custom Reminder Messages**: Personalize notification content
+
+#### **10.4 Security & Privacy**
+- **Biometric Authentication**: Face ID, Touch ID, and passcode configuration
+- **Encryption Settings**: Data encryption levels and security configuration
+- **Privacy Controls**: Data sharing consent and retention management
+
+#### **10.5 Backup & Sync**
+- **iCloud Sync**: Automatic cross-device synchronization
+- **Backup Settings**: Data backup and restore management
+- **Import/Export**: Manual backup and restore functionality
+- **Last Backup Tracking**: Monitor backup status and timestamps
+
+#### **10.6 Data Management**
+- **Storage Usage**: View app storage and cleanup options
+- **Data Export**: Export all receipts and files with compression
+- **Data Deletion**: Permanently remove data with confirmation
+
+#### **10.7 About & Support**
+- **App Version**: Current version and build information
+- **Terms & Privacy**: Legal documentation and privacy policy
+- **Support & Feedback**: Help resources and feedback channels
+- **Onboarding Reset**: Reset onboarding flow for new users
 
 ### 11. Share Functionality
 - **PDF Export**: Single appliance as PDF summary

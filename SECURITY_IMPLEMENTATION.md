@@ -23,6 +23,33 @@ ReceiptLock implements a multi-layered security approach that includes:
 5. **SecureStorageManager**: Encrypted data storage and management
 6. **PrivacyManager**: Privacy settings and consent management
 
+## ⚙️ **Enhanced Settings Integration**
+
+The security features are fully integrated into the enhanced settings hierarchy:
+
+### **Security & Privacy Section**
+- **Biometric Authentication**: Face ID, Touch ID, and passcode configuration
+- **Encryption Settings**: Data encryption levels and security configuration
+- **Privacy Controls**: Data sharing consent and retention management
+- **Security Auditing**: Real-time security monitoring and alerts
+
+### **Profile & Personalization Section**
+- **Profile Photo & Name**: Secure profile management with authentication
+- **Currency Preferences**: Secure currency selection and storage
+- **Language/Locale**: Localized security messages and interfaces
+- **Theme & Appearance**: Secure theme switching with authentication
+
+### **Backup & Sync Section**
+- **iCloud Sync**: Secure cross-device synchronization
+- **Backup Settings**: Encrypted backup and restore management
+- **Import/Export**: Secure data transfer with encryption
+- **Last Backup Tracking**: Secure backup status monitoring
+
+### **Data Management Section**
+- **Storage Usage**: Secure storage monitoring and cleanup
+- **Data Export**: Encrypted data export with authentication
+- **Data Deletion**: Secure data removal with confirmation
+
 ## Usage Guide
 
 ### 1. Basic Authentication Wrapper
