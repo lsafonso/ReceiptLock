@@ -39,9 +39,9 @@ struct ContentView: View {
                         }
                         .tag(2)
                     
-                    ProfileView()
+                    SettingsView()
                         .tabItem {
-                            Label("Profile", systemImage: "person.fill")
+                            Label("Settings", systemImage: "gearshape.fill")
                         }
                         .tag(3)
                 }

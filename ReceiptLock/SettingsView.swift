@@ -13,7 +13,10 @@ struct SettingsView: View {
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var showingReminderManagement = false
+    @State private var showingProfileEdit = false
+    @State private var showingOnboardingReset = false
     @StateObject private var currencyManager = CurrencyManager.shared
+    @StateObject private var profileManager = UserProfileManager.shared
     
     let themes = [
         ("system", "System"),
@@ -25,13 +28,14 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: AppTheme.largeSpacing) {
-                    notificationsSection
-                    appearanceSection
-                    currencySection
-                    securitySection
+                    profileSection
+                    profilePersonalizationSection
+                    receiptApplianceSection
+                    notificationsRemindersSection
+                    securityPrivacySection
                     backupSyncSection
                     dataManagementSection
-                    aboutSection
+                    aboutSupportSection
                 }
                 .padding(AppTheme.spacing)
             }
@@ -45,11 +49,22 @@ struct SettingsView: View {
         } message: {
             Text("This will permanently delete all receipts and associated files. This action cannot be undone.")
         }
+        .alert("Reset Onboarding", isPresented: $showingOnboardingReset) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                profileManager.resetOnboarding()
+            }
+        } message: {
+            Text("This will show the onboarding flow again on next app launch.")
+        }
         .sheet(isPresented: $showingExportSheet) {
             ExportView()
         }
         .sheet(isPresented: $showingReminderManagement) {
             ReminderManagementView()
+        }
+        .sheet(isPresented: $showingProfileEdit) {
+            ProfileEditView()
         }
         .fileImporter(
             isPresented: $showingImportPicker,
@@ -60,37 +75,80 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Section Views
+    // MARK: - Profile Section
     
-    private var notificationsSection: some View {
-        SettingsSection(title: "Notifications", icon: "bell.fill") {
-            SettingsRow(
-                title: "Reminder Settings",
-                subtitle: "Configure multiple reminders and custom messages",
-                icon: "bell.badge.fill"
-            ) {
-                Button("Configure") {
-                    showingReminderManagement = true
+    private var profileSection: some View {
+        SettingsSection(title: "Profile", icon: "person.circle.fill") {
+            VStack(spacing: AppTheme.spacing) {
+                // Profile Header
+                HStack(spacing: AppTheme.spacing) {
+                    AvatarView(
+                        image: profileManager.getAvatarImage(),
+                        size: 60,
+                        showBorder: true
+                    )
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
+                            .font(.title3.weight(.semibold))
+                            .foregroundColor(AppTheme.text)
+                        
+                        Text("Appliance Warranty Tracker")
+                            .font(.caption)
+                            .foregroundColor(AppTheme.secondaryText)
+                    }
+                    
+                    Spacer()
                 }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            // Show current reminder status
-            let enabledCount = ReminderManager.shared.preferences.enabledReminders.count
-            SettingsRow(
-                title: "Active Reminders",
-                subtitle: "\(enabledCount) reminders configured",
-                icon: "checkmark.circle.fill"
-            ) {
-                EmptyView()
+                
+                Button("Edit Profile") {
+                    showingProfileEdit = true
+                }
+                .secondaryButton()
             }
         }
     }
     
-    private var appearanceSection: some View {
-        SettingsSection(title: "Appearance", icon: "paintbrush.fill") {
+    // MARK: - Profile & Personalization Section
+    
+    private var profilePersonalizationSection: some View {
+        SettingsSection(title: "Profile & Personalization", icon: "person.badge.plus.fill") {
             SettingsRow(
-                title: "Theme",
+                title: "Profile Photo & Name",
+                subtitle: "Update your avatar and display name",
+                icon: "person.crop.circle.fill"
+            ) {
+                Button("Edit") {
+                    showingProfileEdit = true
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            SettingsRow(
+                title: "Currency Preferences",
+                subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
+                icon: "creditcard.fill"
+            ) {
+                Picker("Currency", selection: $currencyManager.currentCurrency) {
+                    ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
+                        Text(currency.1).tag(currency.0)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            
+            SettingsRow(
+                title: "Language/Locale",
+                subtitle: "English (US)",
+                icon: "globe"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            SettingsRow(
+                title: "Theme & Appearance",
                 subtitle: themes.first { $0.0 == selectedTheme }?.1 ?? "System",
                 icon: "moon.fill"
             ) {
@@ -104,14 +162,16 @@ struct SettingsView: View {
         }
     }
     
-    private var currencySection: some View {
-        SettingsSection(title: "Currency", icon: "dollarsign.circle.fill") {
+    // MARK: - Receipt & Appliance Settings Section
+    
+    private var receiptApplianceSection: some View {
+        SettingsSection(title: "Receipt & Appliance Settings", icon: "doc.text.fill") {
             SettingsRow(
-                title: "Currency",
+                title: "Default Currency",
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
-                icon: "creditcard.fill"
+                icon: "dollarsign.circle.fill"
             ) {
-                Picker("Currency", selection: $currencyManager.currentCurrency) {
+                Picker("Default Currency", selection: $currencyManager.currentCurrency) {
                     ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
                         Text(currency.1).tag(currency.0)
                     }
@@ -119,36 +179,104 @@ struct SettingsView: View {
                 .pickerStyle(.menu)
             }
             
-            // Currency preview
-            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                Text("Preview")
+            SettingsRow(
+                title: "Receipt Categories",
+                subtitle: "Manage receipt organization",
+                icon: "folder.fill"
+            ) {
+                Text("Coming Soon")
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
-                
-                HStack {
-                    Text("Sample Price:")
-                        .font(.caption)
-                        .foregroundColor(AppTheme.secondaryText)
-                    
-                    Spacer()
-                    
-                    Text(999.99.formattedCurrency())
-                        .font(.caption)
-                        .foregroundColor(AppTheme.primary)
-                        .fontWeight(.medium)
-                }
             }
-            .padding(.horizontal, AppTheme.spacing)
-            .padding(.vertical, AppTheme.smallSpacing)
+            
+            SettingsRow(
+                title: "Warranty Reminder Defaults",
+                subtitle: "Set default reminder periods",
+                icon: "bell.badge.fill"
+            ) {
+                Button("Configure") {
+                    showingReminderManagement = true
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            SettingsRow(
+                title: "Receipt Storage Preferences",
+                subtitle: "Manage storage and compression",
+                icon: "externaldrive.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
         }
     }
     
-    private var securitySection: some View {
+    // MARK: - Notifications & Reminders Section
+    
+    private var notificationsRemindersSection: some View {
+        SettingsSection(title: "Notifications & Reminders", icon: "bell.fill") {
+            SettingsRow(
+                title: "Reminder Settings",
+                subtitle: "Configure multiple reminders and custom messages",
+                icon: "bell.badge.fill"
+            ) {
+                Button("Configure") {
+                    showingReminderManagement = true
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            let enabledCount = ReminderManager.shared.preferences.enabledReminders.count
+            SettingsRow(
+                title: "Active Reminders",
+                subtitle: "\(enabledCount) reminders configured",
+                icon: "checkmark.circle.fill"
+            ) {
+                EmptyView()
+            }
+            
+            SettingsRow(
+                title: "Notification Preferences",
+                subtitle: "Sound, badges, and alert styles",
+                icon: "speaker.wave.2.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            SettingsRow(
+                title: "Custom Reminder Messages",
+                subtitle: "Personalize your reminder notifications",
+                icon: "text.bubble.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+        }
+    }
+    
+    // MARK: - Security & Privacy Section
+    
+    private var securityPrivacySection: some View {
         SettingsSection(title: "Security & Privacy", icon: "lock.shield.fill") {
             SettingsRow(
-                title: "Security Settings",
-                subtitle: "Biometric lock, encryption, and privacy controls",
+                title: "Biometric Authentication",
+                subtitle: "Face ID, Touch ID, and passcode",
                 icon: "faceid"
+            ) {
+                NavigationLink("Configure") {
+                    SecuritySettingsView()
+                }
+                .foregroundColor(AppTheme.primary)
+            }
+            
+            SettingsRow(
+                title: "Encryption Settings",
+                subtitle: "Data encryption and security levels",
+                icon: "lock.rotation"
             ) {
                 NavigationLink("Configure") {
                     SecuritySettingsView()
@@ -168,6 +296,8 @@ struct SettingsView: View {
             }
         }
     }
+    
+    // MARK: - Backup & Sync Section
     
     private var backupSyncSection: some View {
         SettingsSection(title: "Backup & Sync", icon: "icloud.fill") {
@@ -203,14 +333,44 @@ struct SettingsView: View {
                     EmptyView()
                 }
             }
+            
+            SettingsRow(
+                title: "Import/Export",
+                subtitle: "Backup and restore data manually",
+                icon: "arrow.triangle.2.circlepath"
+            ) {
+                HStack(spacing: AppTheme.smallSpacing) {
+                    Button("Export") {
+                        showingExportSheet = true
+                    }
+                    .foregroundColor(AppTheme.primary)
+                    
+                    Button("Import") {
+                        showingImportPicker = true
+                    }
+                    .foregroundColor(AppTheme.primary)
+                }
+            }
         }
     }
+    
+    // MARK: - Data Management Section
     
     private var dataManagementSection: some View {
         SettingsSection(title: "Data Management", icon: "folder.fill") {
             SettingsRow(
-                title: "Export Data",
-                subtitle: "Backup all receipts and files",
+                title: "Storage Usage",
+                subtitle: "View app storage and cleanup options",
+                icon: "chart.pie.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            SettingsRow(
+                title: "Data Export",
+                subtitle: "Export all receipts and files",
                 icon: "square.and.arrow.up.fill"
             ) {
                 Button("Export") {
@@ -220,18 +380,7 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Import Data",
-                subtitle: "Restore from backup",
-                icon: "square.and.arrow.down.fill"
-            ) {
-                Button("Import") {
-                    showingImportPicker = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Delete All Data",
+                title: "Data Deletion",
                 subtitle: "Permanently remove all data",
                 icon: "trash.fill"
             ) {
@@ -243,10 +392,12 @@ struct SettingsView: View {
         }
     }
     
-    private var aboutSection: some View {
-        SettingsSection(title: "About", icon: "info.circle.fill") {
+    // MARK: - About & Support Section
+    
+    private var aboutSupportSection: some View {
+        SettingsSection(title: "About & Support", icon: "info.circle.fill") {
             SettingsRow(
-                title: "Version",
+                title: "App Version",
                 subtitle: "1.0.0",
                 icon: "app.badge.fill"
             ) {
@@ -259,6 +410,37 @@ struct SettingsView: View {
                 icon: "hammer.fill"
             ) {
                 EmptyView()
+            }
+            
+            SettingsRow(
+                title: "Terms & Privacy",
+                subtitle: "Read our terms and privacy policy",
+                icon: "doc.text.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            SettingsRow(
+                title: "Support & Feedback",
+                subtitle: "Get help and send feedback",
+                icon: "questionmark.circle.fill"
+            ) {
+                Text("Coming Soon")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            SettingsRow(
+                title: "Reset Onboarding",
+                subtitle: "Show onboarding flow again",
+                icon: "arrow.clockwise"
+            ) {
+                Button("Reset") {
+                    showingOnboardingReset = true
+                }
+                .foregroundColor(AppTheme.warning)
             }
         }
     }
