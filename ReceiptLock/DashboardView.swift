@@ -8,6 +8,14 @@
 import SwiftUI
 import CoreData
 
+// MARK: - Sort Order Enum
+enum SortOrder: String, CaseIterable {
+    case recentlyAdded = "Recently Added"
+    case expiringSoon = "Expiring Soon"
+    case alphabetical = "Alphabetical"
+    case brand = "Brand"
+}
+
 struct DashboardView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
@@ -16,6 +24,7 @@ struct DashboardView: View {
     private var appliances: FetchedResults<Appliance>
     
     @State private var showingAddAppliance = false
+    @State private var selectedSortOrder: SortOrder = .recentlyAdded
     @State private var selectedCard: Int? = nil
     
     var body: some View {
@@ -35,9 +44,6 @@ struct DashboardView: View {
                         
                         // Your Appliances Section
                         appliancesSection
-                        
-                        // View All Appliances Button
-                        viewAllButton
                     }
                     .padding(AppTheme.spacing)
                 }
@@ -178,11 +184,46 @@ struct DashboardView: View {
     // MARK: - Appliances Section
     private var appliancesSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Your Appliances")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
+            HStack {
+                Text("Your Appliances")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                
+                Spacer()
+                
+                // Sorting Dropdown
+                Menu {
+                    ForEach(SortOrder.allCases, id: \.self) { sortOrder in
+                        Button(action: {
+                            selectedSortOrder = sortOrder
+                        }) {
+                            HStack {
+                                Text(sortOrder.rawValue)
+                                if selectedSortOrder == sortOrder {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(AppTheme.primary)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.caption)
+                        Text(selectedSortOrder.rawValue)
+                            .font(.caption.weight(.medium))
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                    }
+                    .foregroundColor(AppTheme.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.primary.opacity(0.1))
+                    .cornerRadius(AppTheme.smallCornerRadius)
+                }
+            }
             
-            if appliances.isEmpty {
+            if sortedAppliances.isEmpty {
                 EmptyStateView(
                     title: "No Appliances Yet",
                     message: "Start by adding your first appliance to track warranties.",
@@ -192,11 +233,13 @@ struct DashboardView: View {
                 )
             } else {
                 LazyVStack(spacing: AppTheme.smallSpacing) {
-                    ForEach(Array(appliances.prefix(3)), id: \.id) { appliance in
+                    ForEach(sortedAppliances, id: \.id) { appliance in
                         ExpandableApplianceCard(appliance: appliance)
                     }
                 }
             }
+            
+            viewAllButton
         }
     }
     
@@ -238,6 +281,31 @@ struct DashboardView: View {
         return appliances.filter { appliance in
             guard let expiryDate = appliance.warrantyExpiryDate else { return false }
             return expiryDate < now
+        }
+    }
+    
+    private var sortedAppliances: [Appliance] {
+        switch selectedSortOrder {
+        case .recentlyAdded:
+            return appliances.sorted { appliance1, appliance2 in
+                guard let date1 = appliance1.createdAt,
+                      let date2 = appliance2.createdAt else { return false }
+                return date1 > date2
+            }
+        case .expiringSoon:
+            return appliances.sorted { appliance1, appliance2 in
+                guard let expiry1 = appliance1.warrantyExpiryDate,
+                      let expiry2 = appliance2.warrantyExpiryDate else { return false }
+                return expiry1 < expiry2
+            }
+        case .alphabetical:
+            return appliances.sorted { appliance1, appliance2 in
+                (appliance1.name ?? "") < (appliance2.name ?? "")
+            }
+        case .brand:
+            return appliances.sorted { appliance1, appliance2 in
+                (appliance1.brand ?? "") < (appliance2.brand ?? "")
+            }
         }
     }
 }
