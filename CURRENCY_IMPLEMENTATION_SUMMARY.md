@@ -50,6 +50,10 @@ This document summarizes the changes made to implement dynamic currency support 
 - **Changes**:
   - Updated price extraction regex pattern to use dynamic currency symbol
   - Pattern: `#"\\$?(\d+(?:\\.\d{2})?)"#` → `#"\\#(escapedSymbol)?(\d+(?:\\.\d{2})?)"#`
+  - **Enhanced Fields**: Added comprehensive appliance information fields (model, serial number, warranty summary, notes)
+  - **Form Organization**: Restructured form into logical sections for better user experience
+  - **Smart Pre-filling**: Device type selection automatically suggests model information
+  - **Enhanced OCR**: Model information extraction from receipt text
 
 ### 7. UserProfile.swift
 - **Changes**:

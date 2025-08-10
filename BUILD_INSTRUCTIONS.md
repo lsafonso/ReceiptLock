@@ -27,7 +27,7 @@ ReceiptLock/
 ├── Views/                        # Feature views
 │   ├── DashboardView.swift       # Dashboard with warranty overview and smart sorting
 │   ├── ApplianceListView.swift   # Full appliance list with search/filter
-│   ├── AddApplianceView.swift    # Add new appliance with OCR
+│   ├── AddApplianceView.swift    # Add new appliance with comprehensive fields and OCR
 │   ├── EditApplianceView.swift   # Edit existing appliance
 │   ├── ApplianceDetailView.swift # Detailed appliance view
 │   ├── ApplianceRowView.swift    # Appliance list item component
@@ -87,6 +87,16 @@ ReceiptLock/
    - PDF document support with OCR text extraction
    - PDF page conversion to images for enhanced OCR
    - OCR results management and selective application
+
+5. **Enhanced Appliance Creation**
+   - Comprehensive information fields matching EditApplianceView
+   - Basic information section (name, store, model, serial number)
+   - Purchase details section (date, price, warranty duration)
+   - Warranty information section (summary, notes)
+   - Smart field pre-filling with device type selection
+   - Enhanced OCR integration for model information
+   - Complete form validation with real-time feedback
+   - Organized form layout with logical field grouping
 
 5. **File Management**
    - Local storage in Documents/receipts/

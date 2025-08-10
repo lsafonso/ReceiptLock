@@ -84,6 +84,16 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Multi-format Support**: Handle both image-based and text-based PDFs
 - **OCR Results Management**: Review and selectively apply extracted data
 
+### 📝 **Enhanced Appliance Creation** ✅ **COMPLETE**
+- **Comprehensive Information Fields**: Full appliance details matching EditApplianceView functionality
+- **Basic Information Section**: Appliance name, store/brand, model, and serial number
+- **Purchase Details Section**: Purchase date, price, and warranty duration
+- **Warranty Information Section**: Warranty summary and additional notes
+- **Smart Field Pre-filling**: Device type selection automatically suggests model information
+- **Enhanced OCR Integration**: Model information extraction from receipt text
+- **Form Validation**: Complete validation for all fields with real-time feedback
+- **Organized Form Layout**: Logical grouping of related fields for better user experience
+
 ### 🏷️ **Store Badge System** ✅ **COMPLETE**
 - **Dynamic Retailer Display**: Replaces hardcoded "MOM" badge with actual retailer/store names
 - **Smart Truncation**: Automatically truncates names longer than 8 characters with ellipsis
@@ -215,7 +225,7 @@ ReceiptLock/
 │   ├── Views/                        # Feature views
 │   │   ├── DashboardView.swift       # Dashboard with warranty overview and sorting
 │   │   ├── ApplianceListView.swift   # Full appliance list with search/filter
-│   │   ├── AddApplianceView.swift    # Add new appliance with OCR
+│   │   ├── AddApplianceView.swift    # Add new appliance with comprehensive fields and OCR
 │   │   ├── EditApplianceView.swift   # Edit existing appliance
 │   │   ├── ApplianceDetailView.swift # Detailed appliance view
 │   │   ├── ApplianceRowView.swift    # Appliance list item component

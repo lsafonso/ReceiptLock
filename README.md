@@ -193,7 +193,7 @@ ReceiptLock/
 │   ├── Views/                        # Feature views
 │   │   ├── DashboardView.swift       # Dashboard with warranty overview and sorting
 │   │   ├── ApplianceListView.swift   # Full appliance list with search/filter
-│   │   ├── AddApplianceView.swift    # Add new appliance
+│   │   ├── AddApplianceView.swift    # Add new appliance with comprehensive fields
 │   │   ├── EditApplianceView.swift   # Edit existing appliance
 │   │   ├── ApplianceDetailView.swift # Detailed appliance view
 │   │   ├── ApplianceRowView.swift    # Appliance list item component
@@ -240,7 +240,10 @@ ReceiptLock/
 3. **OCR Processing**: Automatically extract text and data from receipt images
 4. **Smart Data Extraction**: Auto-fill appliance fields from scanned images
 5. **Image Storage**: Store receipt images alongside data
-6. Fill in any remaining appliance information (name, retailer/store name, model, date, price, warranty)
+6. **Comprehensive Information**: Fill in detailed appliance information:
+   - **Basic Information**: Appliance name, store/brand, model, serial number
+   - **Purchase Details**: Purchase date, price, warranty duration
+   - **Warranty Information**: Warranty summary and additional notes
 7. Save the appliance
 
 ### Managing Appliances
