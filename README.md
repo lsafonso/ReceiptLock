@@ -36,6 +36,7 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **Warranty Summary**: Overview of total devices, valid warranties, and expired warranties
 - **Smart Appliance Sorting**: Sort appliances by Recently Added, Expiring Soon, Alphabetical, or Brand
 - **Expandable Appliance Cards**: Interactive cards showing appliance details with expandable information
+- **Store Badge System**: Dynamic retailer/store badges that display the purchase location with smart truncation
 - **Floating Action Button**: Quick access to add new appliances
 
 ### Receipt List
@@ -204,7 +205,7 @@ ReceiptLock/
 3. **OCR Processing**: Automatically extract text and data from receipt images
 4. **Smart Data Extraction**: Auto-fill appliance fields from scanned images
 5. **Image Storage**: Store receipt images alongside data
-6. Fill in any remaining appliance information (name, brand, model, date, price, warranty)
+6. Fill in any remaining appliance information (name, retailer/store name, model, date, price, warranty)
 7. Save the appliance
 
 ### Managing Appliances
@@ -213,6 +214,7 @@ ReceiptLock/
 - **Delete**: Swipe left on list items or use menu in details
 - **Search**: Use the search bar in the Appliances tab
 - **Filter**: Use the segmented control to filter by status
+- **Store Badges**: Each appliance displays a dynamic badge showing the retailer/store name with smart truncation for long names
 
 ### Dashboard Features
 - **Warranty Summary**: Quick overview of warranty status across all devices
@@ -222,6 +224,7 @@ ReceiptLock/
   - **Alphabetical**: Sorted by appliance name
   - **Brand**: Grouped by manufacturer
 - **Expandable Cards**: Tap appliance cards to see more details
+- **Store Badge System**: Dynamic retailer/store badges with smart truncation and accessibility features
 - **Quick Actions**: Floating action button for adding new appliances
 
 ### ⚙️ **Settings Configuration**
@@ -272,6 +275,7 @@ Run unit tests with `Cmd+U` in Xcode. Tests cover:
 - Expiry status determination
 - Price formatting
 - Warranty validation
+- Store badge truncation and fallback behavior
 
 ### UI Tests
 Basic UI tests are included for core workflows:
@@ -315,6 +319,7 @@ The app includes comprehensive error handling for:
 - Dynamic Type support
 - High contrast mode compatibility
 - Focus states for navigation
+- Store badge accessibility with full retailer names for screen readers
 
 ## Future Enhancements
 

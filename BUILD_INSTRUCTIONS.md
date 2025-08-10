@@ -59,6 +59,7 @@ ReceiptLock/
      - Alphabetical: Sorted by appliance name
      - Brand: Grouped by manufacturer
    - **Expandable Appliance Cards**: Interactive cards with expandable information
+   - **Store Badge System**: Dynamic retailer/store badges with smart truncation and accessibility features
    - **Floating Action Button**: Quick access to add new appliances
 
 3. **Appliance Management**
@@ -130,6 +131,14 @@ ReceiptLock/
    - Dynamic Type support
    - Focus states
 
+9. **Store Badge System**
+   - Dynamic retailer/store badges replacing hardcoded "MOM" labels
+   - Smart truncation for names longer than 8 characters
+   - Fallback to "Unknown" for empty or invalid store names
+   - Accessibility features with full store names for screen readers
+   - Reactive updates when appliances are created or edited
+   - Consistent badge styling across dashboard and appliance list views
+
 ### 🔧 Technical Implementation
 
 **Core Data Model:**
@@ -157,6 +166,14 @@ The smart dashboard uses a modular approach with:
 - `ExpandableApplianceCard` component for interactive appliance display
 - State management for sort order selection
 - Responsive layout with proper spacing and theming
+
+**Store Badge Implementation:**
+The store badge system provides dynamic retailer display:
+- `storeBadgeText` computed property for smart truncation logic
+- 8-character limit with ellipsis for long store names
+- Fallback handling for empty or "Unknown" values
+- Accessibility integration with full store names in tooltips
+- Reactive updates through SwiftUI's data binding system
 
 **Settings Architecture:**
 The enhanced settings use a modular approach with:

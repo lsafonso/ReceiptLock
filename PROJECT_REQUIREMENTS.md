@@ -65,6 +65,7 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
   - Alphabetical: Sorted by appliance name
   - Brand: Grouped by manufacturer
 - **Expandable Appliance Cards**: Interactive cards with expandable information
+- **Store Badge System**: Dynamic retailer/store badges with smart truncation and accessibility features
 - **Quick Actions**: Add new appliance floating action button
 - **Clean Design**: No navigation title, minimal interface with smart organization
 
@@ -245,6 +246,15 @@ ReceiptLock implements a comprehensive multi-layered security system that protec
 - **Memory Management**: Efficient image handling
 - **Smooth Animations**: 60fps transitions
 
+### Store Badge System
+- **Dynamic Display**: Replace hardcoded badges with actual retailer/store names
+- **Smart Truncation**: Automatically truncate names longer than 8 characters with ellipsis
+- **Fallback Handling**: Display "Unknown" for empty or invalid store names
+- **Accessibility**: Full store names available for screen readers and tooltips
+- **Reactive Updates**: Badges update immediately when appliances are created or edited
+- **Consistent Styling**: Maintain existing badge design across all views
+- **Performance**: Efficient text processing without impacting UI responsiveness
+
 ## Testing Requirements
 
 ### Unit Tests
@@ -252,6 +262,7 @@ ReceiptLock implements a comprehensive multi-layered security system that protec
 - **Price Formatting**: Currency display
 - **Warranty Validation**: Month calculations
 - **OCR Processing**: Text extraction accuracy
+- **Store Badge System**: Truncation logic, fallback handling, and accessibility features
 
 ### UI Tests
 - **Add Flow**: Complete appliance creation
@@ -339,6 +350,7 @@ ReceiptLock/
 - [x] **GDPR compliance features complete**
 - [x] **Error handling graceful and user-friendly**
 - [x] **Security monitoring active and functional**
+- [x] **Store badge system working with dynamic retailer names and smart truncation**
 - [ ] All UI tests pass
 - [ ] All unit tests pass
 - [ ] Accessibility features work correctly

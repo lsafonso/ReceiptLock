@@ -84,6 +84,14 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Multi-format Support**: Handle both image-based and text-based PDFs
 - **OCR Results Management**: Review and selectively apply extracted data
 
+### 🏷️ **Store Badge System** ✅ **COMPLETE**
+- **Dynamic Retailer Display**: Replaces hardcoded "MOM" badge with actual retailer/store names
+- **Smart Truncation**: Automatically truncates names longer than 8 characters with ellipsis
+- **Fallback Handling**: Displays "Unknown" for empty or invalid store names
+- **Accessibility Features**: Full store names available for screen readers and tooltips
+- **Reactive Updates**: Badges update immediately when appliances are created or edited
+- **Consistent Styling**: Maintains existing badge design across all views
+
 ### 🎯 **Smart Dashboard & Sorting** ✅ **COMPLETE**
 - **Warranty Summary Cards**: Overview of total devices, valid warranties, and expired warranties
 - **Smart Appliance Sorting**: Multiple sorting options:
@@ -92,6 +100,7 @@ The app features a comprehensive, logically organized settings hierarchy:
   - **Alphabetical**: Sorted by appliance name
   - **Brand**: Grouped by manufacturer
 - **Expandable Appliance Cards**: Interactive cards with expandable information
+- **Store Badge System**: Dynamic retailer/store badges with smart truncation and accessibility features
 - **Floating Action Button**: Quick access to add new appliances
 - **Responsive Layout**: Adaptive design for different screen sizes
 
@@ -201,6 +210,7 @@ ReceiptLock/
 - Warranty validation
 - Currency management
 - Security features
+- Store badge truncation and fallback behavior
 
 ### **UI Tests** ✅ **COMPLETE**
 - App launch and navigation
