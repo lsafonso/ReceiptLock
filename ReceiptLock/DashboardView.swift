@@ -318,6 +318,7 @@ struct ExpandableApplianceCard: View {
     @State private var isPressed = false
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingActionSheet = false // Added for long press gesture
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
@@ -369,6 +370,14 @@ struct ExpandableApplianceCard: View {
         } message: {
             Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
         }
+        .actionSheet(isPresented: $showingActionSheet) {
+            ActionSheet(title: Text("Appliance Actions"), message: Text("Choose an action for \(appliance.name ?? "this appliance")"), buttons: [
+                .default(Text("Edit")) { showingEditSheet = true },
+                .default(Text("Share")) { shareAppliance() },
+                .destructive(Text("Delete")) { showingDeleteAlert = true },
+                .cancel()
+            ])
+        }
     }
     
     // MARK: - Main Card Content
@@ -416,6 +425,15 @@ struct ExpandableApplianceCard: View {
                 ProgressView(value: progressValue, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
                     .frame(height: 4)
+                
+                // Swipe hint text
+                HStack {
+                    Spacer()
+                    Text("Swipe for actions")
+                        .font(.caption2)
+                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                        .italic()
+                }
             }
             
             // Expandable chevron
@@ -424,6 +442,24 @@ struct ExpandableApplianceCard: View {
                 .foregroundColor(AppTheme.primary)
                 .rotationEffect(.degrees(isExpanded ? 0 : 0))
                 .animation(AppTheme.springAnimation, value: isExpanded)
+                .frame(width: 24, height: 24) // Fixed size for consistent tap target
+                .background(Color.clear) // Ensure background is clear
+                .onTapGesture {
+                    withAnimation(AppTheme.springAnimation) {
+                        isExpanded.toggle()
+                        isPressed = true
+                    }
+                    
+                    // Haptic feedback
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(AppTheme.springAnimation) {
+                            isPressed = false
+                        }
+                    }
+                }
         }
         .padding(AppTheme.spacing)
         .background(AppTheme.cardBackground)
@@ -431,21 +467,9 @@ struct ExpandableApplianceCard: View {
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppTheme.springAnimation, value: isPressed)
         .shadow(color: AppTheme.secondaryText.opacity(0.1), radius: 2, x: 0, y: 1)
-        .onTapGesture {
-            withAnimation(AppTheme.springAnimation) {
-                isExpanded.toggle()
-                isPressed = true
-            }
-            
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(AppTheme.springAnimation) {
-                    isPressed = false
-                }
-            }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            // Long press shows action sheet as alternative to swipe
+            showingActionSheet = true
         }
     }
     

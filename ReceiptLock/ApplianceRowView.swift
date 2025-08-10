@@ -13,6 +13,7 @@ struct ApplianceRowView: View {
     @State private var showPulse = false
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingActionSheet = false // Added for long press gesture
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
@@ -53,6 +54,14 @@ struct ApplianceRowView: View {
                 }
             } message: {
                 Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
+            }
+            .actionSheet(isPresented: $showingActionSheet) {
+                ActionSheet(title: Text("Appliance Actions"), message: Text("Choose an action for \(appliance.name ?? "this appliance")"), buttons: [
+                    .default(Text("Edit")) { showingEditSheet = true },
+                    .default(Text("Share")) { shareAppliance() },
+                    .destructive(Text("Delete")) { showingDeleteAlert = true },
+                    .cancel()
+                ])
             }
     }
     
@@ -96,20 +105,65 @@ struct ApplianceRowView: View {
                         .foregroundColor(expiryStatusColor)
                     
                     Spacer()
+                    
+                    // Subtle swipe hint indicator
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.left")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                        Image(systemName: "arrow.right")
+                            .font(.caption2)
+                            .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                    }
+                    .opacity(0.7)
                 }
                 
                 // Progress bar
                 ProgressView(value: progressValue, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
                     .frame(height: 4)
+                
+                // Swipe hint text
+                HStack {
+                    Spacer()
+                    Text("Swipe for actions")
+                        .font(.caption2)
+                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                        .italic()
+                }
             }
             
-            // Chevron with animation
+            // Chevron with animation - ONLY this area is tappable for expand/collapse
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
                 .foregroundColor(AppTheme.secondaryText)
                 .rotationEffect(.degrees(isPressed ? 90 : 0))
                 .animation(AppTheme.springAnimation, value: isPressed)
+                .frame(width: 24, height: 24) // Fixed size for consistent tap target
+                .background(Color.clear) // Ensure background is clear
+                .onTapGesture {
+                    withAnimation(AppTheme.springAnimation) {
+                        isPressed = true
+                    }
+                    
+                    // Haptic feedback
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                    
+                    // Show pulse for urgent items
+                    if isUrgent {
+                        showPulse = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            showPulse = false
+                        }
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(AppTheme.springAnimation) {
+                            isPressed = false
+                        }
+                    }
+                }
         }
         .padding(AppTheme.spacing)
         .background(AppTheme.cardBackground)
@@ -122,29 +176,9 @@ struct ApplianceRowView: View {
         )
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppTheme.springAnimation, value: isPressed)
-        .contentShape(Rectangle()) // Ensure the entire area is tappable
-        .onTapGesture {
-            withAnimation(AppTheme.springAnimation) {
-                isPressed = true
-            }
-            
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-            
-            // Show pulse for urgent items
-            if isUrgent {
-                showPulse = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    showPulse = false
-                }
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(AppTheme.springAnimation) {
-                    isPressed = false
-                }
-            }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            // Long press shows action sheet as alternative to swipe
+            showingActionSheet = true
         }
         .onAppear {
             // Show pulse animation for urgent items on appear
