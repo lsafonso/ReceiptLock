@@ -11,7 +11,6 @@ import CoreData
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var selectedTab = 0
-    @State private var showingAddAppliance = false
     @StateObject private var profileManager = UserProfileManager.shared
     
     var body: some View {
@@ -32,32 +31,16 @@ struct ContentView: View {
                         }
                         .tag(1)
                     
-                    // Add button - this will be a placeholder that shows the add sheet
-                    Color.clear
-                        .tabItem {
-                            Label("Add", systemImage: "plus.circle.fill")
-                        }
-                        .tag(2)
-                    
                     SettingsView()
                         .tabItem {
                             Label("Settings", systemImage: "gearshape.fill")
                         }
-                        .tag(3)
+                        .tag(2)
                 }
                 .tint(AppTheme.primary)
                 .background(AppTheme.background)
                 .onAppear {
                     setupTabBarAppearance()
-                }
-                .onChange(of: selectedTab) { _, newValue in
-                    if newValue == 2 {
-                        showingAddAppliance = true
-                        selectedTab = 0 // Reset to home tab
-                    }
-                }
-                .sheet(isPresented: $showingAddAppliance) {
-                    AddApplianceView()
                 }
             }
         }

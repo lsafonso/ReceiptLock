@@ -44,6 +44,26 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
+        .overlay(
+            // Floating Action Button
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { showingAddAppliance = true }) {
+                        Image(systemName: "plus")
+                            .font(.title2.weight(.semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(AppTheme.primary)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, AppTheme.spacing)
+                    .padding(.bottom, AppTheme.spacing)
+                }
+            }
+        )
         .sheet(isPresented: $showingAddAppliance) {
             AddApplianceView()
         }
@@ -185,7 +205,7 @@ struct DashboardView: View {
     
     // MARK: - View All Button
     private var viewAllButton: some View {
-        Button(action: {}) {
+        NavigationLink(destination: ApplianceListView()) {
             HStack {
                 Text("View All Appliances")
                     .font(.headline.weight(.semibold))
