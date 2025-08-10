@@ -309,10 +309,10 @@ struct AddApplianceView: View {
                 validationManager.validateApplianceName(value, fieldKey: fieldKey)
             }
             
-            // Store/Brand Field
+            // Store Field
             ValidatedTextField(
-                title: "Store/Brand",
-                placeholder: "Enter store or brand",
+                title: "Retailer / Store Name",
+                placeholder: "e.g., Amazon, IKEA, Currys",
                 text: $store,
                 fieldKey: "store",
                 validationManager: validationManager
