@@ -13,6 +13,9 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @StateObject private var profileManager = UserProfileManager.shared
     
+    // Notification name for switching tabs
+    private let switchToAppliancesTabNotification = Notification.Name("switchToAppliancesTab")
+    
     var body: some View {
         Group {
             if !profileManager.hasCompletedOnboarding {
@@ -41,6 +44,9 @@ struct ContentView: View {
                 .background(AppTheme.background)
                 .onAppear {
                     setupTabBarAppearance()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
+                    selectedTab = 1 // Switch to Appliances tab
                 }
             }
         }

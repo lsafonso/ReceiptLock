@@ -57,7 +57,7 @@ struct DashboardView: View {
                             .frame(width: 56, height: 56)
                             .background(AppTheme.primary)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+    
                     }
                     .padding(.trailing, AppTheme.spacing)
                     .padding(.bottom, AppTheme.spacing)
@@ -205,7 +205,10 @@ struct DashboardView: View {
     
     // MARK: - View All Button
     private var viewAllButton: some View {
-        NavigationLink(destination: ApplianceListView()) {
+        Button(action: {
+            // Switch to Appliances tab (index 1)
+            NotificationCenter.default.post(name: Notification.Name("switchToAppliancesTab"), object: nil)
+        }) {
             HStack {
                 Text("View All Appliances")
                     .font(.headline.weight(.semibold))

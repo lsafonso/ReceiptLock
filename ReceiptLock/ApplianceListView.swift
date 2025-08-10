@@ -81,7 +81,7 @@ struct ApplianceListView: View {
                             .frame(width: 56, height: 56)
                             .background(AppTheme.primary)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 4)
+
                     }
                     .padding(.trailing, AppTheme.spacing)
                     .padding(.bottom, AppTheme.spacing)
