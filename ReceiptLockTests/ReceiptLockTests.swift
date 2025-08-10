@@ -66,4 +66,39 @@ final class ReceiptLockTests: XCTestCase {
             XCTAssertFalse(month >= 0 && month <= 120, "Month \(month) should be invalid")
         }
     }
+    
+    func testStoreBadgeTruncationAndFallback() {
+        // Test fallback to "Unknown" for empty or nil values
+        XCTAssertEqual(getStoreBadgeText(nil), "Unknown")
+        XCTAssertEqual(getStoreBadgeText(""), "Unknown")
+        XCTAssertEqual(getStoreBadgeText("Unknown"), "Unknown")
+        
+        // Test short names (8 characters or less) - no truncation
+        XCTAssertEqual(getStoreBadgeText("Amazon"), "Amazon")
+        XCTAssertEqual(getStoreBadgeText("IKEA"), "IKEA")
+        XCTAssertEqual(getStoreBadgeText("12345678"), "12345678") // Exactly 8 characters
+        
+        // Test long names (more than 8 characters) - truncation with ellipsis
+        XCTAssertEqual(getStoreBadgeText("Best Buy Canada"), "Best Buy…")
+        XCTAssertEqual(getStoreBadgeText("John Lewis & Partners"), "John Lewi…")
+        XCTAssertEqual(getStoreBadgeText("123456789"), "12345678…") // 9 characters
+        
+        // Test edge cases
+        XCTAssertEqual(getStoreBadgeText("A"), "A") // Single character
+        XCTAssertEqual(getStoreBadgeText("   "), "Unknown") // Whitespace only
+    }
+    
+    // Helper function to test store badge logic (same logic as in views)
+    private func getStoreBadgeText(_ storeName: String?) -> String {
+        guard let storeName = storeName, !storeName.isEmpty, storeName != "Unknown" else {
+            return "Unknown"
+        }
+        
+        if storeName.count <= 8 {
+            return storeName
+        } else {
+            let truncated = String(storeName.prefix(8))
+            return "\(truncated)…"
+        }
+    }
 }

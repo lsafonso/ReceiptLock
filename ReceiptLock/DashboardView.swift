@@ -347,14 +347,16 @@ struct ExpandableApplianceCard: View {
                             
                             Spacer()
                             
-                            // Tag
-                            Text("MOM")
+                            // Store Badge
+                            Text(storeBadgeText)
                                 .font(.caption2.weight(.bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(AppTheme.primary)
                                 .cornerRadius(4)
+                                .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
+                                .help(appliance.brand ?? "Unknown")
                         }
                         
                         HStack {
@@ -482,6 +484,19 @@ struct ExpandableApplianceCard: View {
             return .gray
         } else {
             return AppTheme.primary
+        }
+    }
+    
+    private var storeBadgeText: String {
+        guard let storeName = appliance.brand, !storeName.isEmpty, storeName != "Unknown" else {
+            return "Unknown"
+        }
+        
+        if storeName.count <= 8 {
+            return storeName
+        } else {
+            let truncated = String(storeName.prefix(8))
+            return "\(truncated)…"
         }
     }
     
