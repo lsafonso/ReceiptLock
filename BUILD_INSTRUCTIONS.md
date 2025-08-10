@@ -242,6 +242,16 @@ The security system provides enterprise-grade protection:
 - `SecureStorageManager` for encrypted data storage
 - `PrivacyManager` for GDPR compliance and consent management
 
+**Enhanced User Interaction & Swipe Actions:**
+The swipe action system provides intuitive gesture-based interactions:
+- **List Container**: Uses `List` instead of `LazyVStack` for proper swipe action support
+- **Gesture Separation**: Chevron icon only for expand/collapse, main card area for swipe actions
+- **Swipe Actions**: Left swipe for share, right swipe for edit/delete with confirmation
+- **Long Press Alternative**: 0.5-second long press to access comprehensive action sheet
+- **Visual Hints**: "Swipe for actions" text and arrow indicators for user guidance
+- **Action Sheet Fallback**: Edit, Share, and Delete options in organized menu
+- **No Gesture Conflicts**: Expand/collapse and swipe actions work independently
+
 ## Build Configuration
 
 ### Requirements

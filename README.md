@@ -4,6 +4,17 @@
 
 A comprehensive iOS app for managing receipts and warranty information with OCR capabilities, local notifications, data export/import features, and enterprise-grade security.
 
+## 📚 **Documentation**
+
+- **README.md**: This file - comprehensive feature overview and user guide
+- **PROJECT_REQUIREMENTS.md**: Detailed feature requirements and implementation status
+- **PROJECT_IMPLEMENTATION_STATUS.md**: Current project completion status and roadmap
+- **BUILD_INSTRUCTIONS.md**: Technical build and development instructions
+- **SECURITY_IMPLEMENTATION.md**: Security features and implementation details
+- **SECURITY_STATUS_SUMMARY.md**: Security assessment and compliance status
+- **CURRENCY_IMPLEMENTATION_SUMMARY.md**: Multi-currency support details
+- **USER_INTERACTION_IMPROVEMENTS.md**: Swipe action fixes and gesture enhancements
+
 ## Features
 
 ### 🔒 **Security & Privacy** ✅ **COMPLETE**
@@ -45,6 +56,11 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **Expandable Appliance Cards**: Interactive cards showing appliance details with expandable information
 - **Store Badge System**: Dynamic retailer/store badges that display the purchase location with smart truncation
 - **Floating Action Button**: Quick access to add new appliances
+- **Enhanced User Interaction**: 
+  - **Swipe Actions**: Left swipe to share, right swipe for edit/delete actions
+  - **Long Press Alternative**: Long press (0.5s) to access action sheet with all options
+  - **Visual Hints**: Clear indicators showing available swipe actions
+  - **Gesture Separation**: Tap chevron to expand/collapse, swipe for actions - no conflicts
 
 ### Receipt List
 - **Search & Filter**: Search by title/store and filter by status (All, Active, Expired, Expiring Soon)

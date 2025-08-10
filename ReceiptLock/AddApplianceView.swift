@@ -26,6 +26,10 @@ struct AddApplianceView: View {
     @State private var selectedTab: AddMethod = .scanInvoice
     @StateObject private var validationManager = ValidationManager()
     @State private var showingValidationAlert = false
+    @State private var model = ""
+    @State private var serialNumber = ""
+    @State private var warrantySummary = ""
+    @State private var notes = ""
     
     enum AddMethod {
         case scanInvoice
@@ -257,6 +261,10 @@ struct AddApplianceView: View {
                         Button(action: {
                             selectedDeviceType = deviceType
                             title = deviceType.rawValue
+                            // Pre-fill model with device type as default
+                            if model.isEmpty {
+                                model = deviceType.rawValue
+                            }
                         }) {
                             VStack(spacing: AppTheme.smallSpacing) {
                                 Image(systemName: deviceType.icon)
@@ -297,55 +305,135 @@ struct AddApplianceView: View {
             ValidationErrorBanner(validationManager: validationManager)
                 .animation(.easeInOut, value: validationManager.hasErrors())
             
-            // Appliance Name Field
-            ValidatedTextField(
-                title: "Appliance Name",
-                placeholder: "Enter appliance name",
-                text: $title,
-                fieldKey: "title",
-                validationManager: validationManager
-            ) { value, fieldKey in
-                validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
-                validationManager.validateApplianceName(value, fieldKey: fieldKey)
+            // Basic Information Section
+            VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                Text("Basic Information")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                
+                // Appliance Name Field
+                ValidatedTextField(
+                    title: "Appliance Name",
+                    placeholder: "Enter appliance name",
+                    text: $title,
+                    fieldKey: "title",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
+                    validationManager.validateApplianceName(value, fieldKey: fieldKey)
+                }
+                
+                // Store Field
+                ValidatedTextField(
+                    title: "Retailer / Store Name",
+                    placeholder: "e.g., Amazon, IKEA, Currys",
+                    text: $store,
+                    fieldKey: "store",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
+                    validationManager.validateStoreName(value, fieldKey: fieldKey)
+                }
+                
+                // Model Field
+                ValidatedTextField(
+                    title: "Model",
+                    placeholder: "Enter model number",
+                    text: $model,
+                    fieldKey: "model",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    // Optional field - just clear any errors
+                    validationManager.errors.removeValue(forKey: fieldKey)
+                    return true
+                }
+                
+                // Serial Number Field
+                ValidatedTextField(
+                    title: "Serial Number",
+                    placeholder: "Enter serial number",
+                    text: $serialNumber,
+                    fieldKey: "serialNumber",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    // Optional field - just clear any errors
+                    validationManager.errors.removeValue(forKey: fieldKey)
+                    return true
+                }
             }
             
-            // Store Field
-            ValidatedTextField(
-                title: "Retailer / Store Name",
-                placeholder: "e.g., Amazon, IKEA, Currys",
-                text: $store,
-                fieldKey: "store",
-                validationManager: validationManager
-            ) { value, fieldKey in
-                validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
-                validationManager.validateStoreName(value, fieldKey: fieldKey)
+            // Purchase Details Section
+            VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                Text("Purchase Details")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                
+                // Purchase Date Field
+                ValidatedDateField(
+                    title: "Purchase Date",
+                    date: $purchaseDate,
+                    fieldKey: "date",
+                    validationManager: validationManager
+                )
+                
+                // Price Field
+                ValidatedPriceField(
+                    title: "Price",
+                    price: $price,
+                    fieldKey: "price",
+                    validationManager: validationManager
+                )
             }
             
-            // Purchase Date Field
-            ValidatedDateField(
-                title: "Purchase Date",
-                date: $purchaseDate,
-                fieldKey: "date",
-                validationManager: validationManager
-            )
+            // Warranty Section
+            VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                Text("Warranty")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                
+                // Warranty Duration Field
+                ValidatedStepperField(
+                    title: "Warranty Duration (months)",
+                    value: $warrantyMonths,
+                    range: 1...120,
+                    fieldKey: "warranty",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    validationManager.validateWarrantyMonths(value, fieldKey: fieldKey)
+                }
+                
+                // Warranty Summary Field
+                ValidatedTextField(
+                    title: "Warranty Summary",
+                    placeholder: "Warranty Summary",
+                    text: $warrantySummary,
+                    fieldKey: "warrantySummary",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    // Optional field - just clear any errors
+                    validationManager.errors.removeValue(forKey: fieldKey)
+                    return true
+                }
+            }
             
-            // Price Field
-            ValidatedPriceField(
-                title: "Price",
-                price: $price,
-                fieldKey: "price",
-                validationManager: validationManager
-            )
-            
-            // Warranty Duration Field
-            ValidatedStepperField(
-                title: "Warranty Duration (months)",
-                value: $warrantyMonths,
-                range: 1...120,
-                fieldKey: "warranty",
-                validationManager: validationManager
-            ) { value, fieldKey in
-                validationManager.validateWarrantyMonths(value, fieldKey: fieldKey)
+            // Additional Notes Section
+            VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                Text("Additional Notes")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                
+                // Notes Field
+                ValidatedTextField(
+                    title: "Notes",
+                    placeholder: "Notes",
+                    text: $notes,
+                    fieldKey: "notes",
+                    validationManager: validationManager
+                ) { value, fieldKey in
+                    // Optional field - just clear any errors
+                    validationManager.errors.removeValue(forKey: fieldKey)
+                    return true
+                }
             }
         }
     }
@@ -418,6 +506,19 @@ struct AddApplianceView: View {
             }
         }
         
+        // Extract model information if found
+        for string in strings {
+            if string.lowercased().contains("model") || string.lowercased().contains("mod") {
+                // Try to extract model number after "model" keyword
+                let components = string.components(separatedBy: .whitespaces)
+                if let modelIndex = components.firstIndex(where: { $0.lowercased().contains("model") || $0.lowercased().contains("mod") }),
+                   modelIndex + 1 < components.count {
+                    model = components[modelIndex + 1]
+                    break
+                }
+            }
+        }
+        
         // Extract price if found
         for string in strings {
             if let priceValue = extractPrice(from: string) {
@@ -466,9 +567,13 @@ struct AddApplianceView: View {
         appliance.setValue(UUID(), forKey: "id")
         appliance.setValue(title.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "name")
         appliance.setValue(store.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "brand")
+        appliance.setValue(model.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "model")
+        appliance.setValue(serialNumber.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "serialNumber")
         appliance.setValue(purchaseDate, forKey: "purchaseDate")
         appliance.setValue(price, forKey: "price")
         appliance.setValue(Int16(warrantyMonths), forKey: "warrantyMonths")
+        appliance.setValue(warrantySummary.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "warrantySummary")
+        appliance.setValue(notes.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "notes")
         appliance.setValue(Date(), forKey: "createdAt")
         
         // Calculate expiry date

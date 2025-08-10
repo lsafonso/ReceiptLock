@@ -515,6 +515,11 @@ ReceiptLock/
 - ✅ **Delete Actions**: Confirmation dialog with haptic feedback
 - ✅ **Share Actions**: Native share sheet with appliance details
 - ✅ **Haptic Feedback**: Tactile response for all interactions
+- ✅ **Gesture Separation**: Chevron tap for expand/collapse, swipe for actions - no conflicts
+- ✅ **Long Press Alternative**: 0.5-second long press to access comprehensive action sheet
+- ✅ **Visual Hints**: "Swipe for actions" text and arrow indicators for user guidance
+- ✅ **Action Sheet Fallback**: Edit, Share, and Delete options in organized menu
+- ✅ **List Container**: Proper List-based container for reliable swipe action recognition
 
 #### **Data Validation System**
 - ✅ **Comprehensive Validation**: Input validation for all forms with real-time feedback
