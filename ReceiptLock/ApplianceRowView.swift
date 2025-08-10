@@ -17,57 +17,7 @@ struct ApplianceRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
-        // Main container with swipe actions
-        mainContent
-            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                // Edit action
-                Button(action: {
-                    showingEditSheet = true
-                }) {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .tint(AppTheme.primary)
-                
-                // Delete action
-                Button(role: .destructive, action: {
-                    showingDeleteAlert = true
-                }) {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                // Quick share action
-                Button(action: {
-                    shareAppliance()
-                }) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .tint(AppTheme.secondary)
-            }
-            .sheet(isPresented: $showingEditSheet) {
-                EditApplianceView(appliance: appliance)
-            }
-            .alert("Delete Appliance", isPresented: $showingDeleteAlert) {
-                Button("Cancel", role: .cancel) { }
-                Button("Delete", role: .destructive) {
-                    deleteAppliance()
-                }
-            } message: {
-                Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
-            }
-            .actionSheet(isPresented: $showingActionSheet) {
-                ActionSheet(title: Text("Appliance Actions"), message: Text("Choose an action for \(appliance.name ?? "this appliance")"), buttons: [
-                    .default(Text("Edit")) { showingEditSheet = true },
-                    .default(Text("Share")) { shareAppliance() },
-                    .destructive(Text("Delete")) { showingDeleteAlert = true },
-                    .cancel()
-                ])
-            }
-    }
-    
-    // MARK: - Main Content View
-    
-    private var mainContent: some View {
+        // Main container with swipe actions applied directly
         HStack(spacing: AppTheme.spacing) {
             // Appliance icon
             Image(systemName: getApplianceIcon())
@@ -176,6 +126,8 @@ struct ApplianceRowView: View {
         )
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppTheme.springAnimation, value: isPressed)
+        .contentShape(Rectangle()) // Ensure the entire area is recognized for swipe gestures
+        .background(Color.clear) // Ensure background doesn't interfere
         .onLongPressGesture(minimumDuration: 0.5) {
             // Long press shows action sheet as alternative to swipe
             showingActionSheet = true
@@ -191,6 +143,32 @@ struct ApplianceRowView: View {
                 }
             }
         }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // Edit action
+            Button(action: {
+                showingEditSheet = true
+            }) {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(AppTheme.primary)
+            
+            // Delete action
+            Button(role: .destructive, action: {
+                showingDeleteAlert = true
+            }) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            // Quick share action
+            Button(action: {
+                shareAppliance()
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .tint(AppTheme.secondary)
+        }
+        .allowsHitTesting(true) // Ensure the view can receive gestures
     }
     
     // MARK: - Action Methods

@@ -328,7 +328,6 @@ struct ExpandableApplianceCard: View {
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     // Edit action
                     Button(action: {
-                        print("Edit button tapped for appliance: \(appliance.name ?? "Unknown")")
                         showingEditSheet = true
                     }) {
                         Label("Edit", systemImage: "pencil")
@@ -337,7 +336,6 @@ struct ExpandableApplianceCard: View {
                     
                     // Delete action
                     Button(role: .destructive, action: {
-                        print("Delete button tapped for appliance: \(appliance.name ?? "Unknown")")
                         showingDeleteAlert = true
                     }) {
                         Label("Delete", systemImage: "trash")
@@ -346,7 +344,6 @@ struct ExpandableApplianceCard: View {
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     // Quick share action
                     Button(action: {
-                        print("Share button tapped for appliance: \(appliance.name ?? "Unknown")")
                         shareAppliance()
                     }) {
                         Label("Share", systemImage: "square.and.arrow.up")

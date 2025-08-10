@@ -204,11 +204,16 @@ struct ApplianceListView: View {
     
     /// Lazy vertical stack containing all filtered appliances
     private var applianceList: some View {
-        LazyVStack(spacing: AppTheme.spacing) {
+        List {
             ForEach(Array(filteredAppliances.enumerated()), id: \.element.id) { index, appliance in
                 applianceRow(for: appliance, at: index)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
         }
+        .listStyle(PlainListStyle())
+        .background(Color.clear)
         .padding(.horizontal, AppTheme.spacing)
         .padding(.top, AppTheme.smallSpacing)
     }
@@ -230,6 +235,7 @@ struct ApplianceListView: View {
                 insertion: .scale(scale: 0.95).combined(with: .opacity),
                 removal: .scale(scale: 0.95).combined(with: .opacity)
             ))
+            .padding(.bottom, AppTheme.spacing) // Add spacing between rows
     }
     
     // MARK: - Empty State
