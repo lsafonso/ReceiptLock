@@ -322,159 +322,41 @@ struct ExpandableApplianceCard: View {
     
     var body: some View {
         VStack(spacing: 2) {
-            // Main card content (always visible)
-            Button(action: {
-                withAnimation(AppTheme.springAnimation) {
-                    isExpanded.toggle()
-                }
-                
-                // Haptic feedback
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
-            }) {
-                HStack(spacing: AppTheme.spacing) {
-                    // Appliance icon
-                    Image(systemName: getApplianceIcon())
-                        .font(.title2)
-                        .foregroundColor(getApplianceColor())
-                        .frame(width: 40, height: 40)
-                        .background(getApplianceColor().opacity(0.1))
-                        .cornerRadius(AppTheme.smallCornerRadius)
-                    
-                    // Appliance details
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(appliance.name ?? "Untitled Appliance")
-                                .font(.headline.weight(.semibold))
-                                .foregroundColor(AppTheme.text)
-                                .lineLimit(1)
-                            
-                            Spacer()
-                            
-                            // Store Badge
-                            Text(storeBadgeText)
-                                .font(.caption2.weight(.bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(AppTheme.primary)
-                                .cornerRadius(4)
-                                .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
-                                .help(appliance.brand ?? "Unknown")
-                        }
-                        
-                        HStack {
-                            Text("Warranty expires: \(formattedExpiryDate)")
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(expiryStatusColor)
-                            
-                            Spacer()
-                        }
-                        
-                        // Progress bar
-                        ProgressView(value: progressValue, total: 1.0)
-                            .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
-                            .frame(height: 4)
+            // Main card content with swipe actions
+            mainCardContent
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    // Edit action
+                    Button(action: {
+                        print("Edit button tapped for appliance: \(appliance.name ?? "Unknown")")
+                        showingEditSheet = true
+                    }) {
+                        Label("Edit", systemImage: "pencil")
                     }
+                    .tint(AppTheme.primary)
                     
-                    // Expandable chevron
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AppTheme.primary)
-                        .rotationEffect(.degrees(isExpanded ? 0 : 0))
-                        .animation(AppTheme.springAnimation, value: isExpanded)
-                }
-                .padding(AppTheme.spacing)
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.cornerRadius)
-                .scaleEffect(isPressed ? 0.98 : 1.0)
-                .animation(AppTheme.springAnimation, value: isPressed)
-                .shadow(color: AppTheme.secondaryText.opacity(0.1), radius: 2, x: 0, y: 1)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .onTapGesture {
-                withAnimation(AppTheme.springAnimation) {
-                    isPressed = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(AppTheme.springAnimation) {
-                        isPressed = false
+                    // Delete action
+                    Button(role: .destructive, action: {
+                        print("Delete button tapped for appliance: \(appliance.name ?? "Unknown")")
+                        showingDeleteAlert = true
+                    }) {
+                        Label("Delete", systemImage: "trash")
                     }
                 }
-            }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    // Quick share action
+                    Button(action: {
+                        print("Share button tapped for appliance: \(appliance.name ?? "Unknown")")
+                        shareAppliance()
+                    }) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .tint(AppTheme.success)
+                }
             
             // Expanded content
             if isExpanded {
-                VStack(spacing: 0) {
-                    Divider()
-                        .padding(.horizontal, AppTheme.spacing)
-                    
-                    VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                        // Brand and Model
-                        if let brand = appliance.brand, let model = appliance.model {
-                            DetailRow(title: "Brand", value: brand)
-                            DetailRow(title: "Model", value: model)
-                        }
-                        
-                        // Purchase Date
-                        if let purchaseDate = appliance.purchaseDate {
-                            DetailRow(title: "Purchase Date", value: formatDate(purchaseDate))
-                        }
-                        
-                        // Warranty Duration
-                        if let purchaseDate = appliance.purchaseDate, let expiryDate = appliance.warrantyExpiryDate {
-                            let duration = Calendar.current.dateComponents([.month, .day], from: purchaseDate, to: expiryDate)
-                            let durationText = "\(duration.month ?? 0) months, \(duration.day ?? 0) days"
-                            DetailRow(title: "Warranty Duration", value: durationText)
-                        }
-                        
-                        // Days Remaining
-                        if let expiryDate = appliance.warrantyExpiryDate {
-                            let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expiryDate).day ?? 0
-                            let statusText = daysRemaining > 0 ? "\(daysRemaining) days remaining" : "Expired"
-                            DetailRow(title: "Status", value: statusText, valueColor: expiryStatusColor)
-                        }
-                        
-                        // Serial Number
-                        if let serialNumber = appliance.serialNumber, !serialNumber.isEmpty {
-                            DetailRow(title: "Serial Number", value: serialNumber)
-                        }
-                        
-                        // Notes
-                        if let notes = appliance.notes, !notes.isEmpty {
-                            DetailRow(title: "Notes", value: notes)
-                        }
-                    }
-                    .padding(.horizontal, AppTheme.spacing)
-                    .padding(.vertical, AppTheme.spacing)
-                }
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.cornerRadius)
-                .padding(.top, 1) // Add small gap to prevent overlap
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.95).combined(with: .opacity),
-                    removal: .scale(scale: 0.95).combined(with: .opacity)
-                ))
+                expandedContent
             }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            // Right swipe actions (Edit and Delete)
-            Button("Edit") {
-                showingEditSheet = true
-            }
-            .tint(AppTheme.primary)
-            
-            Button("Delete", role: .destructive) {
-                showingDeleteAlert = true
-            }
-            .tint(AppTheme.error)
-        }
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            // Left swipe action (Share)
-            Button("Share") {
-                shareAppliance()
-            }
-            .tint(AppTheme.success)
         }
         .sheet(isPresented: $showingEditSheet) {
             EditApplianceView(appliance: appliance)
@@ -487,6 +369,138 @@ struct ExpandableApplianceCard: View {
         } message: {
             Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
         }
+    }
+    
+    // MARK: - Main Card Content
+    private var mainCardContent: some View {
+        HStack(spacing: AppTheme.spacing) {
+            // Appliance icon
+            Image(systemName: getApplianceIcon())
+                .font(.title2)
+                .foregroundColor(getApplianceColor())
+                .frame(width: 40, height: 40)
+                .background(getApplianceColor().opacity(0.1))
+                .cornerRadius(AppTheme.smallCornerRadius)
+            
+            // Appliance details
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(appliance.name ?? "Untitled Appliance")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppTheme.text)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    // Store Badge
+                    Text(storeBadgeText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(AppTheme.primary)
+                        .cornerRadius(4)
+                        .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
+                        .help(appliance.brand ?? "Unknown")
+                }
+                
+                HStack {
+                    Text("Warranty expires: \(formattedExpiryDate)")
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(expiryStatusColor)
+                    
+                    Spacer()
+                }
+                
+                // Progress bar
+                ProgressView(value: progressValue, total: 1.0)
+                    .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
+                    .frame(height: 4)
+            }
+            
+            // Expandable chevron
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppTheme.primary)
+                .rotationEffect(.degrees(isExpanded ? 0 : 0))
+                .animation(AppTheme.springAnimation, value: isExpanded)
+        }
+        .padding(AppTheme.spacing)
+        .background(AppTheme.cardBackground)
+        .cornerRadius(AppTheme.cornerRadius)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(AppTheme.springAnimation, value: isPressed)
+        .shadow(color: AppTheme.secondaryText.opacity(0.1), radius: 2, x: 0, y: 1)
+        .onTapGesture {
+            withAnimation(AppTheme.springAnimation) {
+                isExpanded.toggle()
+                isPressed = true
+            }
+            
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(AppTheme.springAnimation) {
+                    isPressed = false
+                }
+            }
+        }
+    }
+    
+    // MARK: - Expanded Content
+    private var expandedContent: some View {
+        VStack(spacing: 0) {
+            Divider()
+                .padding(.horizontal, AppTheme.spacing)
+            
+            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                // Brand and Model
+                if let brand = appliance.brand, let model = appliance.model {
+                    DetailRow(title: "Brand", value: brand)
+                    DetailRow(title: "Model", value: model)
+                }
+                
+                // Purchase Date
+                if let purchaseDate = appliance.purchaseDate {
+                    DetailRow(title: "Purchase Date", value: formatDate(purchaseDate))
+                }
+                
+                // Warranty Duration
+                if let purchaseDate = appliance.purchaseDate, let expiryDate = appliance.warrantyExpiryDate {
+                    let duration = Calendar.current.dateComponents([.month, .day], from: purchaseDate, to: expiryDate)
+                    let durationText = "\(duration.month ?? 0) months, \(duration.day ?? 0) days"
+                    DetailRow(title: "Warranty Duration", value: durationText)
+                }
+                
+                // Days Remaining
+                if let expiryDate = appliance.warrantyExpiryDate {
+                    let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expiryDate).day ?? 0
+                    let statusText = daysRemaining > 0 ? "\(daysRemaining) days remaining" : "Expired"
+                    DetailRow(title: "Status", value: statusText, valueColor: expiryStatusColor)
+                }
+                
+                // Serial Number
+                if let serialNumber = appliance.serialNumber, !serialNumber.isEmpty {
+                    DetailRow(title: "Serial Number", value: serialNumber)
+                }
+                
+                // Notes
+                if let notes = appliance.notes, !notes.isEmpty {
+                    DetailRow(title: "Notes", value: notes)
+                }
+            }
+            .padding(.horizontal, AppTheme.spacing)
+            .padding(.vertical, AppTheme.spacing)
+        }
+        .background(AppTheme.cardBackground)
+        .cornerRadius(AppTheme.cornerRadius)
+        .padding(.top, 1) // Add small gap to prevent overlap
+        .transition(.asymmetric(
+            insertion: .scale(scale: 0.95).combined(with: .opacity),
+            removal: .scale(scale: 0.95).combined(with: .opacity)
+        ))
     }
     
     // MARK: - Helper Methods
