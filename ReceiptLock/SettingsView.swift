@@ -9,12 +9,18 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("selectedTheme") private var selectedTheme = "system"
+    @AppStorage("selectedLanguage") private var selectedLanguage = "en_US"
     @State private var showingExportSheet = false
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var showingReminderManagement = false
     @State private var showingProfileEdit = false
     @State private var showingOnboardingReset = false
+    @State private var showingReceiptCategories = false
+    @State private var showingStoragePreferences = false
+    @State private var showingNotificationPreferences = false
+    @State private var showingCustomReminderMessages = false
+    @State private var showingStorageUsage = false
     @StateObject private var currencyManager = CurrencyManager.shared
     @StateObject private var profileManager = UserProfileManager.shared
     
@@ -24,11 +30,23 @@ struct SettingsView: View {
         ("dark", "Dark")
     ]
     
+    let languages = [
+        ("en_US", "English (US)"),
+        ("en_GB", "English (UK)"),
+        ("es_ES", "Español"),
+        ("fr_FR", "Français"),
+        ("de_DE", "Deutsch"),
+        ("it_IT", "Italiano"),
+        ("pt_BR", "Português (Brasil)"),
+        ("ja_JP", "日本語"),
+        ("ko_KR", "한국어"),
+        ("zh_CN", "中文 (简体)")
+    ]
+    
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: AppTheme.largeSpacing) {
-                    profileSection
                     profilePersonalizationSection
                     receiptApplianceSection
                     notificationsRemindersSection
@@ -66,6 +84,21 @@ struct SettingsView: View {
         .sheet(isPresented: $showingProfileEdit) {
             ProfileEditView()
         }
+        .sheet(isPresented: $showingReceiptCategories) {
+            ReceiptCategoriesView()
+        }
+        .sheet(isPresented: $showingStoragePreferences) {
+            StoragePreferencesView()
+        }
+        .sheet(isPresented: $showingNotificationPreferences) {
+            NotificationPreferencesView()
+        }
+        .sheet(isPresented: $showingCustomReminderMessages) {
+            CustomReminderMessagesView()
+        }
+        .sheet(isPresented: $showingStorageUsage) {
+            StorageUsageView()
+        }
         .fileImporter(
             isPresented: $showingImportPicker,
             allowedContentTypes: [.zip],
@@ -75,44 +108,34 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Profile Section
-    
-    private var profileSection: some View {
-        SettingsSection(title: "Profile", icon: "person.circle.fill") {
-            VStack(spacing: AppTheme.spacing) {
-                // Profile Header
-                HStack(spacing: AppTheme.spacing) {
-                    AvatarView(
-                        image: profileManager.getAvatarImage(),
-                        size: 60,
-                        showBorder: true
-                    )
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
-                            .font(.title3.weight(.semibold))
-                            .foregroundColor(AppTheme.text)
-                        
-                        Text("Appliance Warranty Tracker")
-                            .font(.caption)
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                    
-                    Spacer()
-                }
-                
-                Button("Edit Profile") {
-                    showingProfileEdit = true
-                }
-                .secondaryButton()
-            }
-        }
-    }
+
     
     // MARK: - Profile & Personalization Section
     
     private var profilePersonalizationSection: some View {
         SettingsSection(title: "Profile & Personalization", icon: "person.badge.plus.fill") {
+            // Profile Header
+            HStack(spacing: AppTheme.spacing) {
+                AvatarView(
+                    image: profileManager.getAvatarImage(),
+                    size: 60,
+                    showBorder: true
+                )
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(AppTheme.text)
+                    
+                    Text("Appliance Warranty Tracker")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                
+                Spacer()
+            }
+            .padding(.bottom, AppTheme.spacing)
+            
             SettingsRow(
                 title: "Profile Photo & Name",
                 subtitle: "Update your avatar and display name",
@@ -139,12 +162,15 @@ struct SettingsView: View {
             
             SettingsRow(
                 title: "Language/Locale",
-                subtitle: "English (US)",
+                subtitle: languages.first { $0.0 == selectedLanguage }?.1 ?? "English (US)",
                 icon: "globe"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Picker("Language", selection: $selectedLanguage) {
+                    ForEach(languages, id: \.0) { language in
+                        Text(language.1).tag(language.0)
+                    }
+                }
+                .pickerStyle(.menu)
             }
             
             SettingsRow(
@@ -167,26 +193,14 @@ struct SettingsView: View {
     private var receiptApplianceSection: some View {
         SettingsSection(title: "Receipt & Appliance Settings", icon: "doc.text.fill") {
             SettingsRow(
-                title: "Default Currency",
-                subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
-                icon: "dollarsign.circle.fill"
-            ) {
-                Picker("Default Currency", selection: $currencyManager.currentCurrency) {
-                    ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
-                        Text(currency.1).tag(currency.0)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            
-            SettingsRow(
                 title: "Receipt Categories",
                 subtitle: "Manage receipt organization",
                 icon: "folder.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("Manage") {
+                    showingReceiptCategories = true
+                }
+                .foregroundColor(AppTheme.primary)
             }
             
             SettingsRow(
@@ -205,9 +219,10 @@ struct SettingsView: View {
                 subtitle: "Manage storage and compression",
                 icon: "externaldrive.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("Configure") {
+                    showingStoragePreferences = true
+                }
+                .foregroundColor(AppTheme.primary)
             }
         }
     }
@@ -241,9 +256,10 @@ struct SettingsView: View {
                 subtitle: "Sound, badges, and alert styles",
                 icon: "speaker.wave.2.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("Configure") {
+                    showingNotificationPreferences = true
+                }
+                .foregroundColor(AppTheme.primary)
             }
             
             SettingsRow(
@@ -251,9 +267,10 @@ struct SettingsView: View {
                 subtitle: "Personalize your reminder notifications",
                 icon: "text.bubble.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("Configure") {
+                    showingCustomReminderMessages = true
+                }
+                .foregroundColor(AppTheme.primary)
             }
         }
     }
@@ -363,9 +380,10 @@ struct SettingsView: View {
                 subtitle: "View app storage and cleanup options",
                 icon: "chart.pie.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("View") {
+                    showingStorageUsage = true
+                }
+                .foregroundColor(AppTheme.primary)
             }
             
             SettingsRow(
@@ -417,9 +435,10 @@ struct SettingsView: View {
                 subtitle: "Read our terms and privacy policy",
                 icon: "doc.text.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("View") {
+                    // TODO: Implement terms and privacy view
+                }
+                .foregroundColor(AppTheme.primary)
             }
             
             SettingsRow(
@@ -427,9 +446,10 @@ struct SettingsView: View {
                 subtitle: "Get help and send feedback",
                 icon: "questionmark.circle.fill"
             ) {
-                Text("Coming Soon")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                Button("Contact") {
+                    // TODO: Implement support and feedback view
+                }
+                .foregroundColor(AppTheme.primary)
             }
             
             SettingsRow(
