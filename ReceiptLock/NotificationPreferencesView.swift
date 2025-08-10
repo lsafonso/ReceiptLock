@@ -205,11 +205,11 @@ struct NotificationPreferencesView: View {
     private var permissionStatusColor: Color {
         switch notificationPermissionStatus {
         case .authorized:
-            return .green
+            return AppTheme.success
         case .denied:
-            return .red
+            return AppTheme.error
         case .notDetermined:
-            return .orange
+            return Color(red: 230/255, green: 154/255, blue: 100/255)
         case .provisional:
             return .blue
         case .ephemeral:

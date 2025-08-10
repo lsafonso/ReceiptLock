@@ -18,9 +18,9 @@ struct AppTheme {
     static let secondaryBackground = Color(red: 245/255, green: 245/255, blue: 245/255)
     static let text = Color(red: 26/255, green: 26/255, blue: 26/255) // Dark text
     static let secondaryText = Color(red: 102/255, green: 102/255, blue: 102/255) // Light gray text
-    static let error = Color(red: 220/255, green: 53/255, blue: 69/255) // Red for expired warranties
-    static let warning = Color(red: 255/255, green: 149/255, blue: 0/255) // Orange for expiring warranties
-    static let success = Color(red: 52/255, green: 199/255, blue: 89/255) // Green for valid warranties
+    static let error = Color(red: 192/255, green: 101/255, blue: 111/255) // Muted red for expired warranties
+    static let warning = Color(red: 230/255, green: 154/255, blue: 100/255) // Muted orange for expiring warranties
+    static let success = Color(red: 107/255, green: 183/255, blue: 124/255) // Muted green for valid warranties
     static let border = Color(red: 200/255, green: 200/255, blue: 200/255) // Light gray for borders
     
     // MARK: - Gradients

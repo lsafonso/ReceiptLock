@@ -49,7 +49,7 @@ struct SecuritySettingsView: View {
                         
                         HStack {
                             Image(systemName: "timer")
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color(red: 230/255, green: 154/255, blue: 100/255))
                             Text("Auto-Lock Timeout")
                             Spacer()
                             Text(formatTimeInterval(privacyManager.privacySettings.autoLockTimeout))
@@ -72,7 +72,7 @@ struct SecuritySettingsView: View {
                         Spacer()
                         if let audit = securityAuditResult {
                             Text(audit.encryptionKeysPresent ? "Enabled" : "Disabled")
-                                .foregroundColor(audit.encryptionKeysPresent ? .green : .red)
+                                .foregroundColor(audit.encryptionKeysPresent ? AppTheme.success : AppTheme.error)
                         } else {
                             Text("Checking...")
                                 .foregroundColor(.secondary)
@@ -81,7 +81,7 @@ struct SecuritySettingsView: View {
                     
                     HStack {
                         Image(systemName: "shield.checkered")
-                            .foregroundColor(.green)
+                            .foregroundColor(AppTheme.success)
                         Text("Security Level")
                         Spacer()
                         if let audit = securityAuditResult {
@@ -103,11 +103,11 @@ struct SecuritySettingsView: View {
                 Section("Privacy") {
                     HStack {
                         Image(systemName: "hand.raised")
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color(red: 230/255, green: 154/255, blue: 100/255))
                         Text("Data Processing Consent")
                         Spacer()
                         Text(privacyManager.hasValidConsent(for: .dataProcessing) ? "Granted" : "Required")
-                            .foregroundColor(privacyManager.hasValidConsent(for: .dataProcessing) ? .green : .red)
+                            .foregroundColor(privacyManager.hasValidConsent(for: .dataProcessing) ? AppTheme.success : AppTheme.error)
                     }
                     
                     HStack {
@@ -150,7 +150,7 @@ struct SecuritySettingsView: View {
                 Section("Data Management") {
                     HStack {
                         Image(systemName: "calendar")
-                            .foregroundColor(.green)
+                            .foregroundColor(AppTheme.success)
                         Text("Data Retention")
                         Spacer()
                         Text("\(privacyManager.dataRetentionPolicy.receiptRetentionValue) years")
@@ -325,7 +325,7 @@ struct AutoLockSetupView: View {
             VStack(spacing: 30) {
                 Image(systemName: "timer")
                     .font(.system(size: 80))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color(red: 230/255, green: 154/255, blue: 100/255))
                 
                 Text("Auto-Lock Configuration")
                     .font(.title2)
@@ -403,7 +403,7 @@ struct SecurityAuditView: View {
                                     Text(consentType.displayName)
                                     Spacer()
                                     Image(systemName: hasConsent ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                        .foregroundColor(hasConsent ? .green : .red)
+                                        .foregroundColor(hasConsent ? AppTheme.success : AppTheme.error)
                                 }
                             }
                         }
@@ -476,7 +476,7 @@ struct SecurityCheckRow: View {
             Text(title)
             Spacer()
             Image(systemName: isEnabled ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundColor(isEnabled ? .green : .red)
+                .foregroundColor(isEnabled ? AppTheme.success : AppTheme.error)
         }
         .padding(.horizontal)
     }
@@ -616,7 +616,7 @@ struct DataDeletionConfirmationView: View {
             VStack(spacing: 30) {
                 Image(systemName: "trash")
                     .font(.system(size: 80))
-                    .foregroundColor(.red)
+                    .foregroundColor(AppTheme.error)
                 
                 Text("Delete All Data")
                     .font(.title2)
@@ -631,7 +631,7 @@ struct DataDeletionConfirmationView: View {
                         showingConfirmation = true
                     }
                     .buttonStyle(.borderedProminent)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppTheme.error)
                     
                     Button("Cancel") {
                         dismiss()

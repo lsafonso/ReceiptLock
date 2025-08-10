@@ -166,7 +166,7 @@ enum AuthenticationStatus: String, CaseIterable {
         case .authenticated:
             return "green"
         case .expired:
-            return "orange"
+            return "muted-orange"
         case .locked:
             return "red"
         case .requiresSetup:

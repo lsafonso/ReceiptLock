@@ -359,7 +359,7 @@ enum SecurityLevel: String, CaseIterable {
         case .low:
             return "red"
         case .medium:
-            return "orange"
+            return "muted-orange"
         case .high:
             return "yellow"
         case .excellent:

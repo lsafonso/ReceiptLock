@@ -126,7 +126,7 @@ struct ReceiptDetailView: View {
                         showingDeleteAlert = true
                     }
                     .buttonStyle(.bordered)
-                    .foregroundColor(.red)
+                    .foregroundColor(AppTheme.error)
                     .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal)

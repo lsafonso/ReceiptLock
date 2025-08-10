@@ -160,7 +160,7 @@ struct StorageUsageView: View {
                     size: storageData.cache,
                     percentage: storageData.cachePercentage,
                     icon: "clock.fill",
-                    color: .orange
+                    color: Color(red: 230/255, green: 154/255, blue: 100/255)
                 )
                 
                 StorageBreakdownRow(
@@ -392,7 +392,7 @@ struct CleanupOptionsView: View {
                         description: "Remove temporary files and cache data",
                         size: "15.8 MB",
                         icon: "clock.fill",
-                        color: .orange
+                        color: Color(red: 230/255, green: 154/255, blue: 100/255)
                     ) {
                         onCleanup(.cache)
                         dismiss()

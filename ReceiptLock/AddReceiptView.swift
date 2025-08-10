@@ -443,7 +443,7 @@ struct OCRResultRow: View {
             
             if isApplied {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(AppTheme.success)
                     .font(.title3)
             } else {
                 Button("Apply") {

@@ -164,7 +164,7 @@ struct BackupSettingsView: View {
                 
                 if case .failed(let error) = backupManager.backupStatus {
                     Text("Error: \(error)")
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.error)
                         .font(.caption)
                         .padding(.top, 4)
                 }
@@ -216,7 +216,7 @@ struct BackupSettingsView: View {
                     // This would show a confirmation dialog
                 }
                 .buttonStyle(.bordered)
-                .foregroundColor(.red)
+                .foregroundColor(AppTheme.error)
                 
                 Text("This will permanently delete all receipts, appliances, and settings")
                     .font(.caption)

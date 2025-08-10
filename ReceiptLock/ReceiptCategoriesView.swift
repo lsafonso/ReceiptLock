@@ -18,7 +18,7 @@ struct ReceiptCategoriesView: View {
     private let defaultCategories = [
         ReceiptCategory(name: "Electronics", color: .blue, icon: "laptopcomputer"),
         ReceiptCategory(name: "Appliances", color: .green, icon: "microwave"),
-        ReceiptCategory(name: "Furniture", color: .orange, icon: "bed.double"),
+        ReceiptCategory(name: "Furniture", color: Color(red: 230/255, green: 154/255, blue: 100/255), icon: "bed.double"),
         ReceiptCategory(name: "Clothing", color: .purple, icon: "tshirt"),
         ReceiptCategory(name: "Tools", color: .red, icon: "wrench.and.screwdriver"),
         ReceiptCategory(name: "Kitchen", color: .pink, icon: "fork.knife"),
@@ -152,7 +152,7 @@ struct AddCategoryView: View {
     @State private var selectedIcon = "questionmark.circle"
     
     private let colorOptions: [Color] = [
-        .red, .orange, .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .brown
+                    .red, Color(red: 230/255, green: 154/255, blue: 100/255), .yellow, .green, .mint, .teal, .cyan, .blue, .indigo, .purple, .pink, .brown
     ]
     
     private let iconOptions = [

@@ -336,9 +336,9 @@ enum ReminderMessageType: String, CaseIterable, Codable {
         case .warranty:
             return .blue
         case .service:
-            return .green
+            return AppTheme.success
         case .backup:
-            return .orange
+            return Color(red: 230/255, green: 154/255, blue: 100/255)
         case .renewal:
             return .purple
         case .custom:
