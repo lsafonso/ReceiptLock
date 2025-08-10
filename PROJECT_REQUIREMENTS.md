@@ -59,9 +59,14 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
   - All devices (total count)
   - Valid warranties (active count)
   - Expired warranties (expired count)
-- **Recent Appliances**: Latest 3 added appliances
-- **Quick Actions**: Add new appliance button
-- **Clean Design**: No navigation title, minimal interface
+- **Smart Appliance Sorting**: Multiple sorting options with dropdown:
+  - Recently Added: Shows newest appliances first
+  - Expiring Soon: Shows warranties expiring soonest first
+  - Alphabetical: Sorted by appliance name
+  - Brand: Grouped by manufacturer
+- **Expandable Appliance Cards**: Interactive cards with expandable information
+- **Quick Actions**: Add new appliance floating action button
+- **Clean Design**: No navigation title, minimal interface with smart organization
 
 ### 7. Appliance List
 - **Search**: Text-based search across all fields

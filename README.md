@@ -1,5 +1,7 @@
 # ReceiptLock
 
+> **📝 Documentation Updated**: This documentation has been updated as of August 2025 to reflect the current implementation with smart dashboard sorting functionality and appliance-based management.
+
 A comprehensive iOS app for managing receipts and warranty information with OCR capabilities, local notifications, and data export/import features.
 
 ## Features
@@ -31,9 +33,10 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **OCR Results Management**: Review and selectively apply extracted data
 
 ### Dashboard
-- **Upcoming Expirations**: Shows warranties expiring within 30 days
-- **Expired Warranties**: Displays expired warranties
-- **Recent Receipts**: Shows the 5 most recently added receipts
+- **Warranty Summary**: Overview of total devices, valid warranties, and expired warranties
+- **Smart Appliance Sorting**: Sort appliances by Recently Added, Expiring Soon, Alphabetical, or Brand
+- **Expandable Appliance Cards**: Interactive cards showing appliance details with expandable information
+- **Floating Action Button**: Quick access to add new appliances
 
 ### Receipt List
 - **Search & Filter**: Search by title/store and filter by status (All, Active, Expired, Expiring Soon)
@@ -115,16 +118,18 @@ The app features a comprehensive, logically organized settings hierarchy:
 
 ### Data Model
 ```swift
-Receipt Entity:
+Appliance Entity:
 - id: UUID
-- title: String
-- store: String
+- name: String
+- brand: String
+- model: String
 - purchaseDate: Date
-- price: Double
 - warrantyMonths: Int16
-- expiryDate: Date (calculated)
-- fileName: String (optional)
-- warrantySummary: String (optional)
+- warrantyExpiryDate: Date (calculated)
+- price: Double
+- store: String
+- receiptImage: Data? (optional)
+- notes: String? (optional)
 - createdAt: Date
 - updatedAt: Date
 ```
@@ -162,12 +167,12 @@ ReceiptLock/
 │   ├── ContentView.swift             # Root tab view
 │   ├── PersistenceController.swift   # Core Data stack
 │   ├── Views/                        # Feature views
-│   │   ├── DashboardView.swift
-│   │   ├── ReceiptListView.swift
-│   │   ├── AddReceiptView.swift
-│   │   ├── EditReceiptView.swift
-│   │   ├── ReceiptDetailView.swift
-│   │   ├── ReceiptRowView.swift
+│   │   ├── DashboardView.swift       # Dashboard with warranty overview and sorting
+│   │   ├── ApplianceListView.swift   # Full appliance list with search/filter
+│   │   ├── AddApplianceView.swift    # Add new appliance
+│   │   ├── EditApplianceView.swift   # Edit existing appliance
+│   │   ├── ApplianceDetailView.swift # Detailed appliance view
+│   │   ├── ApplianceRowView.swift    # Appliance list item component
 │   │   └── SettingsView.swift        # Enhanced settings hierarchy
 │   ├── 🔒 Security/                  # Security & Privacy
 │   │   ├── AuthenticationWrapperView.swift
@@ -193,21 +198,31 @@ ReceiptLock/
 
 ## Usage Guide
 
-### Adding a Receipt
-1. Tap the "+" button on Dashboard or Receipts tab
+### Adding an Appliance
+1. Tap the "+" floating action button on Dashboard or Appliances tab
 2. **Camera Integration**: Take photos directly in the app or choose from photo library
 3. **OCR Processing**: Automatically extract text and data from receipt images
-4. **Smart Data Extraction**: Auto-fill receipt fields from scanned images
+4. **Smart Data Extraction**: Auto-fill appliance fields from scanned images
 5. **Image Storage**: Store receipt images alongside data
-6. Fill in any remaining receipt information (title, store, date, price, warranty)
-7. Save the receipt
+6. Fill in any remaining appliance information (name, brand, model, date, price, warranty)
+7. Save the appliance
 
-### Managing Receipts
-- **View**: Tap any receipt in the list to see details
-- **Edit**: Use the menu in receipt details to edit
+### Managing Appliances
+- **View**: Tap any appliance in the list to see details
+- **Edit**: Use the menu in appliance details to edit
 - **Delete**: Swipe left on list items or use menu in details
-- **Search**: Use the search bar in the Receipts tab
+- **Search**: Use the search bar in the Appliances tab
 - **Filter**: Use the segmented control to filter by status
+
+### Dashboard Features
+- **Warranty Summary**: Quick overview of warranty status across all devices
+- **Smart Sorting**: Sort appliances by different criteria:
+  - **Recently Added**: Shows newest appliances first
+  - **Expiring Soon**: Shows warranties expiring soonest first
+  - **Alphabetical**: Sorted by appliance name
+  - **Brand**: Grouped by manufacturer
+- **Expandable Cards**: Tap appliance cards to see more details
+- **Quick Actions**: Floating action button for adding new appliances
 
 ### ⚙️ **Settings Configuration**
 The enhanced settings provide comprehensive control over your app experience:
@@ -219,7 +234,7 @@ The enhanced settings provide comprehensive control over your app experience:
 - Switch between system, light, or dark themes
 
 #### **Receipt & Appliance Management**
-- Organize receipts with custom categories
+- Organize appliances with custom categories
 - Set default warranty reminder periods
 - Configure storage preferences and optimization
 
@@ -241,7 +256,7 @@ The enhanced settings provide comprehensive control over your app experience:
 
 ### Notifications
 - Configure default reminder days in Settings
-- Notifications are automatically scheduled when receipts are saved
+- Notifications are automatically scheduled when appliances are saved
 - Notifications appear before warranty expiry based on your settings
 
 ### Data Management
@@ -260,7 +275,7 @@ Run unit tests with `Cmd+U` in Xcode. Tests cover:
 
 ### UI Tests
 Basic UI tests are included for core workflows:
-- Add receipt flow
+- Add appliance flow
 - OCR processing
 - Save and reminder scheduling
 
@@ -280,8 +295,8 @@ The app requires the following permissions:
 Receipt files are stored in:
 ```
 Documents/receipts/
-├── receipt-uuid-1.jpg
-├── receipt-uuid-2.pdf
+├── appliance-uuid-1.jpg
+├── appliance-uuid-2.pdf
 └── ...
 ```
 
@@ -313,7 +328,7 @@ The app includes comprehensive error handling for:
 - Cloud sync with iCloud ✅ **IMPLEMENTED**
 - Multiple currency support ✅ **IMPLEMENTED**
 - Enhanced OCR with machine learning
-- Receipt categorization ✅ **IMPLEMENTED**
+- Appliance categorization ✅ **IMPLEMENTED**
 - Statistics and analytics
 - Widget support
 - Apple Watch companion app

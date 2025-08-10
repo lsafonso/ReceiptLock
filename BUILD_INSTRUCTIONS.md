@@ -25,12 +25,12 @@ ReceiptLock/
 ├── ContentView.swift             # Root tab view
 ├── PersistenceController.swift   # Core Data stack
 ├── Views/                        # Feature views
-│   ├── DashboardView.swift       # Dashboard with upcoming/expired receipts
-│   ├── ReceiptListView.swift     # Full receipt list with search/filter
-│   ├── AddReceiptView.swift      # Add new receipt with OCR
-│   ├── EditReceiptView.swift     # Edit existing receipt
-│   ├── ReceiptDetailView.swift   # Detailed receipt view
-│   ├── ReceiptRowView.swift      # Receipt list item component
+│   ├── DashboardView.swift       # Dashboard with warranty overview and smart sorting
+│   ├── ApplianceListView.swift   # Full appliance list with search/filter
+│   ├── AddApplianceView.swift    # Add new appliance with OCR
+│   ├── EditApplianceView.swift   # Edit existing appliance
+│   ├── ApplianceDetailView.swift # Detailed appliance view
+│   ├── ApplianceRowView.swift    # Appliance list item component
 │   └── SettingsView.swift        # Enhanced settings hierarchy
 ├── Managers/                     # Business logic
 │   ├── NotificationManager.swift # Local notification handling
@@ -47,17 +47,22 @@ ReceiptLock/
 ### ✅ Completed Features
 
 1. **Core Data Integration**
-   - Receipt entity with all required fields
+   - Appliance entity with all required fields
    - Automatic expiry date calculation
    - Lightweight migrations support
 
-2. **Dashboard View**
-   - Upcoming expirations (30 days)
-   - Expired warranties
-   - Recent receipts (5 most recent)
+2. **Smart Dashboard View**
+   - **Warranty Summary Cards**: Overview of total devices, valid warranties, and expired warranties
+   - **Smart Appliance Sorting**: Multiple sorting options:
+     - Recently Added: Shows newest appliances first
+     - Expiring Soon: Shows warranties expiring soonest first
+     - Alphabetical: Sorted by appliance name
+     - Brand: Grouped by manufacturer
+   - **Expandable Appliance Cards**: Interactive cards with expandable information
+   - **Floating Action Button**: Quick access to add new appliances
 
-3. **Receipt Management**
-   - Create, edit, delete receipts
+3. **Appliance Management**
+   - Create, edit, delete appliances
    - Search and filter functionality
    - Swipe-to-delete with file cleanup
 
@@ -78,7 +83,7 @@ ReceiptLock/
 6. **Notifications**
    - Local notification scheduling
    - Configurable reminder days
-   - Automatic scheduling on receipt save
+   - Automatic scheduling on appliance save
 
 7. **⚙️ Enhanced Settings Structure** ✅ **COMPLETE**
    The app features a comprehensive, logically organized settings hierarchy:
@@ -129,19 +134,29 @@ ReceiptLock/
 
 **Core Data Model:**
 ```swift
-Receipt Entity:
+Appliance Entity:
 - id: UUID
-- title: String
-- store: String
+- name: String
+- brand: String
+- model: String
 - purchaseDate: Date
-- price: Double
 - warrantyMonths: Int16
-- expiryDate: Date (calculated)
-- fileName: String (optional)
-- warrantySummary: String (optional)
+- warrantyExpiryDate: Date (calculated)
+- price: Double
+- store: String
+- receiptImage: Data? (optional)
+- notes: String? (optional)
 - createdAt: Date
 - updatedAt: Date
 ```
+
+**Dashboard Architecture:**
+The smart dashboard uses a modular approach with:
+- `SortOrder` enum for multiple sorting options
+- `sortedAppliances` computed property for dynamic sorting
+- `ExpandableApplianceCard` component for interactive appliance display
+- State management for sort order selection
+- Responsive layout with proper spacing and theming
 
 **Settings Architecture:**
 The enhanced settings use a modular approach with:
