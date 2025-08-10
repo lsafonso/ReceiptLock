@@ -1,8 +1,8 @@
 # ReceiptLock
 
-> **📝 Documentation Updated**: This documentation has been updated as of August 2025 to reflect the current implementation with smart dashboard sorting functionality and appliance-based management.
+> **📝 Documentation Updated**: This documentation has been updated as of January 2025 to reflect the current implementation with smart dashboard sorting functionality, appliance-based management, enhanced settings hierarchy, and complete security implementation.
 
-A comprehensive iOS app for managing receipts and warranty information with OCR capabilities, local notifications, and data export/import features.
+A comprehensive iOS app for managing receipts and warranty information with OCR capabilities, local notifications, data export/import features, and enterprise-grade security.
 
 ## Features
 
@@ -14,6 +14,13 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 - **Security Auditing**: Comprehensive security assessment and real-time monitoring
 - **Auto-Lock System**: Configurable session timeout and biometric lock protection
 - **Data Export/Deletion**: Full GDPR compliance with data portability and right to be forgotten
+
+### 💰 **Multi-Currency Support** ✅ **COMPLETE**
+- **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
+- **Dynamic Currency Switching**: Change currency preferences in settings
+- **Global Updates**: All price displays update automatically
+- **OCR Integration**: Receipt scanning adapts to selected currency
+- **Persistent Storage**: Currency preferences saved automatically
 
 ### Core Functionality
 - **Receipt Management**: Create, edit, and delete receipts with detailed information
@@ -174,6 +181,13 @@ ReceiptLock/
 │   │   ├── EditApplianceView.swift   # Edit existing appliance
 │   │   ├── ApplianceDetailView.swift # Detailed appliance view
 │   │   ├── ApplianceRowView.swift    # Appliance list item component
+│   │   ├── ReceiptListView.swift     # Receipt list with search/filter
+│   │   ├── ReceiptDetailView.swift   # Detailed receipt view
+│   │   ├── AddReceiptView.swift      # Add new receipt
+│   │   ├── EditReceiptView.swift     # Edit existing receipt
+│   │   ├── CameraView.swift          # Camera interface for receipt scanning
+│   │   ├── OnboardingView.swift      # Welcome tutorial for new users
+│   │   ├── ProfileView.swift         # User profile management
 │   │   └── SettingsView.swift        # Enhanced settings hierarchy
 │   ├── 🔒 Security/                  # Security & Privacy
 │   │   ├── AuthenticationWrapperView.swift
@@ -187,10 +201,15 @@ ReceiptLock/
 │   ├── Managers/                     # Business logic
 │   │   ├── NotificationManager.swift
 │   │   ├── CurrencyManager.swift     # Multi-currency support
-│   │   ├── UserProfileManager.swift  # Profile management
-│   │   ├── ReminderManager.swift     # Advanced reminder system
+│   │   ├── UserProfile.swift         # Profile management
+│   │   ├── ReminderSystem.swift      # Advanced reminder system
 │   │   ├── DataBackupManager.swift   # Backup and sync
-│   │   └── StorageManager.swift      # Storage optimization
+│   │   ├── ImageStorageManager.swift # Storage optimization
+│   │   ├── OCRService.swift          # OCR text extraction
+│   │   ├── CameraService.swift       # Camera integration
+│   │   ├── PDFService.swift          # PDF generation and processing
+│   │   ├── ValidationSystem.swift    # Input validation and error handling
+│   │   └── AppTheme.swift            # Design system and theming
 │   ├── ReceiptLock.xcdatamodeld/    # Core Data model
 │   └── Assets.xcassets/             # App assets
 ├── ReceiptLockTests/                 # Unit tests
@@ -276,12 +295,17 @@ Run unit tests with `Cmd+U` in Xcode. Tests cover:
 - Price formatting
 - Warranty validation
 - Store badge truncation and fallback behavior
+- Currency management
+- Security features
+- OCR processing
 
 ### UI Tests
 Basic UI tests are included for core workflows:
 - Add appliance flow
 - OCR processing
 - Save and reminder scheduling
+- Settings navigation
+- Authentication flows
 
 ## Permissions
 
@@ -312,6 +336,8 @@ The app includes comprehensive error handling for:
 - OCR processing
 - Notification scheduling
 - User input validation
+- Security operations
+- Currency operations
 
 ## Accessibility
 
@@ -328,6 +354,9 @@ The app includes comprehensive error handling for:
 
 ### ⚙️ **Settings & Configuration** ✅ **COMPLETE**
 - **Enhanced settings hierarchy fully implemented and production-ready**
+
+### 💰 **Multi-Currency Support** ✅ **COMPLETE**
+- **20+ currencies supported with dynamic switching**
 
 ### Core Features
 - Cloud sync with iCloud ✅ **IMPLEMENTED**

@@ -158,15 +158,15 @@ struct CameraView: View {
         .onDisappear {
             cameraService.stopSession()
         }
-        .onChange(of: cameraService.capturedImage) { image in
-            if image != nil {
+        .onChange(of: cameraService.capturedImage) { oldValue, newValue in
+            if newValue != nil {
                 showingImagePreview = true
             }
         }
-        .onChange(of: cameraService.error) { error in
-            if error != nil {
+        .onChange(of: cameraService.error) { oldValue, newValue in
+            if newValue != nil {
                 // Handle camera errors
-                print("Camera error: \(error?.localizedDescription ?? "Unknown error")")
+                print("Camera error: \(newValue?.localizedDescription ?? "Unknown error")")
             }
         }
         .sheet(isPresented: $showingImagePreview) {
