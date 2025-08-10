@@ -4,28 +4,83 @@
 //
 //  Created by Leandro Afonso on 08/08/2025.
 //
+//  ApplianceListView is a comprehensive SwiftUI view that displays and manages
+//  a list of household appliances with warranty tracking capabilities.
+//
+//  Features:
+//  - Display appliances in an expandable card format
+//  - Search functionality across appliance names, brands, and models
+//  - Filter appliances by warranty status (All, Valid, Expired, Expiring Soon)
+//  - Add new appliances via floating action button
+//  - Smooth animations and haptic feedback
+//  - Empty state handling for different scenarios
+//  - Core Data integration for persistence
+//
+//  Usage:
+//  ```
+//  ApplianceListView()
+//      .environment(\.managedObjectContext, viewContext)
+//  ```
+//
+//  Dependencies:
+//  - CoreData framework
+//  - SwiftUI framework
+//  - AppTheme for consistent styling
+//  - ExpandableApplianceCard component
+//  - EmptyStateView component
+//  - AddApplianceView for adding new appliances
+//
 
 import SwiftUI
 import CoreData
 
+/// A comprehensive view for displaying and managing household appliances with warranty tracking.
+///
+/// This view provides a complete interface for users to view, search, and filter their appliances.
+/// It integrates with Core Data for persistence and includes smooth animations and haptic feedback
+/// for an enhanced user experience.
+///
+/// The view automatically handles:
+/// - Filtering appliances by warranty status
+/// - Searching across appliance properties
+/// - Displaying appropriate empty states
+/// - Managing the add appliance workflow
 struct ApplianceListView: View {
+    // MARK: - Environment & Core Data
+    
+    /// The managed object context for Core Data operations
     @Environment(\.managedObjectContext) private var viewContext
+    
+    /// Fetched results for appliances, sorted by creation date (newest first)
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Appliance.createdAt, ascending: false)],
         animation: .default)
     private var appliances: FetchedResults<Appliance>
     
+    // MARK: - State Properties
+    
+    /// Current search text entered by the user
     @State private var searchText = ""
+    
+    /// Currently selected filter for warranty status
     @State private var selectedFilter: ApplianceFilter = .all
+    
+    /// Controls the presentation of the add appliance sheet
     @State private var showingAddAppliance = false
+    
+    /// Controls the animation state of filter chips and appliance rows
     @State private var animateFilters = false
     
+    // MARK: - Filter Enumeration
+    
+    /// Defines the available filter options for warranty status
     enum ApplianceFilter: String, CaseIterable {
         case all = "All"
         case valid = "Valid Warranty"
         case expired = "Expired Warranty"
         case expiringSoon = "Expiring Soon"
         
+        /// SF Symbol icon name for the filter
         var icon: String {
             switch self {
             case .all: return "list.bullet"
@@ -35,6 +90,7 @@ struct ApplianceListView: View {
             }
         }
         
+        /// Theme color for the filter
         var color: Color {
             switch self {
             case .all: return AppTheme.secondary
@@ -45,6 +101,8 @@ struct ApplianceListView: View {
         }
     }
     
+    // MARK: - Body
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -52,7 +110,7 @@ struct ApplianceListView: View {
                 AppTheme.background
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
+                VStack(spacing: AppTheme.spacing) {
                     // Filter Picker
                     filterPicker
                     
@@ -64,9 +122,11 @@ struct ApplianceListView: View {
                     }
                 }
             }
-            .navigationTitle("Your Appliances")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search appliances...")
+            .onChange(of: searchText) { oldValue, newValue in
+                // Search functionality - no need to collapse anything
+            }
         }
         .overlay(
             // Floating Action Button
@@ -81,10 +141,12 @@ struct ApplianceListView: View {
                             .frame(width: 56, height: 56)
                             .background(AppTheme.primary)
                             .clipShape(Circle())
-
                     }
                     .padding(.trailing, AppTheme.spacing)
                     .padding(.bottom, AppTheme.spacing)
+                    .scaleEffect(animateFilters ? 1.0 : 0.8)
+                    .opacity(animateFilters ? 1.0 : 0.0)
+                    .animation(AppTheme.springAnimation.delay(0.5), value: animateFilters)
                 }
             }
         )
@@ -96,9 +158,14 @@ struct ApplianceListView: View {
                 animateFilters = true
             }
         }
+        .onDisappear {
+            // View disappeared - no cleanup needed
+        }
     }
     
     // MARK: - Filter Picker
+    
+    /// Horizontal scrollable filter picker with animated chips
     private var filterPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: AppTheme.spacing) {
@@ -117,6 +184,8 @@ struct ApplianceListView: View {
                         // Haptic feedback
                         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                         impactFeedback.impactOccurred()
+                        
+                        // Filter changed - no need to collapse anything
                     }
                     .offset(x: animateFilters ? 0 : 50)
                     .opacity(animateFilters ? 1 : 0)
@@ -128,34 +197,44 @@ struct ApplianceListView: View {
             }
             .padding(.horizontal, AppTheme.spacing)
         }
-        .padding(.vertical, AppTheme.smallSpacing)
+        .padding(.vertical, AppTheme.spacing)
     }
     
     // MARK: - Appliance List
+    
+    /// Lazy vertical stack containing all filtered appliances
     private var applianceList: some View {
-        List {
+        LazyVStack(spacing: AppTheme.spacing) {
             ForEach(Array(filteredAppliances.enumerated()), id: \.element.id) { index, appliance in
-                NavigationLink(destination: ApplianceDetailView(appliance: appliance)) {
-                    ApplianceRowView(appliance: appliance)
-                        .listRowInsets(EdgeInsets())
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                }
-                .buttonStyle(PlainButtonStyle())
-                .offset(x: animateFilters ? 0 : 100)
-                .opacity(animateFilters ? 1 : 0)
-                .animation(
-                    AppTheme.springAnimation.delay(Double(index) * 0.05),
-                    value: animateFilters
-                )
+                applianceRow(for: appliance, at: index)
             }
-            .onDelete(perform: deleteAppliances)
         }
-        .listStyle(PlainListStyle())
-        .background(AppTheme.background)
+        .padding(.horizontal, AppTheme.spacing)
+        .padding(.top, AppTheme.smallSpacing)
+    }
+    
+    /// Creates an individual appliance row with animations and transitions
+    /// - Parameters:
+    ///   - appliance: The appliance to display
+    ///   - index: The position index for staggered animations
+    /// - Returns: A configured ExpandableApplianceCard view
+    private func applianceRow(for appliance: Appliance, at index: Int) -> some View {
+        ExpandableApplianceCard(appliance: appliance)
+            .offset(x: animateFilters ? 0 : 100)
+            .opacity(animateFilters ? 1 : 0)
+            .animation(
+                AppTheme.springAnimation.delay(Double(index) * 0.05),
+                value: animateFilters
+            )
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.95).combined(with: .opacity),
+                removal: .scale(scale: 0.95).combined(with: .opacity)
+            ))
     }
     
     // MARK: - Empty State
+    
+    /// Displays appropriate empty state based on current search and filter conditions
     private var emptyStateView: some View {
         VStack(spacing: AppTheme.largeSpacing) {
             Spacer()
@@ -176,6 +255,7 @@ struct ApplianceListView: View {
     
     // MARK: - Computed Properties
     
+    /// Filters appliances based on search text and selected filter criteria
     private var filteredAppliances: [Appliance] {
         let filtered = appliances.filter { appliance in
             let matchesSearch = searchText.isEmpty || 
@@ -191,6 +271,9 @@ struct ApplianceListView: View {
         return Array(filtered)
     }
     
+    /// Determines if an appliance matches the currently selected filter criteria
+    /// - Parameter appliance: The appliance to check
+    /// - Returns: True if the appliance matches the filter criteria
     private func matchesFilterCriteria(_ appliance: Appliance) -> Bool {
         guard let expiryDate = appliance.warrantyExpiryDate else { return selectedFilter == .all }
         
@@ -209,6 +292,9 @@ struct ApplianceListView: View {
         }
     }
     
+    /// Counts the number of appliances that match a specific filter
+    /// - Parameter filter: The filter to count appliances for
+    /// - Returns: The count of matching appliances
     private func countForFilter(_ filter: ApplianceFilter) -> Int {
         appliances.filter { appliance in
             guard let expiryDate = appliance.warrantyExpiryDate else { return filter == .all }
@@ -229,6 +315,7 @@ struct ApplianceListView: View {
         }.count
     }
     
+    /// Dynamic title for empty state based on current context
     private var emptyStateTitle: String {
         if !searchText.isEmpty {
             return "No Results Found"
@@ -246,6 +333,7 @@ struct ApplianceListView: View {
         }
     }
     
+    /// Dynamic message for empty state based on current context
     private var emptyStateMessage: String {
         if !searchText.isEmpty {
             return "Try adjusting your search terms or filters."
@@ -263,6 +351,7 @@ struct ApplianceListView: View {
         }
     }
     
+    /// Dynamic icon for empty state based on current context
     private var emptyStateIcon: String {
         if !searchText.isEmpty {
             return "magnifyingglass"
@@ -282,6 +371,8 @@ struct ApplianceListView: View {
     
     // MARK: - Helper Methods
     
+    /// Deletes appliances from Core Data context
+    /// - Parameter offsets: Index set of appliances to delete
     private func deleteAppliances(offsets: IndexSet) {
         withAnimation(AppTheme.springAnimation) {
             offsets.map { filteredAppliances[$0] }.forEach(viewContext.delete)
@@ -296,14 +387,43 @@ struct ApplianceListView: View {
 }
 
 // MARK: - Appliance Filter Chip
+
+/// A customizable filter chip component for the appliance list view
+///
+/// This component displays a filter option with an icon, title, and count.
+/// It provides visual feedback for selection state and includes haptic feedback
+/// when tapped.
+///
+/// Features:
+/// - Dynamic color theming based on filter type
+/// - Animated selection states
+/// - Press animations for better user feedback
+/// - Count badge showing number of matching appliances
 struct ApplianceFilterChip: View {
+    // MARK: - Properties
+    
+    /// The display title for the filter
     let title: String
+    
+    /// SF Symbol icon name for the filter
     let icon: String
+    
+    /// Theme color for the filter
     let color: Color
+    
+    /// Whether this filter is currently selected
     let isSelected: Bool
+    
+    /// Number of appliances matching this filter
     let count: Int
+    
+    /// Action to perform when the chip is tapped
     let action: () -> Void
+    
+    /// Internal state for press animation
     @State private var isPressed = false
+    
+    // MARK: - Body
     
     var body: some View {
         Button(action: action) {
@@ -322,6 +442,8 @@ struct ApplianceFilterChip: View {
                         Capsule()
                             .fill(isSelected ? .white : color.opacity(0.2))
                     )
+                    .scaleEffect(isSelected ? 1.1 : 1.0)
+                    .animation(AppTheme.springAnimation, value: isSelected)
             }
             .foregroundColor(isSelected ? color : AppTheme.secondaryText)
             .padding(.horizontal, 12)
@@ -334,6 +456,8 @@ struct ApplianceFilterChip: View {
                             .stroke(isSelected ? color.opacity(0.3) : Color.clear, lineWidth: 1.5)
                     )
             )
+            .scaleEffect(isSelected ? 1.02 : 1.0)
+            .animation(AppTheme.springAnimation, value: isSelected)
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .animation(AppTheme.springAnimation, value: isPressed)
         }

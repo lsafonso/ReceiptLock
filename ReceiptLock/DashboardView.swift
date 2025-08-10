@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import UIKit
 
 // MARK: - Sort Order Enum
 enum SortOrder: String, CaseIterable {
@@ -315,9 +316,12 @@ struct ExpandableApplianceCard: View {
     let appliance: Appliance
     @State private var isExpanded = false
     @State private var isPressed = false
+    @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
+    @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 2) {
             // Main card content (always visible)
             Button(action: {
                 withAnimation(AppTheme.springAnimation) {
@@ -385,6 +389,7 @@ struct ExpandableApplianceCard: View {
                 .cornerRadius(AppTheme.cornerRadius)
                 .scaleEffect(isPressed ? 0.98 : 1.0)
                 .animation(AppTheme.springAnimation, value: isPressed)
+                .shadow(color: AppTheme.secondaryText.opacity(0.1), radius: 2, x: 0, y: 1)
             }
             .buttonStyle(PlainButtonStyle())
             .onTapGesture {
@@ -400,7 +405,7 @@ struct ExpandableApplianceCard: View {
             
             // Expanded content
             if isExpanded {
-                VStack(spacing: AppTheme.spacing) {
+                VStack(spacing: 0) {
                     Divider()
                         .padding(.horizontal, AppTheme.spacing)
                     
@@ -441,15 +446,46 @@ struct ExpandableApplianceCard: View {
                         }
                     }
                     .padding(.horizontal, AppTheme.spacing)
-                    .padding(.bottom, AppTheme.spacing)
+                    .padding(.vertical, AppTheme.spacing)
                 }
                 .background(AppTheme.cardBackground)
                 .cornerRadius(AppTheme.cornerRadius)
+                .padding(.top, 1) // Add small gap to prevent overlap
                 .transition(.asymmetric(
                     insertion: .scale(scale: 0.95).combined(with: .opacity),
                     removal: .scale(scale: 0.95).combined(with: .opacity)
                 ))
             }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // Right swipe actions (Edit and Delete)
+            Button("Edit") {
+                showingEditSheet = true
+            }
+            .tint(AppTheme.primary)
+            
+            Button("Delete", role: .destructive) {
+                showingDeleteAlert = true
+            }
+            .tint(AppTheme.error)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            // Left swipe action (Share)
+            Button("Share") {
+                shareAppliance()
+            }
+            .tint(AppTheme.success)
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            EditApplianceView(appliance: appliance)
+        }
+        .alert("Delete Appliance", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteAppliance()
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(appliance.name ?? "this appliance")'? This action cannot be undone.")
         }
     }
     
@@ -544,6 +580,45 @@ struct ExpandableApplianceCard: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+    
+    // MARK: - Action Methods
+    
+    /// Shares appliance information
+    private func shareAppliance() {
+        let applianceInfo = """
+        Appliance: \(appliance.name ?? "Unknown")
+        Brand: \(appliance.brand ?? "Unknown")
+        Model: \(appliance.model ?? "Unknown")
+        Warranty Expires: \(formattedExpiryDate)
+        Purchase Date: \(appliance.purchaseDate != nil ? formatDate(appliance.purchaseDate!) : "Unknown")
+        Serial Number: \(appliance.serialNumber ?? "Not provided")
+        Notes: \(appliance.notes ?? "No additional notes")
+        """
+        
+        let activityVC = UIActivityViewController(
+            activityItems: [applianceInfo],
+            applicationActivities: nil
+        )
+        
+        // Present the share sheet
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController?.present(activityVC, animated: true)
+        }
+    }
+    
+    /// Deletes the appliance from Core Data
+    private func deleteAppliance() {
+        withAnimation(AppTheme.springAnimation) {
+            viewContext.delete(appliance)
+            
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error deleting appliance: \(error)")
+            }
+        }
     }
 }
 
