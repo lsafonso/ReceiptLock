@@ -63,35 +63,6 @@ struct ReceiptListView: View {
                         receiptList
                     }
                 }
-                
-                // Floating Action Buttons
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        
-                        // Camera button
-                        Button(action: { 
-                            // Show camera view
-                            showingAddReceipt = true
-                        }) {
-                            Image(systemName: "camera")
-                                .font(.title2.weight(.semibold))
-                        }
-                        .floatingActionButton(backgroundColor: AppTheme.secondary)
-                        .padding(.trailing, AppTheme.spacing)
-                        .padding(.bottom, AppTheme.largeSpacing)
-                        
-                        // Add receipt button
-                        Button(action: { showingAddReceipt = true }) {
-                            Image(systemName: "plus")
-                                .font(.title2.weight(.semibold))
-                        }
-                        .floatingActionButton()
-                        .padding(.trailing, AppTheme.largeSpacing)
-                        .padding(.bottom, AppTheme.largeSpacing)
-                    }
-                }
             }
             .navigationTitle("Receipts")
             .navigationBarTitleDisplayMode(.large)

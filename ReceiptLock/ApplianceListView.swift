@@ -65,9 +65,6 @@ struct ApplianceListView: View {
     /// Currently selected filter for warranty status
     @State private var selectedFilter: ApplianceFilter = .all
     
-    /// Controls the presentation of the add appliance sheet
-    @State private var showingAddAppliance = false
-    
     /// Controls the animation state of filter chips and appliance rows
     @State private var animateFilters = false
     
@@ -127,31 +124,6 @@ struct ApplianceListView: View {
             .onChange(of: searchText) { oldValue, newValue in
                 // Search functionality - no need to collapse anything
             }
-        }
-        .overlay(
-            // Floating Action Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: { showingAddAppliance = true }) {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(AppTheme.primary)
-                            .clipShape(Circle())
-                    }
-                    .padding(.trailing, AppTheme.spacing)
-                    .padding(.bottom, AppTheme.spacing)
-                    .scaleEffect(animateFilters ? 1.0 : 0.8)
-                    .opacity(animateFilters ? 1.0 : 0.0)
-                    .animation(AppTheme.springAnimation.delay(0.5), value: animateFilters)
-                }
-            }
-        )
-        .sheet(isPresented: $showingAddAppliance) {
-            AddApplianceView()
         }
         .onAppear {
             withAnimation(AppTheme.springAnimation.delay(0.3)) {
@@ -248,9 +220,7 @@ struct ApplianceListView: View {
             EmptyStateView(
                 title: emptyStateTitle,
                 message: emptyStateMessage,
-                systemImage: emptyStateIcon,
-                actionTitle: searchText.isEmpty ? "Add Appliance" : nil,
-                action: searchText.isEmpty ? { showingAddAppliance = true } : nil
+                systemImage: emptyStateIcon
             )
             .scaleTransition()
             

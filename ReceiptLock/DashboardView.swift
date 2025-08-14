@@ -24,8 +24,8 @@ struct DashboardView: View {
         animation: .default)
     private var appliances: FetchedResults<Appliance>
     
-    @State private var showingAddAppliance = false
     @State private var selectedSortOrder: SortOrder = .recentlyAdded
+    @State private var animateFilters = false
     @State private var selectedCard: Int? = nil
     
     var body: some View {
@@ -50,29 +50,6 @@ struct DashboardView: View {
                 }
             }
             .navigationBarHidden(true)
-        }
-        .overlay(
-            // Floating Action Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: { showingAddAppliance = true }) {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(AppTheme.primary)
-                            .clipShape(Circle())
-    
-                    }
-                    .padding(.trailing, AppTheme.spacing)
-                    .padding(.bottom, AppTheme.spacing)
-                }
-            }
-        )
-        .sheet(isPresented: $showingAddAppliance) {
-            AddApplianceView()
         }
     }
     
@@ -228,9 +205,7 @@ struct DashboardView: View {
                 EmptyStateView(
                     title: "No Appliances Yet",
                     message: "Start by adding your first appliance to track warranties.",
-                    systemImage: "plus.circle",
-                    actionTitle: "Add Appliance",
-                    action: { showingAddAppliance = true }
+                    systemImage: "plus.circle"
                 )
             } else {
                 LazyVStack(spacing: AppTheme.spacing) {
