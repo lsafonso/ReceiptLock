@@ -70,12 +70,6 @@ struct ContentView: View {
                 action: { selectedTab = 0 }
             )
             
-            // Add Tab (Special styling)
-            addTabButton
-                .onTapGesture {
-                    selectedTab = 1
-                }
-            
             // Appliances Tab
             tabButton(
                 icon: "list.bullet",
@@ -83,6 +77,12 @@ struct ContentView: View {
                 isSelected: selectedTab == 2,
                 action: { selectedTab = 2 }
             )
+            
+            // Add Tab (Special styling) - CENTER POSITION
+            addTabButton
+                .onTapGesture {
+                    selectedTab = 1
+                }
             
             // Reminders Tab
             tabButton(
