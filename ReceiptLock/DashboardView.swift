@@ -233,7 +233,7 @@ struct DashboardView: View {
                     action: { showingAddAppliance = true }
                 )
             } else {
-                LazyVStack(spacing: AppTheme.smallSpacing) {
+                LazyVStack(spacing: AppTheme.spacing) {
                     ForEach(sortedAppliances, id: \.id) { appliance in
                         ExpandableApplianceCard(appliance: appliance)
                     }
