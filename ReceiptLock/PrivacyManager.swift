@@ -195,13 +195,31 @@ class PrivacyManager: ObservableObject {
     }
     
     private func clearCoreData() throws {
-        // Implementation depends on your Core Data setup
-        // This is a placeholder for the actual implementation
+        let context = PersistenceController.shared.container.viewContext
+        // Delete receipts
+        let receiptFetch: NSFetchRequest<NSFetchRequestResult> = Receipt.fetchRequest()
+        let receiptDelete = NSBatchDeleteRequest(fetchRequest: receiptFetch)
+        try context.execute(receiptDelete)
+        // Delete appliances
+        let applianceFetch: NSFetchRequest<NSFetchRequestResult> = Appliance.fetchRequest()
+        let applianceDelete = NSBatchDeleteRequest(fetchRequest: applianceFetch)
+        try context.execute(applianceDelete)
+        try context.save()
     }
     
     private func clearStoredImages() {
-        // Implementation depends on your image storage
-        // This is a placeholder for the actual implementation
+        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let receiptsPath = documentsPath.appendingPathComponent("receipts")
+        do {
+            if FileManager.default.fileExists(atPath: receiptsPath.path) {
+                let contents = try FileManager.default.contentsOfDirectory(at: receiptsPath, includingPropertiesForKeys: nil)
+                for url in contents {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+        } catch {
+            print("Error clearing stored images: \(error)")
+        }
     }
     
     private func clearUserSettings() {

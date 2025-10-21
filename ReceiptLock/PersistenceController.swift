@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import CloudKit
 import Foundation
 
 struct PersistenceController {
@@ -14,7 +15,9 @@ struct PersistenceController {
     let container: NSPersistentContainer
     
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "ReceiptLock")
+        let enableCloud = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
+        let cloudContainer = NSPersistentCloudKitContainer(name: "ReceiptLock")
+        container = cloudContainer
         
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
@@ -27,9 +30,14 @@ struct PersistenceController {
                 // Enable encryption for Core Data
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
                 
-                // Enable CloudKit container
-                if let cloudKitContainerIdentifier = storeDescription.cloudKitContainerOptions?.containerIdentifier {
-                    print("CloudKit container enabled: \(cloudKitContainerIdentifier)")
+                // Configure CloudKit container options based on user setting
+                if enableCloud {
+                    let bundleId = Bundle.main.bundleIdentifier ?? "com.example.ReceiptLock"
+                    let containerId = "iCloud.\(bundleId)"
+                    let options = NSPersistentCloudKitContainerOptions(containerIdentifier: containerId)
+                    storeDescription.cloudKitContainerOptions = options
+                } else {
+                    storeDescription.cloudKitContainerOptions = nil
                 }
             }
         }

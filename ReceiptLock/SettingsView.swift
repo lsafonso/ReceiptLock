@@ -21,6 +21,12 @@ struct SettingsView: View {
     @State private var showingNotificationPreferences = false
     @State private var showingCustomReminderMessages = false
     @State private var showingStorageUsage = false
+    @State private var showingRestartAlert = false
+    @State private var showingExportAlert = false
+    @State private var exportAlertMessage = ""
+    @State private var showingImportAlert = false
+    @State private var importAlertMessage = ""
+    @StateObject private var backupManager = DataBackupManager.shared
     @StateObject private var currencyManager = CurrencyManager.shared
     @StateObject private var profileManager = UserProfileManager.shared
     
@@ -98,6 +104,21 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingStorageUsage) {
             StorageUsageView()
+        }
+        .alert("Restart Required", isPresented: $showingRestartAlert) {
+            Button("OK") { }
+        } message: {
+            Text("Please restart the app to apply iCloud Sync settings.")
+        }
+        .alert("Export Complete", isPresented: $showingExportAlert) {
+            Button("OK") { }
+        } message: {
+            Text(exportAlertMessage)
+        }
+        .alert("Import Complete", isPresented: $showingImportAlert) {
+            Button("OK") { }
+        } message: {
+            Text(importAlertMessage)
         }
         .fileImporter(
             isPresented: $showingImportPicker,
@@ -325,7 +346,10 @@ struct SettingsView: View {
             ) {
                 Toggle("", isOn: Binding(
                     get: { DataBackupManager.shared.isCloudKitEnabled() },
-                    set: { DataBackupManager.shared.setCloudKitEnabled($0) }
+                    set: {
+                        DataBackupManager.shared.setCloudKitEnabled($0)
+                        showingRestartAlert = true
+                    }
                 ))
                 .labelsHidden()
             }
@@ -341,7 +365,7 @@ struct SettingsView: View {
                 .foregroundColor(AppTheme.primary)
             }
             
-            if let lastBackup = DataBackupManager.shared.lastBackupDate {
+            if let lastBackup = backupManager.lastBackupDate {
                 SettingsRow(
                     title: "Last Backup",
                     subtitle: lastBackup.formatted(date: .abbreviated, time: .shortened),
@@ -352,17 +376,22 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Import/Export",
-                subtitle: "Backup and restore data manually",
+                title: "Import/Export (ZIP)",
+                subtitle: "Backup and restore data as ZIP",
                 icon: "arrow.triangle.2.circlepath"
             ) {
                 HStack(spacing: AppTheme.smallSpacing) {
-                    Button("Export") {
-                        showingExportSheet = true
+                    Button("Export ZIP") {
+                        Task {
+                            if let url = await DataBackupManager.shared.exportData() {
+                                exportAlertMessage = "Exported to \(url.lastPathComponent)"
+                                showingExportAlert = true
+                            }
+                        }
                     }
                     .foregroundColor(AppTheme.primary)
                     
-                    Button("Import") {
+                    Button("Import ZIP") {
                         showingImportPicker = true
                     }
                     .foregroundColor(AppTheme.primary)
@@ -416,7 +445,7 @@ struct SettingsView: View {
         SettingsSection(title: "About & Support", icon: "info.circle.fill") {
             SettingsRow(
                 title: "App Version",
-                subtitle: "1.0.0",
+                subtitle: appVersion,
                 icon: "app.badge.fill"
             ) {
                 EmptyView()
@@ -424,7 +453,7 @@ struct SettingsView: View {
             
             SettingsRow(
                 title: "Build",
-                subtitle: "1",
+                subtitle: appBuild,
                 icon: "hammer.fill"
             ) {
                 EmptyView()
@@ -435,8 +464,8 @@ struct SettingsView: View {
                 subtitle: "Read our terms and privacy policy",
                 icon: "doc.text.fill"
             ) {
-                Button("View") {
-                    // TODO: Implement terms and privacy view
+                NavigationLink("View") {
+                    TermsPrivacyView()
                 }
                 .foregroundColor(AppTheme.primary)
             }
@@ -446,8 +475,8 @@ struct SettingsView: View {
                 subtitle: "Get help and send feedback",
                 icon: "questionmark.circle.fill"
             ) {
-                Button("Contact") {
-                    // TODO: Implement support and feedback view
+                NavigationLink("Contact") {
+                    SupportFeedbackView()
                 }
                 .foregroundColor(AppTheme.primary)
             }
@@ -468,13 +497,29 @@ struct SettingsView: View {
     // MARK: - Helper Methods
     
     private func deleteAllData() {
-        // Implementation for deleting all data
-        print("Deleting all data...")
+        let success = PrivacyManager.shared.deleteUserData()
+        if success {
+            // Optionally show a confirmation or reset in-app state
+            UserProfileManager.shared.resetOnboarding()
+        }
     }
     
     private func handleImport(result: Result<[URL], Error>) {
-        // Implementation for handling import
-        print("Handling import...")
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            Task {
+                let success = await DataBackupManager.shared.importData(from: url)
+                await MainActor.run {
+                    if success {
+                        importAlertMessage = "Imported from \(url.lastPathComponent)"
+                        showingImportAlert = true
+                    }
+                }
+            }
+        case .failure(let error):
+            print("Import failed: \(error)")
+        }
     }
 }
 
@@ -567,7 +612,91 @@ struct ExportView: View {
     }
 }
 
+// MARK: - Terms & Privacy View
+struct TermsPrivacyView: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                    Text("Terms of Service")
+                        .font(.title2.weight(.semibold))
+                    Text("By using ReceiptLock, you agree to the following terms...")
+                        .foregroundColor(AppTheme.secondaryText)
+                    Divider()
+                    Text("Privacy Policy")
+                        .font(.title2.weight(.semibold))
+                    Text("We value your privacy. All data is stored on-device and protected with encryption and biometrics.")
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+                .padding(AppTheme.spacing)
+            }
+            .navigationTitle("Terms & Privacy")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Support & Feedback View
+struct SupportFeedbackView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var message: String = ""
+    @State private var email: String = ""
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Contact") {
+                    TextField("Email (optional)", text: $email)
+                        .keyboardType(.emailAddress)
+                        .autocapitalization(.none)
+                }
+                Section("Message") {
+                    TextEditor(text: $message)
+                        .frame(minHeight: 120)
+                }
+                Section {
+                    Button("Send Feedback") {
+                        sendFeedback()
+                    }
+                    .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .navigationTitle("Support & Feedback")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+    }
+    private func sendFeedback() {
+        // Basic mailto fallback
+        let subject = "ReceiptLock Feedback"
+        let body = message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let address = email.isEmpty ? "support@example.com" : email
+        if let url = URL(string: "mailto:\(address)?subject=\(subject)&body=\(body)") {
+            UIApplication.shared.open(url)
+        }
+        dismiss()
+    }
+}
+
 #Preview {
     SettingsView()
         .environmentObject(CurrencyManager.shared)
+} 
+
+// MARK: - App Info Helpers
+private var appVersion: String {
+    Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+}
+
+private var appBuild: String {
+    Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
 } 

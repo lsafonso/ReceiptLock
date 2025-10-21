@@ -9,23 +9,28 @@ import Foundation
 import CoreData
 import CloudKit
 import SwiftUI
+import UIKit
+import PDFKit
 
 // MARK: - Backup Data Models
 struct BackupData: Codable {
     let version: String
     let timestamp: Date
     let receipts: [ReceiptBackup]
+    let appliances: [ApplianceBackup]
     let userProfile: UserProfile
     let reminderPreferences: ReminderPreferences
     
     init(
         receipts: [ReceiptBackup],
+        appliances: [ApplianceBackup],
         userProfile: UserProfile,
         reminderPreferences: ReminderPreferences
     ) {
         self.version = "1.0"
         self.timestamp = Date()
         self.receipts = receipts
+        self.appliances = appliances
         self.userProfile = userProfile
         self.reminderPreferences = reminderPreferences
     }
@@ -41,8 +46,14 @@ struct ReceiptBackup: Codable {
     let expiryDate: Date?
     let warrantySummary: String?
     let fileName: String?
+    let imageDataBase64: String?
+    let pdfFileName: String?
+    let pdfDataBase64: String?
+    let pdfPageCount: Int?
+    let pdfProcessed: Bool?
     let createdAt: Date?
     let updatedAt: Date?
+    let applianceId: UUID?
     
     init(from receipt: Receipt) {
         self.id = receipt.id ?? UUID()
@@ -54,11 +65,66 @@ struct ReceiptBackup: Codable {
         self.expiryDate = receipt.expiryDate
         self.warrantySummary = receipt.warrantySummary
         self.fileName = receipt.fileName
+        // Encode image (prefer file on disk; fallback to Core Data binary)
+        if let fileName = receipt.fileName,
+           let imageURL = DataBackupManager.receiptsDirectory()?.appendingPathComponent(fileName),
+           let data = try? Data(contentsOf: imageURL) {
+            self.imageDataBase64 = data.base64EncodedString()
+        } else if let data = receipt.imageData {
+            self.imageDataBase64 = data.base64EncodedString()
+        } else {
+            self.imageDataBase64 = nil
+        }
+        // PDF support
+        if let pdfURLString = receipt.pdfURL, let url = URL(string: pdfURLString),
+           let data = try? Data(contentsOf: url) {
+            self.pdfFileName = url.lastPathComponent
+            self.pdfDataBase64 = data.base64EncodedString()
+        } else {
+            self.pdfFileName = nil
+            self.pdfDataBase64 = nil
+        }
+        if receipt.pdfPageCount > 0 { self.pdfPageCount = Int(receipt.pdfPageCount) } else { self.pdfPageCount = nil }
+        self.pdfProcessed = receipt.pdfProcessed
         self.createdAt = receipt.createdAt
         self.updatedAt = receipt.updatedAt
+        self.applianceId = receipt.appliance?.id
     }
 }
 
+
+// MARK: - Appliance Backup Model
+struct ApplianceBackup: Codable {
+    let id: UUID
+    let name: String?
+    let brand: String?
+    let model: String?
+    let serialNumber: String?
+    let purchaseDate: Date?
+    let price: Double
+    let warrantyMonths: Int16
+    let warrantyExpiryDate: Date?
+    let warrantySummary: String?
+    let notes: String?
+    let createdAt: Date?
+    let updatedAt: Date?
+    
+    init(from appliance: Appliance) {
+        self.id = appliance.id ?? UUID()
+        self.name = appliance.name
+        self.brand = appliance.brand
+        self.model = appliance.model
+        self.serialNumber = appliance.serialNumber
+        self.purchaseDate = appliance.purchaseDate
+        self.price = appliance.price
+        self.warrantyMonths = appliance.warrantyMonths
+        self.warrantyExpiryDate = appliance.warrantyExpiryDate
+        self.warrantySummary = appliance.warrantySummary
+        self.notes = appliance.notes
+        self.createdAt = appliance.createdAt
+        self.updatedAt = appliance.updatedAt
+    }
+}
 
 
 
@@ -124,7 +190,7 @@ class DataBackupManager: ObservableObject {
         }
     }
     
-    // MARK: - Data Export
+    // MARK: - Data Export (ZIP)
     func exportData() async -> URL? {
         await MainActor.run {
             self.isBackingUp = true
@@ -133,14 +199,28 @@ class DataBackupManager: ObservableObject {
         }
         
         do {
+            // Prepare temp folder
+            let tempDir = try makeTempDirectory()
+            let jsonURL = tempDir.appendingPathComponent("backup.json")
+            
+            // Create JSON backup
             let backupData = try await createBackupData()
             let jsonData = try JSONEncoder().encode(backupData)
+            try jsonData.write(to: jsonURL)
             
+            // Create ZIP into Documents
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let backupFileName = "ReceiptLock_Backup_\(Date().ISO8601String()).json"
-            let backupURL = documentsPath.appendingPathComponent(backupFileName)
+            let zipFileName = "ReceiptLock_Backup_\(Date().ISO8601String()).zip"
+            let zipURL = documentsPath.appendingPathComponent(zipFileName)
             
-            try jsonData.write(to: backupURL)
+            // Remove existing file if present
+            try? FileManager.default.removeItem(at: zipURL)
+            
+            // Zip temp directory (backup.json)
+            try FileManager.default.zipItem(at: tempDir, to: zipURL, shouldKeepParent: false, compressionMethod: .deflate)
+            
+            // Cleanup temp dir
+            try? FileManager.default.removeItem(at: tempDir)
             
             await MainActor.run {
                 self.isBackingUp = false
@@ -150,7 +230,7 @@ class DataBackupManager: ObservableObject {
                 self.saveBackupDate()
             }
             
-            return backupURL
+            return zipURL
         } catch {
             await MainActor.run {
                 self.isBackingUp = false
@@ -161,7 +241,7 @@ class DataBackupManager: ObservableObject {
         }
     }
     
-    // MARK: - Data Import
+    // MARK: - Data Import (ZIP or JSON)
     func importData(from url: URL) async -> Bool {
         await MainActor.run {
             self.isRestoring = true
@@ -170,10 +250,19 @@ class DataBackupManager: ObservableObject {
         }
         
         do {
-            let jsonData = try Data(contentsOf: url)
-            let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
-            
-            try await restoreFromBackup(backupData)
+            if url.pathExtension.lowercased() == "zip" {
+                let success = try await importFromZIP(url)
+                await MainActor.run {
+                    self.isRestoring = false
+                    self.backupStatus = success ? .completed : .failed("Invalid ZIP contents")
+                    self.syncProgress = 1.0
+                }
+                return success
+            } else {
+                let jsonData = try Data(contentsOf: url)
+                let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
+                try await restoreFromBackup(backupData)
+            }
             
             await MainActor.run {
                 self.isRestoring = false
@@ -191,12 +280,30 @@ class DataBackupManager: ObservableObject {
             return false
         }
     }
+
+    private func importFromZIP(_ url: URL) async throws -> Bool {
+        // Unzip to temp dir
+        let tempDir = try makeTempDirectory()
+        try FileManager.default.unzipItem(at: url, to: tempDir)
+        // Expect backup.json at root
+        let jsonURL = tempDir.appendingPathComponent("backup.json")
+        guard FileManager.default.fileExists(atPath: jsonURL.path) else {
+            return false
+        }
+        let jsonData = try Data(contentsOf: jsonURL)
+        let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
+        try await restoreFromBackup(backupData)
+        // Cleanup
+        try? FileManager.default.removeItem(at: tempDir)
+        return true
+    }
     
     // MARK: - Backup Creation
     private func createBackupData() async throws -> BackupData {
         let context = container.viewContext
         
         let receipts = try fetchReceipts(context: context)
+        let appliances = try fetchAppliances(context: context)
         let userProfile = UserProfileManager.shared.currentProfile
         var reminderPreferences = ReminderPreferences()
         reminderPreferences.defaultReminders = ReminderManager.shared.preferences.defaultReminders
@@ -206,6 +313,7 @@ class DataBackupManager: ObservableObject {
         
         return BackupData(
             receipts: receipts,
+            appliances: appliances,
             userProfile: userProfile,
             reminderPreferences: reminderPreferences
         )
@@ -217,6 +325,12 @@ class DataBackupManager: ObservableObject {
         return receipts.map { ReceiptBackup(from: $0) }
     }
     
+    private func fetchAppliances(context: NSManagedObjectContext) throws -> [ApplianceBackup] {
+        let request: NSFetchRequest<Appliance> = Appliance.fetchRequest()
+        let appliances = try context.fetch(request)
+        return appliances.map { ApplianceBackup(from: $0) }
+    }
+    
 
     
     // MARK: - Data Restoration
@@ -225,6 +339,26 @@ class DataBackupManager: ObservableObject {
         
         // Clear existing data
         try clearExistingData(context: context)
+        
+        // Restore appliances first
+        var applianceMap: [UUID: Appliance] = [:]
+        for applianceBackup in backupData.appliances {
+            let appliance = Appliance(context: context)
+            appliance.id = applianceBackup.id
+            appliance.name = applianceBackup.name
+            appliance.brand = applianceBackup.brand
+            appliance.model = applianceBackup.model
+            appliance.serialNumber = applianceBackup.serialNumber
+            appliance.purchaseDate = applianceBackup.purchaseDate
+            appliance.price = applianceBackup.price
+            appliance.warrantyMonths = applianceBackup.warrantyMonths
+            appliance.warrantyExpiryDate = applianceBackup.warrantyExpiryDate
+            appliance.warrantySummary = applianceBackup.warrantySummary
+            appliance.notes = applianceBackup.notes
+            appliance.createdAt = applianceBackup.createdAt
+            appliance.updatedAt = applianceBackup.updatedAt
+            applianceMap[applianceBackup.id] = appliance
+        }
         
         // Restore receipts
         for receiptBackup in backupData.receipts {
@@ -240,6 +374,29 @@ class DataBackupManager: ObservableObject {
             receipt.fileName = receiptBackup.fileName
             receipt.createdAt = receiptBackup.createdAt
             receipt.updatedAt = receiptBackup.updatedAt
+            if let applianceId = receiptBackup.applianceId, let appliance = applianceMap[applianceId] {
+                receipt.appliance = appliance
+            }
+            // Restore image data to Core Data and disk
+            if let imageBase64 = receiptBackup.imageDataBase64,
+               let imageData = Data(base64Encoded: imageBase64) {
+                receipt.imageData = imageData
+                if let image = UIImage(data: imageData) {
+                    let fileName = ImageStorageManager.shared.saveReceiptImage(image, for: receipt)
+                    receipt.fileName = fileName
+                }
+            }
+            // Restore PDF data to disk and set URL
+            if let pdfBase64 = receiptBackup.pdfDataBase64,
+               let pdfData = Data(base64Encoded: pdfBase64) {
+                if let pdfURL = try? DataBackupManager.savePDFData(pdfData, preferredFileName: receiptBackup.pdfFileName, for: receipt) {
+                    receipt.pdfURL = pdfURL.absoluteString
+                    if let doc = PDFDocument(url: pdfURL) {
+                        receipt.pdfPageCount = Int16(doc.pageCount)
+                        receipt.pdfProcessed = true
+                    }
+                }
+            }
         }
         
         // Save context
@@ -256,10 +413,15 @@ class DataBackupManager: ObservableObject {
     }
     
     private func clearExistingData(context: NSManagedObjectContext) throws {
+        // Delete receipts
         let receiptRequest: NSFetchRequest<NSFetchRequestResult> = Receipt.fetchRequest()
         let receiptDeleteRequest = NSBatchDeleteRequest(fetchRequest: receiptRequest)
-        
         try context.execute(receiptDeleteRequest)
+        
+        // Delete appliances
+        let applianceRequest: NSFetchRequest<NSFetchRequestResult> = Appliance.fetchRequest()
+        let applianceDeleteRequest = NSBatchDeleteRequest(fetchRequest: applianceRequest)
+        try context.execute(applianceDeleteRequest)
     }
     
     // MARK: - CloudKit Sync
@@ -319,7 +481,7 @@ class DataBackupManager: ObservableObject {
         
         do {
             let files = try FileManager.default.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: nil)
-            return files.filter { $0.pathExtension == "json" && $0.lastPathComponent.contains("ReceiptLock_Backup") }
+            return files.filter { $0.pathExtension == "zip" && $0.lastPathComponent.contains("ReceiptLock_Backup") }
         } catch {
             print("Failed to list backups: \(error)")
             return []
@@ -337,6 +499,28 @@ class DataBackupManager: ObservableObject {
     
     func setCloudKitEnabled(_ enabled: Bool) {
         userDefaults.set(enabled, forKey: iCloudKey)
+    }
+    
+    // MARK: - File Helpers
+    static func receiptsDirectory() -> URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("receipts")
+    }
+    
+    static func savePDFData(_ data: Data, preferredFileName: String?, for receipt: Receipt) throws -> URL {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let receiptsDir = documents.appendingPathComponent("receipts")
+        try FileManager.default.createDirectory(at: receiptsDir, withIntermediateDirectories: true)
+        let name = preferredFileName ?? "\(receipt.id?.uuidString ?? UUID().uuidString).pdf"
+        let fileURL = receiptsDir.appendingPathComponent(name)
+        try data.write(to: fileURL)
+        return fileURL
+    }
+
+    private func makeTempDirectory() throws -> URL {
+        let tempRoot = FileManager.default.temporaryDirectory
+        let dir = tempRoot.appendingPathComponent("ReceiptLock_Backup_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 }
 

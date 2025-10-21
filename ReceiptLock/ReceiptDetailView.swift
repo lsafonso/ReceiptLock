@@ -168,7 +168,7 @@ struct ReceiptDetailView: View {
     // MARK: - Helper Methods
     
     private func formatPrice(_ price: Double) -> String {
-        return String(format: "$%.2f", price)
+        return CurrencyManager.shared.formatPrice(price)
     }
     
     private func formatDate(_ date: Date?) -> String {

@@ -14,6 +14,7 @@ struct BackupSettingsView: View {
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var selectedBackupURL: URL?
+    @State private var exportedBackupURL: URL?
     @State private var showingSuccessAlert = false
     @State private var successMessage = ""
     
@@ -53,11 +54,15 @@ struct BackupSettingsView: View {
                 Text("Are you sure you want to delete this backup? This action cannot be undone.")
             }
             .sheet(isPresented: $showingExportSheet) {
-                ShareSheet(items: [backupManager.lastBackupDate?.ISO8601String() ?? "No backup available"])
+                if let url = exportedBackupURL {
+                    ShareSheet(items: [url])
+                } else {
+                    Text("No export available")
+                }
             }
             .fileImporter(
                 isPresented: $showingImportPicker,
-                allowedContentTypes: [UTType.json],
+                allowedContentTypes: [UTType.zip],
                 allowsMultipleSelection: false
             ) { result in
                 handleImportResult(result)
@@ -213,7 +218,7 @@ struct BackupSettingsView: View {
             
             VStack(spacing: AppTheme.smallSpacing) {
                 Button("Clear All Data") {
-                    // This would show a confirmation dialog
+                    showingDeleteAlert = true
                 }
                 .buttonStyle(.bordered)
                 .foregroundColor(AppTheme.error)
@@ -232,8 +237,10 @@ struct BackupSettingsView: View {
     // MARK: - Helper Methods
     private func exportData() async {
         if let backupURL = await backupManager.exportData() {
+            exportedBackupURL = backupURL
             successMessage = "Data exported successfully to \(backupURL.lastPathComponent)"
             showingSuccessAlert = true
+            showingExportSheet = true
         }
     }
     
