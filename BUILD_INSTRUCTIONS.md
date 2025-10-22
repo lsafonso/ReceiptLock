@@ -133,9 +133,9 @@ ReceiptLock/
    - Privacy controls
 
    #### **Backup & Sync**
-   - iCloud synchronization
+   - iCloud synchronization (toggle in Settings; restart required to apply)
    - Backup settings management
-   - Import/export functionality
+   - Import/export ZIP backups (ZIP contains `backup.json` and assets)
 
    #### **Data Management**
    - Storage usage monitoring

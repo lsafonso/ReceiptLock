@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CoreData
 
 class PrivacyManager: ObservableObject {
     static let shared = PrivacyManager()
@@ -124,7 +125,7 @@ class PrivacyManager: ObservableObject {
     // MARK: - Consent Management
     
     func hasValidConsent(for consentType: ConsentType) -> Bool {
-        guard let consent = userConsent.consents[consentType] else {
+        guard let consent = userConsent.consents[consentType.rawValue] else {
             return false
         }
         
@@ -140,12 +141,12 @@ class PrivacyManager: ObservableObject {
             consentVersion: getCurrentConsentVersion()
         )
         
-        userConsent.consents[consentType] = consent
+        userConsent.consents[consentType.rawValue] = consent
         saveUserConsent()
     }
     
     func revokeConsent(for consentType: ConsentType) {
-        userConsent.consents.removeValue(forKey: consentType)
+        userConsent.consents.removeValue(forKey: consentType.rawValue)
         saveUserConsent()
     }
     
@@ -196,14 +197,25 @@ class PrivacyManager: ObservableObject {
     
     private func clearCoreData() throws {
         let context = PersistenceController.shared.container.viewContext
-        // Delete receipts
-        let receiptFetch: NSFetchRequest<NSFetchRequestResult> = Receipt.fetchRequest()
-        let receiptDelete = NSBatchDeleteRequest(fetchRequest: receiptFetch)
-        try context.execute(receiptDelete)
-        // Delete appliances
-        let applianceFetch: NSFetchRequest<NSFetchRequestResult> = Appliance.fetchRequest()
-        let applianceDelete = NSBatchDeleteRequest(fetchRequest: applianceFetch)
-        try context.execute(applianceDelete)
+        
+        // Delete receipts by fetching and removing
+        do {
+            let receiptRequest = Receipt.fetchRequest()
+            let receipts = try context.fetch(receiptRequest)
+            for receipt in receipts {
+                context.delete(receipt)
+            }
+        }
+        
+        // Delete appliances by fetching and removing
+        do {
+            let applianceRequest = Appliance.fetchRequest()
+            let appliances = try context.fetch(applianceRequest)
+            for appliance in appliances {
+                context.delete(appliance)
+            }
+        }
+        
         try context.save()
     }
     
@@ -347,7 +359,7 @@ struct DataRetentionPolicy: Codable {
 }
 
 struct UserConsent: Codable {
-    var consents: [ConsentType: ConsentRecord] = [:]
+    var consents: [String: ConsentRecord] = [:] // keys are ConsentType.rawValue
     var lastUpdated: Date = Date()
 }
 

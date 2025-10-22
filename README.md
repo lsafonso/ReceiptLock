@@ -93,9 +93,9 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Privacy Controls**: Data sharing consent and retention management
 
 #### **5. Backup & Sync**
-- **iCloud Sync**: Automatic cross-device synchronization
+- **iCloud Sync**: Optional cross-device sync via CloudKit (toggle in Settings; restart required to apply)
 - **Backup Settings**: Data backup and restore management
-- **Import/Export**: Manual backup and restore functionality
+- **Import/Export (ZIP)**: Manual backup and restore using a ZIP that contains `backup.json` and embedded assets
 - **Last Backup Tracking**: Monitor backup status and timestamps
 
 #### **6. Data Management**
@@ -139,6 +139,7 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Feature-based Organization**: Views organized by feature
 - **Dependency Injection**: Core Data context injection
 - **Error Handling**: Comprehensive error handling with user feedback
+- **Persistence**: Core Data with optional NSPersistentCloudKitContainer for iCloud sync
 
 ### Data Model
 ```swift
@@ -290,9 +291,9 @@ The enhanced settings provide comprehensive control over your app experience:
 - Manage privacy controls and data consent
 
 #### **Backup & Data Management**
-- Enable iCloud sync for cross-device access
-- Export your data for backup
-- Import data from previous backups
+- Enable iCloud sync for cross-device access (restart required after toggling)
+- Export your data as ZIP (contains backup.json and assets)
+- Import data from previous ZIP backups
 - Monitor storage usage and cleanup options
 
 ### Notifications
@@ -301,8 +302,8 @@ The enhanced settings provide comprehensive control over your app experience:
 - Notifications appear before warranty expiry based on your settings
 
 ### Data Management
-- **Export**: Creates a ZIP file with JSON data and assets
-- **Import**: Restore from a previously exported backup
+- **Export**: Creates a ZIP file with `backup.json` and embedded assets (images/PDFs)
+- **Import**: Restore from a previously exported ZIP backup
 - **Delete All**: Permanently removes all data (use with caution)
 
 ## Testing
@@ -336,6 +337,7 @@ The app requires the following permissions:
 ### 🔒 **Security Permissions**
 - **Face ID/Touch ID**: For biometric authentication (optional, with passcode fallback)
 - **Keychain Access**: For secure storage of encryption keys and sensitive data
+- **iCloud**: Enable the iCloud capability and container if using sync
 
 ## File Storage
 

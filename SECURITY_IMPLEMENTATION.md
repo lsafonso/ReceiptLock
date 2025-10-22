@@ -330,31 +330,45 @@ struct AuthenticationWrapperView<Content: View>: View {
 
 ### **Core Data Security**
 ```swift
-// PersistenceController.swift
-class PersistenceController {
+// PersistenceController.swift (excerpt)
+import CloudKit
+
+struct PersistenceController {
     static let shared = PersistenceController()
     
-    lazy var container: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "ReceiptLock")
+    let container: NSPersistentContainer
+    
+    init(inMemory: Bool = false) {
+        let enableCloud = UserDefaults.standard.bool(forKey: "iCloudSyncEnabled")
+        let cloudContainer = NSPersistentCloudKitContainer(name: "ReceiptLock")
+        container = cloudContainer
         
-        // Configure secure storage
-        let description = NSPersistentStoreDescription()
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-        
-        // Enable encryption for sensitive attributes
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
-        
-        container.persistentStoreDescriptions = [description]
-        
-        container.loadPersistentStores { _, error in
-            if let error = error {
-                fatalError("Core Data error: \(error)")
+        // Configure history tracking and file protection
+        container.persistentStoreDescriptions.forEach { storeDescription in
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
+            
+            // Configure CloudKit container when enabled
+            if enableCloud {
+                let bundleId = Bundle.main.bundleIdentifier ?? "com.example.ReceiptLock"
+                storeDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: "iCloud.\(bundleId)"
+                )
+            } else {
+                storeDescription.cloudKitContainerOptions = nil
             }
         }
         
-        return container
-    }()
+        container.loadPersistentStores { _, error in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        }
+        
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+    }
 }
 ```
 

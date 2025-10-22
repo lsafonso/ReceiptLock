@@ -41,9 +41,9 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Privacy Controls**: Data sharing consent and retention management
 
 #### **5. Backup & Sync** ✅ **COMPLETE**
-- **iCloud Sync**: Automatic cross-device synchronization
+- **iCloud Sync**: Optional cross-device sync via CloudKit (toggle in Settings; restart required to apply)
 - **Backup Settings**: Data backup and restore management
-- **Import/Export**: Manual backup and restore functionality
+- **Import/Export (ZIP)**: Manual backup/restore using a ZIP containing backup.json and embedded assets
 - **Last Backup Tracking**: Monitor backup status and timestamps
 
 #### **6. Data Management** ✅ **COMPLETE**
