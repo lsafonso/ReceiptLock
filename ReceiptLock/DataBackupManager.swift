@@ -11,6 +11,7 @@ import CloudKit
 import SwiftUI
 import UIKit
 import PDFKit
+import Compression
 
 // MARK: - Backup Data Models
 struct BackupData: Codable {
@@ -208,16 +209,16 @@ class DataBackupManager: ObservableObject {
             let jsonData = try JSONEncoder().encode(backupData)
             try jsonData.write(to: jsonURL)
             
-            // Create ZIP into Documents
+            // Create ZIP file in Documents
             let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let zipFileName = "ReceiptLock_Backup_\(Date().ISO8601String()).zip"
-            let zipURL = documentsPath.appendingPathComponent(zipFileName)
+            let backupFileName = "ReceiptLock_Backup_\(Date().ISO8601String()).zip"
+            let backupURL = documentsPath.appendingPathComponent(backupFileName)
             
             // Remove existing file if present
-            try? FileManager.default.removeItem(at: zipURL)
+            try? FileManager.default.removeItem(at: backupURL)
             
-            // Zip temp directory (backup.json)
-            try FileManager.default.zipItem(at: tempDir, to: zipURL, shouldKeepParent: false, compressionMethod: .deflate)
+            // Create ZIP file
+            try createZipFile(from: tempDir, to: backupURL)
             
             // Cleanup temp dir
             try? FileManager.default.removeItem(at: tempDir)
@@ -230,7 +231,7 @@ class DataBackupManager: ObservableObject {
                 self.saveBackupDate()
             }
             
-            return zipURL
+            return backupURL
         } catch {
             await MainActor.run {
                 self.isBackingUp = false
@@ -251,14 +252,24 @@ class DataBackupManager: ObservableObject {
         
         do {
             if url.pathExtension.lowercased() == "zip" {
-                let success = try await importFromZIP(url)
-                await MainActor.run {
-                    self.isRestoring = false
-                    self.backupStatus = success ? .completed : .failed("Invalid ZIP contents")
-                    self.syncProgress = 1.0
+                // Extract ZIP file and find JSON
+                let tempDir = try makeTempDirectory()
+                try extractZipFile(from: url, to: tempDir)
+                
+                // Look for JSON file in extracted contents
+                let jsonURL = tempDir.appendingPathComponent("backup.json")
+                guard FileManager.default.fileExists(atPath: jsonURL.path) else {
+                    throw NSError(domain: "DataBackupManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No backup.json found in ZIP file"])
                 }
-                return success
+                
+                let jsonData = try Data(contentsOf: jsonURL)
+                let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
+                try await restoreFromBackup(backupData)
+                
+                // Cleanup temp dir
+                try? FileManager.default.removeItem(at: tempDir)
             } else {
+                // Try to handle as JSON
                 let jsonData = try Data(contentsOf: url)
                 let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
                 try await restoreFromBackup(backupData)
@@ -281,22 +292,6 @@ class DataBackupManager: ObservableObject {
         }
     }
 
-    private func importFromZIP(_ url: URL) async throws -> Bool {
-        // Unzip to temp dir
-        let tempDir = try makeTempDirectory()
-        try FileManager.default.unzipItem(at: url, to: tempDir)
-        // Expect backup.json at root
-        let jsonURL = tempDir.appendingPathComponent("backup.json")
-        guard FileManager.default.fileExists(atPath: jsonURL.path) else {
-            return false
-        }
-        let jsonData = try Data(contentsOf: jsonURL)
-        let backupData = try JSONDecoder().decode(BackupData.self, from: jsonData)
-        try await restoreFromBackup(backupData)
-        // Cleanup
-        try? FileManager.default.removeItem(at: tempDir)
-        return true
-    }
     
     // MARK: - Backup Creation
     private func createBackupData() async throws -> BackupData {
@@ -485,6 +480,60 @@ class DataBackupManager: ObservableObject {
         } catch {
             print("Failed to list backups: \(error)")
             return []
+        }
+    }
+    
+    // MARK: - ZIP File Operations
+    private func createZipFile(from sourceDirectory: URL, to destinationURL: URL) throws {
+        let fileManager = FileManager.default
+        
+        // Create the ZIP file
+        let coordinator = NSFileCoordinator()
+        var error: NSError?
+        
+        coordinator.coordinate(readingItemAt: sourceDirectory, options: [.forUploading], error: &error) { (url) in
+            do {
+                try fileManager.copyItem(at: url, to: destinationURL)
+            } catch {
+                print("Failed to create ZIP file: \(error)")
+            }
+        }
+        
+        if let error = error {
+            throw error
+        }
+    }
+    
+    private func extractZipFile(from zipURL: URL, to destinationDirectory: URL) throws {
+        let fileManager = FileManager.default
+        
+        // Create destination directory if it doesn't exist
+        try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
+        
+        // Use NSFileCoordinator to extract the ZIP file
+        let coordinator = NSFileCoordinator()
+        var error: NSError?
+        
+        coordinator.coordinate(readingItemAt: zipURL, options: [.forUploading], error: &error) { (url) in
+            do {
+                // The system automatically extracts ZIP files when using forUploading option
+                // We need to copy the extracted contents to our destination
+                let tempDir = url.appendingPathComponent("extracted")
+                try fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                
+                // Copy all contents from the extracted location to our destination
+                let contents = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+                for item in contents {
+                    let destinationItem = destinationDirectory.appendingPathComponent(item.lastPathComponent)
+                    try fileManager.copyItem(at: item, to: destinationItem)
+                }
+            } catch {
+                print("Failed to extract ZIP file: \(error)")
+            }
+        }
+        
+        if let error = error {
+            throw error
         }
     }
     
