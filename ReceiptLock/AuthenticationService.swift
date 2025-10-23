@@ -279,7 +279,7 @@ struct AuthenticationPromptView: View {
         VStack(spacing: 30) {
             Image(systemName: "lock.shield")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.primary)
             
             Text("Authentication Required")
                 .font(.title2)
@@ -292,7 +292,7 @@ struct AuthenticationPromptView: View {
             Button("Authenticate") {
                 onAuthenticate()
             }
-            .buttonStyle(.borderedProminent)
+            .primaryButton()
         }
         .padding()
     }

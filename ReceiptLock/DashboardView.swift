@@ -100,11 +100,11 @@ struct DashboardView: View {
                     .font(.title2)
                     .foregroundColor(AppTheme.primary)
                 
-                Text("\(appliances.count)")
+                Text("\(sortedAppliances.count)")
                     .font(.title.weight(.bold))
                     .foregroundColor(AppTheme.text)
                 
-                Text("All devices")
+                Text("Active devices")
                     .font(.caption.weight(.medium))
                     .foregroundColor(AppTheme.secondaryText)
             }
@@ -261,25 +261,31 @@ struct DashboardView: View {
     }
     
     private var sortedAppliances: [Appliance] {
+        // Filter out expired warranties - only show appliances with valid warranties
+        let validAppliances = appliances.filter { appliance in
+            guard let expiryDate = appliance.warrantyExpiryDate else { return true } // Show appliances without expiry date
+            return expiryDate > Date() // Only show if warranty hasn't expired
+        }
+        
         switch selectedSortOrder {
         case .recentlyAdded:
-            return appliances.sorted { appliance1, appliance2 in
+            return validAppliances.sorted { appliance1, appliance2 in
                 guard let date1 = appliance1.createdAt,
                       let date2 = appliance2.createdAt else { return false }
                 return date1 > date2
             }
         case .expiringSoon:
-            return appliances.sorted { appliance1, appliance2 in
+            return validAppliances.sorted { appliance1, appliance2 in
                 guard let expiry1 = appliance1.warrantyExpiryDate,
                       let expiry2 = appliance2.warrantyExpiryDate else { return false }
                 return expiry1 < expiry2
             }
         case .alphabetical:
-            return appliances.sorted { appliance1, appliance2 in
+            return validAppliances.sorted { appliance1, appliance2 in
                 (appliance1.name ?? "") < (appliance2.name ?? "")
             }
         case .brand:
-            return appliances.sorted { appliance1, appliance2 in
+            return validAppliances.sorted { appliance1, appliance2 in
                 (appliance1.brand ?? "") < (appliance2.brand ?? "")
             }
         }

@@ -59,7 +59,7 @@ struct AuthenticationWrapperView<Content: View>: View {
         VStack(spacing: 30) {
             Image(systemName: authManager.biometricType == .faceID ? "faceid" : "touchid")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(AppTheme.primary)
             
             Text("Authentication Required")
                 .font(.title2)
@@ -73,13 +73,13 @@ struct AuthenticationWrapperView<Content: View>: View {
                 Button("Authenticate") {
                     showingAuthentication = true
                 }
-                .buttonStyle(.borderedProminent)
+                .primaryButton()
                 
                 if securityLevel == .excellent {
                     Button("Security Settings") {
                         // Navigate to security settings
                     }
-                    .buttonStyle(.bordered)
+                    .secondaryButton()
                 }
             }
         }
@@ -91,7 +91,7 @@ struct AuthenticationWrapperView<Content: View>: View {
             VStack(spacing: 30) {
                 Image(systemName: authManager.biometricType == .faceID ? "faceid" : "touchid")
                     .font(.system(size: 80))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppTheme.primary)
                 
                 Text("Unlock ReceiptLock")
                     .font(.title2)
@@ -105,17 +105,17 @@ struct AuthenticationWrapperView<Content: View>: View {
                     Button("Use \(authManager.biometricTypeDescription)") {
                         authenticate()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryButton()
                     
                     Button("Use Passcode") {
                         authenticateWithPasscode()
                     }
-                    .buttonStyle(.bordered)
+                    .secondaryButton()
                 } else {
                     Button("Use Passcode") {
                         authenticateWithPasscode()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryButton()
                 }
                 
                 if securityLevel == .excellent {
