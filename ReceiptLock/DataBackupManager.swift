@@ -11,7 +11,6 @@ import CloudKit
 import SwiftUI
 import UIKit
 import PDFKit
-import Compression
 
 // MARK: - Backup Data Models
 struct BackupData: Codable {
@@ -217,7 +216,7 @@ class DataBackupManager: ObservableObject {
             // Remove existing file if present
             try? FileManager.default.removeItem(at: backupURL)
             
-            // Create ZIP file
+            // Create ZIP file using NSFileCoordinator
             try createZipFile(from: tempDir, to: backupURL)
             
             // Cleanup temp dir
@@ -487,13 +486,15 @@ class DataBackupManager: ObservableObject {
     private func createZipFile(from sourceDirectory: URL, to destinationURL: URL) throws {
         let fileManager = FileManager.default
         
-        // Create the ZIP file
+        // Create a temporary ZIP file using NSFileCoordinator
         let coordinator = NSFileCoordinator()
         var error: NSError?
         
-        coordinator.coordinate(readingItemAt: sourceDirectory, options: [.forUploading], error: &error) { (url) in
+        coordinator.coordinate(readingItemAt: sourceDirectory, options: [.forUploading], error: &error) { (coordinatedURL) in
             do {
-                try fileManager.copyItem(at: url, to: destinationURL)
+                // The system automatically creates a ZIP when using .forUploading
+                // Copy the created ZIP file to our destination
+                try fileManager.copyItem(at: coordinatedURL, to: destinationURL)
             } catch {
                 print("Failed to create ZIP file: \(error)")
             }
@@ -514,15 +515,11 @@ class DataBackupManager: ObservableObject {
         let coordinator = NSFileCoordinator()
         var error: NSError?
         
-        coordinator.coordinate(readingItemAt: zipURL, options: [.forUploading], error: &error) { (url) in
+        coordinator.coordinate(readingItemAt: zipURL, options: [.forUploading], error: &error) { (coordinatedURL) in
             do {
                 // The system automatically extracts ZIP files when using forUploading option
-                // We need to copy the extracted contents to our destination
-                let tempDir = url.appendingPathComponent("extracted")
-                try fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                
                 // Copy all contents from the extracted location to our destination
-                let contents = try fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+                let contents = try fileManager.contentsOfDirectory(at: coordinatedURL, includingPropertiesForKeys: nil)
                 for item in contents {
                     let destinationItem = destinationDirectory.appendingPathComponent(item.lastPathComponent)
                     try fileManager.copyItem(at: item, to: destinationItem)
