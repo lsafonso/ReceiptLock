@@ -1,7 +1,7 @@
 # Currency Implementation Summary
 
 ## Overview
-This document summarizes the changes made to implement dynamic currency support in the ReceiptLock app, replacing hardcoded currency symbols with a configurable currency system that is fully integrated into the enhanced settings hierarchy.
+This document summarizes the changes made to implement dynamic currency support in the ReceiptLock app, replacing hardcoded currency symbols with a configurable currency system that is fully integrated into the enhanced settings hierarchy. The system now includes country-based currency detection, automatically setting the appropriate currency when users select their country/region.
 
 ## Files Created
 
@@ -13,6 +13,7 @@ This document summarizes the changes made to implement dynamic currency support 
   - Persistent storage using UserDefaults
   - Observable object for SwiftUI integration
   - Currency validation and management methods
+  - **Enhanced**: Expanded supported currencies to match country-to-currency mapping
 
 ## Files Modified
 
@@ -55,12 +56,15 @@ This document summarizes the changes made to implement dynamic currency support 
   - **Smart Pre-filling**: Device type selection automatically suggests model information
   - **Enhanced OCR**: Model information extraction from receipt text
 
-### 7. UserProfile.swift
+### 7. UserProfile.swift ✅ **ENHANCED**
 - **Changes**:
   - Added currency synchronization in `UserProfileManager.init()`
   - Updated `updatePreferences` to sync with CurrencyManager
-  - Added currency section to ProfileEditView
-  - Shows current currency preference and guides users to Settings
+  - **Enhanced ProfileEditView**: Now includes Email Address and Country/Region fields
+  - **Country-to-Currency Mapping**: Automatic currency detection based on selected country
+  - **CountryPickerView**: Searchable country selection interface
+  - **Auto-Currency Update**: Currency automatically changes when country is selected
+  - **Streamlined Interface**: Removed preferences and currency sections, focusing on essential profile info
 
 ### 8. ReceiptLockTests.swift
 - **Changes**:
@@ -100,6 +104,7 @@ Settings
 - Currency changes are applied immediately throughout the app
 - Persistent storage of currency preference
 - **Enhanced UI**: Better visual presentation in settings
+- **Country-Based Detection**: Automatic currency setting based on selected country/region
 
 ### 2. Automatic UI Updates ✅ **COMPLETE**
 - All price displays automatically update when currency changes
@@ -113,12 +118,46 @@ Settings
 - Clear display of current currency selection
 - **Better UX**: Integrated with comprehensive settings hierarchy
 
-### 4. Profile Integration ✅ **COMPLETE**
+### 4. Profile Integration ✅ **ENHANCED**
 - User profile shows current currency preference
-- Guidance to change currency in Settings
+- **Enhanced ProfileEditView**: Email Address and Country/Region fields
+- **Country-to-Currency Mapping**: Automatic currency detection based on country selection
+- **Streamlined Interface**: Focused on essential profile information
 - Automatic synchronization between profile and currency manager
 
+## New Features Added
+
+### 5. Country-Based Currency Detection ✅ **NEW**
+- **Country Selection**: Users can select their country/region in Edit Profile
+- **Automatic Currency Mapping**: Currency is automatically set based on selected country
+- **Comprehensive Country List**: 50+ countries with their default currencies
+- **Fallback Support**: USD as default currency for unsupported countries
+- **Real-time Updates**: Currency changes immediately when country is selected
+
+### 6. Enhanced Profile Management ✅ **NEW**
+- **Email Address Field**: Add and manage email address
+- **Country/Region Field**: Select country with searchable picker
+- **Streamlined Interface**: Focused on essential profile information
+- **Auto-Save**: Changes are automatically saved and synchronized
+
 ## Usage Examples
+
+### Country-Based Currency Selection
+```swift
+// In ProfileEditView - Country Selection
+Button(action: { showingCountryPicker = true }) {
+    HStack {
+        Text(country.isEmpty ? "Select your country" : country)
+        Spacer()
+        Image(systemName: "chevron.right")
+    }
+}
+.onChange(of: country) { _, newCountry in
+    let newCurrency = Country.getDefaultCurrency(for: newCountry)
+    profileManager.currentProfile.preferences.preferredCurrency = newCurrency
+    CurrencyManager.shared.changeCurrency(to: newCurrency)
+}
+```
 
 ### Changing Currency
 ```swift

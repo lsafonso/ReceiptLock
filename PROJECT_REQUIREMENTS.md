@@ -94,9 +94,11 @@ Appliance Warranty Tracker is a comprehensive iOS app for managing appliance war
 ### 10. ⚙️ **Enhanced Settings Structure** ✅ **COMPLETE**
 The app features a comprehensive, logically organized settings hierarchy that provides users with complete control over their experience:
 
-#### **10.1 Profile & Personalization** ✅ **COMPLETE**
+#### **10.1 Profile & Personalization** ✅ **ENHANCED**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
-- **Currency Preferences**: Full currency selection with 20+ supported currencies
+- **Email Address**: Add and manage email address in Edit Profile
+- **Country/Region**: Select country with automatic currency detection
+- **Currency Preferences**: Full currency selection with 20+ supported currencies (auto-set based on country)
 - **Language/Locale**: Comprehensive language selection (10+ languages)
 - **Theme & Appearance**: System, Light, or Dark theme with dynamic switching
 
@@ -138,8 +140,9 @@ The app features a comprehensive, logically organized settings hierarchy that pr
 - **Content**: Appliance details + attached image
 - **Share Sheet**: Native iOS sharing
 
-### 12. 💰 **Multi-Currency Support** ✅ **COMPLETE**
+### 12. 💰 **Multi-Currency Support** ✅ **ENHANCED**
 - **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
+- **Country-Based Currency**: Automatically set currency based on selected country/region
 - **Dynamic Currency Switching**: Change currency preferences in settings
 - **Global Updates**: All price displays update automatically
 - **OCR Integration**: Receipt scanning adapts to selected currency
@@ -554,15 +557,16 @@ ReceiptLock/
 - ✅ **Data Export/Deletion**: Full GDPR compliance with data portability and right to be forgotten
 - ✅ **Security Settings**: Complete security configuration and monitoring interface
 
-#### **Multi-Currency Support** ✅ **COMPLETED**
+#### **Multi-Currency Support** ✅ **ENHANCED**
 - ✅ **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
+- ✅ **Country-Based Currency**: Automatically set currency based on selected country/region
 - ✅ **Dynamic Currency Switching**: Change currency preferences in settings
 - ✅ **Global Updates**: All price displays update automatically
 - ✅ **OCR Integration**: Receipt scanning adapts to selected currency
 - ✅ **Persistent Storage**: Currency preferences saved automatically
 
-#### **Enhanced Settings Hierarchy** ✅ **COMPLETED**
-- ✅ **Profile & Personalization**: Complete profile and preference management
+#### **Enhanced Settings Hierarchy** ✅ **ENHANCED**
+- ✅ **Profile & Personalization**: Enhanced profile management with email, country, and automatic currency detection
 - ✅ **Receipt & Appliance Settings**: Comprehensive receipt and appliance configuration
 - ✅ **Notifications & Reminders**: Advanced notification and reminder management
 - ✅ **Security & Privacy**: Complete security and privacy configuration

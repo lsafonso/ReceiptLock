@@ -27,10 +27,10 @@ struct ContentView: View {
                         DashboardView()
                             .tag(0)
                         
-                        AddApplianceView()
+                        ApplianceListView()
                             .tag(1)
                         
-                        ApplianceListView()
+                        AddApplianceView()
                             .tag(2)
                         
                         RemindersTabView()
@@ -41,19 +41,21 @@ struct ContentView: View {
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     .animation(.easeInOut, value: selectedTab)
+                    .padding(.bottom, 100) // Add bottom padding to account for tab bar
                     
                     // Custom tab bar
                     VStack {
                         Spacer()
                         customTabBar
                     }
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
                 .background(AppTheme.background)
                 .onAppear {
                     setupTabBarAppearance()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
-                    selectedTab = 2 // Switch to Appliances tab (now at index 2)
+                    selectedTab = 1 // Switch to Appliances tab (now at index 1)
                 }
             }
         }
@@ -74,14 +76,14 @@ struct ContentView: View {
             tabButton(
                 icon: "list.bullet",
                 title: "Appliances",
-                isSelected: selectedTab == 2,
-                action: { selectedTab = 2 }
+                isSelected: selectedTab == 1,
+                action: { selectedTab = 1 }
             )
             
-            // Add Tab (Special styling) - CENTER POSITION
-            addTabButton
+            // Scan Tab (Special styling) - CENTER POSITION
+            scanTabButton
                 .onTapGesture {
-                    selectedTab = 1
+                    selectedTab = 2
                 }
             
             // Reminders Tab
@@ -100,10 +102,17 @@ struct ContentView: View {
                 action: { selectedTab = 4 }
             )
         }
-        .padding(.horizontal, AppTheme.spacing)
-        .padding(.bottom, 34) // Account for safe area
-        .background(AppTheme.cardBackground)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: -2)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 0)
+        .background(
+            RoundedRectangle(cornerRadius: 0)
+                .fill(AppTheme.cardBackground)
+                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: -4)
+        )
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 0)
+        }
     }
     
     private func tabButton(
@@ -115,31 +124,45 @@ struct ContentView: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(isSelected ? AppTheme.primary : AppTheme.secondaryText)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(isSelected ? AppTheme.primary : Color(red: 0.4, green: 0.4, blue: 0.4))
                 
                 Text(title)
-                    .font(.caption2)
-                    .foregroundColor(isSelected ? AppTheme.primary : AppTheme.secondaryText)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(isSelected ? AppTheme.primary : Color(red: 0.4, green: 0.4, blue: 0.4))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
         }
     }
     
-    private var addTabButton: some View {
-        Button(action: { selectedTab = 1 }) {
+    private var scanTabButton: some View {
+        Button(action: { selectedTab = 2 }) {
             VStack(spacing: 4) {
-                Image(systemName: "plus")
-                    .font(.title.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 32, height: 32)
-                    .background(AppTheme.primary)
-                    .clipShape(Circle())
+                ZStack {
+                    if selectedTab == 2 {
+                        // Active state: white icon on blue background
+                        Circle()
+                            .fill(AppTheme.primary)
+                            .frame(width: 32, height: 32)
+                        
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                    } else {
+                        // Inactive state: gray outline icon
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                    }
+                }
                 
-                Text("Add")
-                    .font(.caption2)
-                    .foregroundColor(AppTheme.primary)
+                // No text label for scan button when active, show "Scan" when inactive
+                if selectedTab != 2 {
+                    Text("Scan")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)

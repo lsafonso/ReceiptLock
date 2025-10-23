@@ -18,9 +18,11 @@ ReceiptLock is a comprehensive iOS app for managing appliances and warranty info
 ### ⚙️ **Enhanced Settings Structure** ✅ **COMPLETE**
 The app features a comprehensive, logically organized settings hierarchy:
 
-#### **1. Profile & Personalization** ✅ **COMPLETE**
+#### **1. Profile & Personalization** ✅ **ENHANCED**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
-- **Currency Preferences**: Full currency selection with 20+ supported currencies
+- **Email Address**: Add and manage email address in Edit Profile
+- **Country/Region**: Select country with automatic currency detection
+- **Currency Preferences**: Full currency selection with 20+ supported currencies (auto-set based on country)
 - **Language/Locale**: Comprehensive language selection (10+ languages)
 - **Theme & Appearance**: System, Light, or Dark theme with dynamic switching
 
@@ -57,8 +59,9 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Support & Feedback**: Help resources and feedback channels
 - **Onboarding Reset**: Reset onboarding flow for new users
 
-### 💰 **Multi-Currency Support** ✅ **COMPLETE**
+### 💰 **Multi-Currency Support** ✅ **ENHANCED**
 - **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
+- **Country-Based Currency**: Automatically set currency based on selected country/region
 - **Dynamic Currency Switching**: Change currency preferences in settings
 - **Global Updates**: All price displays update automatically
 - **OCR Integration**: Receipt scanning adapts to selected currency
@@ -115,6 +118,15 @@ The app features a comprehensive, logically organized settings hierarchy:
   - **Visual Hints**: Clear indicators showing available swipe actions ("Swipe for actions" text)
   - **Gesture Separation**: Tap chevron to expand/collapse, swipe for actions - no conflicts
   - **Action Sheet Fallback**: Comprehensive action menu accessible via long press
+
+### 👤 **Enhanced Profile Management** ✅ **NEW**
+- **Edit Profile Modal**: Streamlined profile editing with essential fields only
+- **Email Address Field**: Add and manage email address
+- **Country/Region Selection**: Searchable country picker with 50+ countries
+- **Automatic Currency Detection**: Currency automatically set based on selected country
+- **Streamlined Interface**: Focused on essential profile information (name, photo, email, country)
+- **Real-time Updates**: Changes are immediately saved and synchronized
+- **User-Friendly Navigation**: Accessible via user icon in dashboard header
 
 ### 🎨 **User Experience & Onboarding** ✅ **COMPLETE**
 - **Onboarding Flow**: Comprehensive introduction to app features and functionality

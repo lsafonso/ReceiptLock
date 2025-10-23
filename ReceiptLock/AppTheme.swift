@@ -13,7 +13,7 @@ struct AppTheme {
     static let primary = Color(red: 51/255, green: 102/255, blue: 102/255) // Muted green as primary
     static let secondary = Color(red: 102/255, green: 204/255, blue: 153/255) // Light green for secondary actions
     static let accent = Color(red: 102/255, green: 204/255, blue: 153/255) // Light green for success states
-    static let background = Color(red: 250/255, green: 245/255, blue: 240/255) // Soft beige background
+    static let background = Color(red: 242/255, green: 240/255, blue: 239/255) // Off-white background
     static let cardBackground = Color.white
     static let secondaryBackground = Color(red: 245/255, green: 245/255, blue: 245/255)
     static let text = Color(red: 26/255, green: 26/255, blue: 26/255) // Dark text

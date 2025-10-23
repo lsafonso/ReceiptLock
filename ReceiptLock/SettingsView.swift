@@ -8,13 +8,10 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("selectedTheme") private var selectedTheme = "system"
-    @AppStorage("selectedLanguage") private var selectedLanguage = "en_US"
     @State private var showingExportSheet = false
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var showingReminderManagement = false
-    @State private var showingProfileEdit = false
     @State private var showingOnboardingReset = false
     @State private var showingReceiptCategories = false
     @State private var showingStoragePreferences = false
@@ -29,25 +26,6 @@ struct SettingsView: View {
     @StateObject private var backupManager = DataBackupManager.shared
     @StateObject private var currencyManager = CurrencyManager.shared
     @StateObject private var profileManager = UserProfileManager.shared
-    
-    let themes = [
-        ("system", "System"),
-        ("light", "Light"),
-        ("dark", "Dark")
-    ]
-    
-    let languages = [
-        ("en_US", "English (US)"),
-        ("en_GB", "English (UK)"),
-        ("es_ES", "Español"),
-        ("fr_FR", "Français"),
-        ("de_DE", "Deutsch"),
-        ("it_IT", "Italiano"),
-        ("pt_BR", "Português (Brasil)"),
-        ("ja_JP", "日本語"),
-        ("ko_KR", "한국어"),
-        ("zh_CN", "中文 (简体)")
-    ]
     
     var body: some View {
         NavigationStack {
@@ -86,9 +64,6 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingReminderManagement) {
             ReminderManagementView()
-        }
-        .sheet(isPresented: $showingProfileEdit) {
-            ProfileEditView()
         }
         .sheet(isPresented: $showingReceiptCategories) {
             ReceiptCategoriesView()
@@ -134,40 +109,7 @@ struct SettingsView: View {
     // MARK: - Profile & Personalization Section
     
     private var profilePersonalizationSection: some View {
-        SettingsSection(title: "Profile & Personalization", icon: "person.badge.plus.fill") {
-            // Profile Header
-            HStack(spacing: AppTheme.spacing) {
-                AvatarView(
-                    image: profileManager.getAvatarImage(),
-                    size: 60,
-                    showBorder: true
-                )
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
-                    
-                    Text("Appliance Warranty Tracker")
-                        .font(.caption)
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-                
-                Spacer()
-            }
-            .padding(.bottom, AppTheme.spacing)
-            
-            SettingsRow(
-                title: "Profile Photo & Name",
-                subtitle: "Update your avatar and display name",
-                icon: "person.crop.circle.fill"
-            ) {
-                Button("Edit") {
-                    showingProfileEdit = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
+        SettingsSection(title: "Currency Settings", icon: "creditcard.fill") {
             SettingsRow(
                 title: "Currency Preferences",
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
@@ -176,32 +118,6 @@ struct SettingsView: View {
                 Picker("Currency", selection: $currencyManager.currentCurrency) {
                     ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
                         Text(currency.1).tag(currency.0)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            
-            SettingsRow(
-                title: "Language/Locale",
-                subtitle: languages.first { $0.0 == selectedLanguage }?.1 ?? "English (US)",
-                icon: "globe"
-            ) {
-                Picker("Language", selection: $selectedLanguage) {
-                    ForEach(languages, id: \.0) { language in
-                        Text(language.1).tag(language.0)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            
-            SettingsRow(
-                title: "Theme & Appearance",
-                subtitle: themes.first { $0.0 == selectedTheme }?.1 ?? "System",
-                icon: "moon.fill"
-            ) {
-                Picker("Theme", selection: $selectedTheme) {
-                    ForEach(themes, id: \.0) { theme in
-                        Text(theme.1).tag(theme.0)
                     }
                 }
                 .pickerStyle(.menu)

@@ -11,13 +11,231 @@ import Foundation
 // MARK: - User Profile Model
 struct UserProfile: Codable {
     var name: String
+    var email: String
+    var country: String
     var avatarData: Data?
     var preferences: UserPreferences
     
-    init(name: String = "", avatarData: Data? = nil, preferences: UserPreferences = UserPreferences()) {
+    init(name: String = "", email: String = "", country: String = "", avatarData: Data? = nil, preferences: UserPreferences = UserPreferences()) {
         self.name = name
+        self.email = email
+        self.country = country
         self.avatarData = avatarData
         self.preferences = preferences
+    }
+}
+
+// MARK: - Countries
+struct Country: Identifiable {
+    let id: UUID
+    let code: String
+    let name: String
+    
+    init(code: String, name: String) {
+        self.id = UUID()
+        self.code = code
+        self.name = name
+    }
+    
+    static let allCountries = [
+        Country(code: "US", name: "United States"),
+        Country(code: "CA", name: "Canada"),
+        Country(code: "GB", name: "United Kingdom"),
+        Country(code: "AU", name: "Australia"),
+        Country(code: "DE", name: "Germany"),
+        Country(code: "FR", name: "France"),
+        Country(code: "IT", name: "Italy"),
+        Country(code: "ES", name: "Spain"),
+        Country(code: "NL", name: "Netherlands"),
+        Country(code: "BE", name: "Belgium"),
+        Country(code: "CH", name: "Switzerland"),
+        Country(code: "AT", name: "Austria"),
+        Country(code: "SE", name: "Sweden"),
+        Country(code: "NO", name: "Norway"),
+        Country(code: "DK", name: "Denmark"),
+        Country(code: "FI", name: "Finland"),
+        Country(code: "IE", name: "Ireland"),
+        Country(code: "PT", name: "Portugal"),
+        Country(code: "GR", name: "Greece"),
+        Country(code: "PL", name: "Poland"),
+        Country(code: "CZ", name: "Czech Republic"),
+        Country(code: "HU", name: "Hungary"),
+        Country(code: "SK", name: "Slovakia"),
+        Country(code: "SI", name: "Slovenia"),
+        Country(code: "HR", name: "Croatia"),
+        Country(code: "RO", name: "Romania"),
+        Country(code: "BG", name: "Bulgaria"),
+        Country(code: "LT", name: "Lithuania"),
+        Country(code: "LV", name: "Latvia"),
+        Country(code: "EE", name: "Estonia"),
+        Country(code: "CY", name: "Cyprus"),
+        Country(code: "MT", name: "Malta"),
+        Country(code: "LU", name: "Luxembourg"),
+        Country(code: "JP", name: "Japan"),
+        Country(code: "KR", name: "South Korea"),
+        Country(code: "CN", name: "China"),
+        Country(code: "IN", name: "India"),
+        Country(code: "BR", name: "Brazil"),
+        Country(code: "MX", name: "Mexico"),
+        Country(code: "AR", name: "Argentina"),
+        Country(code: "CL", name: "Chile"),
+        Country(code: "CO", name: "Colombia"),
+        Country(code: "PE", name: "Peru"),
+        Country(code: "VE", name: "Venezuela"),
+        Country(code: "ZA", name: "South Africa"),
+        Country(code: "EG", name: "Egypt"),
+        Country(code: "NG", name: "Nigeria"),
+        Country(code: "KE", name: "Kenya"),
+        Country(code: "MA", name: "Morocco"),
+        Country(code: "TN", name: "Tunisia"),
+        Country(code: "DZ", name: "Algeria"),
+        Country(code: "GH", name: "Ghana"),
+        Country(code: "ET", name: "Ethiopia"),
+        Country(code: "UG", name: "Uganda"),
+        Country(code: "TZ", name: "Tanzania"),
+        Country(code: "RW", name: "Rwanda"),
+        Country(code: "SN", name: "Senegal"),
+        Country(code: "CI", name: "Ivory Coast"),
+        Country(code: "CM", name: "Cameroon"),
+        Country(code: "MG", name: "Madagascar"),
+        Country(code: "MZ", name: "Mozambique"),
+        Country(code: "ZM", name: "Zambia"),
+        Country(code: "ZW", name: "Zimbabwe"),
+        Country(code: "BW", name: "Botswana"),
+        Country(code: "NA", name: "Namibia"),
+        Country(code: "SZ", name: "Eswatini"),
+        Country(code: "LS", name: "Lesotho"),
+        Country(code: "MW", name: "Malawi"),
+        Country(code: "AO", name: "Angola"),
+        Country(code: "CD", name: "Democratic Republic of the Congo"),
+        Country(code: "CG", name: "Republic of the Congo"),
+        Country(code: "CF", name: "Central African Republic"),
+        Country(code: "TD", name: "Chad"),
+        Country(code: "NE", name: "Niger"),
+        Country(code: "ML", name: "Mali"),
+        Country(code: "BF", name: "Burkina Faso"),
+        Country(code: "GN", name: "Guinea"),
+        Country(code: "SL", name: "Sierra Leone"),
+        Country(code: "LR", name: "Liberia"),
+        Country(code: "GM", name: "Gambia"),
+        Country(code: "GW", name: "Guinea-Bissau"),
+        Country(code: "CV", name: "Cape Verde"),
+        Country(code: "ST", name: "São Tomé and Príncipe"),
+        Country(code: "GQ", name: "Equatorial Guinea"),
+        Country(code: "GA", name: "Gabon"),
+        Country(code: "BI", name: "Burundi"),
+        Country(code: "DJ", name: "Djibouti"),
+        Country(code: "ER", name: "Eritrea"),
+        Country(code: "SO", name: "Somalia"),
+        Country(code: "SS", name: "South Sudan"),
+        Country(code: "SD", name: "Sudan"),
+        Country(code: "LY", name: "Libya")
+    ]
+    
+    // Country to currency mapping (only supported currencies)
+    static let countryToCurrency: [String: String] = [
+        "US": "USD",
+        "CA": "CAD", 
+        "GB": "GBP",
+        "AU": "AUD",
+        "DE": "EUR",
+        "FR": "EUR",
+        "IT": "EUR",
+        "ES": "EUR",
+        "NL": "EUR",
+        "BE": "EUR",
+        "AT": "EUR",
+        "FI": "EUR",
+        "IE": "EUR",
+        "PT": "EUR",
+        "GR": "EUR",
+        "LU": "EUR",
+        "CY": "EUR",
+        "MT": "EUR",
+        "SI": "EUR",
+        "SK": "EUR",
+        "EE": "EUR",
+        "LV": "EUR",
+        "LT": "EUR",
+        "CH": "CHF",
+        "SE": "SEK",
+        "NO": "NOK",
+        "DK": "DKK",
+        "PL": "PLN",
+        "CZ": "CZK",
+        "HU": "HUF",
+        "RO": "RON",
+        "BG": "BGN",
+        "HR": "HRK",
+        "JP": "JPY",
+        "KR": "KRW",
+        "CN": "CNY",
+        "IN": "INR",
+        "BR": "BRL",
+        "MX": "MXN",
+        "AR": "ARS",
+        "CL": "CLP",
+        "CO": "COP",
+        "PE": "PEN",
+        "VE": "VES",
+        "ZA": "ZAR",
+        "EG": "EGP",
+        "NG": "NGN",
+        "KE": "KES",
+        "MA": "MAD",
+        "TN": "TND",
+        "DZ": "DZD",
+        "GH": "GHS",
+        "ET": "ETB",
+        "UG": "UGX",
+        "TZ": "TZS",
+        "RW": "RWF",
+        "SN": "XOF",
+        "CI": "XOF",
+        "CM": "XAF",
+        "MG": "MGA",
+        "MZ": "MZN",
+        "ZM": "ZMW",
+        "ZW": "ZWL",
+        "BW": "BWP",
+        "NA": "NAD",
+        "SZ": "SZL",
+        "LS": "LSL",
+        "MW": "MWK",
+        "AO": "AOA",
+        "CD": "CDF",
+        "CG": "XAF",
+        "CF": "XAF",
+        "TD": "XAF",
+        "NE": "XOF",
+        "ML": "XOF",
+        "BF": "XOF",
+        "GN": "GNF",
+        "SL": "SLE",
+        "LR": "LRD",
+        "GM": "GMD",
+        "GW": "XOF",
+        "CV": "CVE",
+        "ST": "STN",
+        "GQ": "XAF",
+        "GA": "XAF",
+        "BI": "BIF",
+        "DJ": "DJF",
+        "ER": "ERN",
+        "SO": "SOS",
+        "SS": "SSP",
+        "SD": "SDG",
+        "LY": "LYD"
+    ]
+    
+    // Get default currency for a country
+    static func getDefaultCurrency(for countryName: String) -> String {
+        // Find the country by name and return its currency
+        if let country = allCountries.first(where: { $0.name == countryName }),
+           let currency = countryToCurrency[country.code] {
+            return currency
+        }
+        return "USD" // Default fallback
     }
 }
 
@@ -86,6 +304,9 @@ class UserProfileManager: ObservableObject {
     func updateProfile(_ profile: UserProfile) {
         currentProfile = profile
         saveProfile()
+        
+        // Sync currency manager with updated preferences
+        CurrencyManager.shared.changeCurrency(to: profile.preferences.preferredCurrency)
     }
     
     func updateName(_ name: String) {
@@ -174,11 +395,16 @@ struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var profileManager = UserProfileManager.shared
     @State private var name: String
+    @State private var email: String
+    @State private var country: String
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var showingCountryPicker = false
     
     init() {
         self._name = State(initialValue: UserProfileManager.shared.currentProfile.name)
+        self._email = State(initialValue: UserProfileManager.shared.currentProfile.email)
+        self._country = State(initialValue: UserProfileManager.shared.currentProfile.country)
     }
     
     var body: some View {
@@ -191,11 +417,11 @@ struct ProfileEditView: View {
                     // Name Section
                     nameSection
                     
-                    // Preferences Section
-                    preferencesSection
+                    // Email Section
+                    emailSection
                     
-                    // Currency Section
-                    currencySection
+                    // Country Section
+                    countrySection
                 }
                 .padding(AppTheme.spacing)
             }
@@ -219,6 +445,21 @@ struct ProfileEditView: View {
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(selectedImage: $selectedImage)
+        }
+        .sheet(isPresented: $showingCountryPicker) {
+            CountryPickerView(selectedCountry: $country)
+        }
+        .onChange(of: country) { _, newCountry in
+            // Automatically update currency when country changes
+            let newCurrency = Country.getDefaultCurrency(for: newCountry)
+            
+            // Only update if the currency is valid and different from current
+            if CurrencyManager.shared.isValidCurrency(newCurrency) && 
+               newCurrency != profileManager.currentProfile.preferences.preferredCurrency {
+                var updatedPreferences = profileManager.currentProfile.preferences
+                updatedPreferences.preferredCurrency = newCurrency
+                profileManager.updatePreferences(updatedPreferences)
+            }
         }
     }
     
@@ -254,60 +495,65 @@ struct ProfileEditView: View {
         }
     }
     
-    private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Preferences")
+    private var emailSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+            Text("Email")
                 .font(.headline)
                 .foregroundColor(AppTheme.text)
             
-            VStack(spacing: AppTheme.smallSpacing) {
-                HStack {
-                    Text("Reminder Settings")
-                    Spacer()
-                    Text("Configure in Settings")
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-                
-                Button("Open Settings") {
-                    // This would typically navigate to settings
-                    // For now, we'll just show a message
-                }
-                .foregroundColor(AppTheme.primary)
-                .font(.caption)
-            }
-            .padding()
-            .background(AppTheme.cardBackground)
-            .cornerRadius(AppTheme.cornerRadius)
+            TextField("Enter your email", text: $email)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.emailAddress)
+                .autocapitalization(.none)
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.vertical, AppTheme.smallSpacing)
+                .background(AppTheme.cardBackground)
+                .cornerRadius(AppTheme.cornerRadius)
         }
     }
     
-    private var currencySection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Currency")
+    private var countrySection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+            Text("Country/Region")
                 .font(.headline)
                 .foregroundColor(AppTheme.text)
             
-            VStack(spacing: AppTheme.smallSpacing) {
+            Button(action: {
+                showingCountryPicker = true
+            }) {
                 HStack {
-                    Text("Preferred Currency")
+                    Text(country.isEmpty ? "Select your country" : country)
+                        .foregroundColor(country.isEmpty ? AppTheme.secondaryText : AppTheme.text)
+                    
                     Spacer()
-                    Text("\(CurrencyManager.shared.currencySymbol) \(CurrencyManager.shared.currencyName)")
+                    
+                    Image(systemName: "chevron.right")
                         .foregroundColor(AppTheme.secondaryText)
+                        .font(.caption)
                 }
-                
-                Text("Change currency in Settings > Currency")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.vertical, AppTheme.smallSpacing)
+                .background(AppTheme.cardBackground)
+                .cornerRadius(AppTheme.cornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                        .stroke(AppTheme.border, lineWidth: 1)
+                )
             }
-            .padding()
-            .background(AppTheme.cardBackground)
-            .cornerRadius(AppTheme.cornerRadius)
         }
     }
     
     private func saveProfile() {
         var updatedProfile = profileManager.currentProfile
         updatedProfile.name = name
+        updatedProfile.email = email
+        updatedProfile.country = country
+        
+        // Update currency based on country
+        let newCurrency = Country.getDefaultCurrency(for: country)
+        if CurrencyManager.shared.isValidCurrency(newCurrency) {
+            updatedProfile.preferences.preferredCurrency = newCurrency
+        }
         
         if let selectedImage = selectedImage {
             profileManager.setAvatarImage(selectedImage)
@@ -354,6 +600,56 @@ struct ImagePicker: UIViewControllerRepresentable {
         
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Country Picker View
+struct CountryPickerView: View {
+    @Binding var selectedCountry: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    
+    private var filteredCountries: [Country] {
+        if searchText.isEmpty {
+            return Country.allCountries
+        } else {
+            return Country.allCountries.filter { country in
+                country.name.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            List(filteredCountries) { country in
+                Button(action: {
+                    selectedCountry = country.name
+                    dismiss()
+                }) {
+                    HStack {
+                        Text(country.name)
+                            .foregroundColor(AppTheme.text)
+                        
+                        Spacer()
+                        
+                        if selectedCountry == country.name {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(AppTheme.primary)
+                        }
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Search countries")
+            .navigationTitle("Select Country")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

@@ -24,9 +24,11 @@ struct DashboardView: View {
         animation: .default)
     private var appliances: FetchedResults<Appliance>
     
+    @StateObject private var profileManager = UserProfileManager.shared
     @State private var selectedSortOrder: SortOrder = .recentlyAdded
     @State private var animateFilters = false
     @State private var selectedCard: Int? = nil
+    @State private var showingProfileEdit = false
     
     var body: some View {
         NavigationStack {
@@ -51,6 +53,9 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
+        .sheet(isPresented: $showingProfileEdit) {
+            ProfileEditView()
+        }
     }
     
     // MARK: - Header Section
@@ -62,7 +67,7 @@ struct DashboardView: View {
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
                     
-                    Text(UserProfileManager.shared.currentProfile.name.isEmpty ? "User" : UserProfileManager.shared.currentProfile.name)
+                    Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
                         .font(.largeTitle.weight(.bold))
                         .foregroundColor(AppTheme.text)
                 }
@@ -77,10 +82,10 @@ struct DashboardView: View {
                     }
                     
                     Button(action: {
-                        // Show profile edit sheet
+                        showingProfileEdit = true
                     }) {
                         AvatarView(
-                            image: UserProfileManager.shared.getAvatarImage(),
+                            image: profileManager.getAvatarImage(),
                             size: 40,
                             showBorder: false
                         )

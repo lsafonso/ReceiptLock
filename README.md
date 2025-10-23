@@ -28,6 +28,7 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 
 ### 💰 **Multi-Currency Support** ✅ **COMPLETE**
 - **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
+- **Country-Based Currency**: Automatically set currency based on selected country/region
 - **Dynamic Currency Switching**: Change currency preferences in settings
 - **Global Updates**: All price displays update automatically
 - **OCR Integration**: Receipt scanning adapts to selected currency
@@ -72,9 +73,9 @@ The app features a comprehensive, logically organized settings hierarchy:
 
 #### **1. Profile & Personalization**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
-- **Currency Preferences**: Full currency selection with 20+ supported currencies
-- **Language/Locale**: Comprehensive language selection (10+ languages)
-- **Theme & Appearance**: System, Light, or Dark theme with dynamic switching
+- **Email Address**: Add and manage your email address
+- **Country/Region**: Select your country with automatic currency detection
+- **Currency Preferences**: Full currency selection with 20+ supported currencies (auto-set based on country)
 
 #### **2. Receipt & Appliance Settings**
 - **Receipt Categories**: Manage receipt organization and categorization
@@ -271,9 +272,9 @@ The enhanced settings provide comprehensive control over your app experience:
 
 #### **Profile & Personalization**
 - Update your profile photo and display name
-- Select your preferred currency from 20+ options
-- Choose your language and locale
-- Switch between system, light, or dark themes
+- Add and manage your email address
+- Select your country/region with automatic currency detection
+- Select your preferred currency from 20+ options (auto-set based on country)
 
 #### **Receipt & Appliance Management**
 - Organize appliances with custom categories
