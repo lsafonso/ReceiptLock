@@ -21,41 +21,43 @@ struct ContentView: View {
             if !profileManager.hasCompletedOnboarding {
                 OnboardingView()
             } else {
-                ZStack {
-                    // Main content
-                    TabView(selection: $selectedTab) {
-                        DashboardView()
-                            .tag(0)
+                NavigationStack {
+                    ZStack {
+                        // Main content
+                        TabView(selection: $selectedTab) {
+                            DashboardView()
+                                .tag(0)
+                            
+                            ApplianceListView()
+                                .tag(1)
+                            
+                            AddApplianceView()
+                                .tag(2)
+                            
+                            RemindersTabView()
+                                .tag(3)
+                            
+                            SettingsView()
+                                .tag(4)
+                        }
+                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                        .animation(.easeInOut, value: selectedTab)
+                        .padding(.bottom, 100) // Add bottom padding to account for tab bar
                         
-                        ApplianceListView()
-                            .tag(1)
-                        
-                        AddApplianceView()
-                            .tag(2)
-                        
-                        RemindersTabView()
-                            .tag(3)
-                        
-                        SettingsView()
-                            .tag(4)
+                        // Custom tab bar
+                        VStack {
+                            Spacer()
+                            customTabBar
+                        }
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .animation(.easeInOut, value: selectedTab)
-                    .padding(.bottom, 100) // Add bottom padding to account for tab bar
-                    
-                    // Custom tab bar
-                    VStack {
-                        Spacer()
-                        customTabBar
+                    .background(AppTheme.background)
+                    .onAppear {
+                        setupTabBarAppearance()
                     }
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
-                }
-                .background(AppTheme.background)
-                .onAppear {
-                    setupTabBarAppearance()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
-                    selectedTab = 1 // Switch to Appliances tab (now at index 1)
+                    .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
+                        selectedTab = 1 // Switch to Appliances tab (now at index 1)
+                    }
                 }
             }
         }

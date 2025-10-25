@@ -31,28 +31,26 @@ struct DashboardView: View {
     @State private var showingProfileEdit = false
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // Background
-                AppTheme.background
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    LazyVStack(spacing: AppTheme.largeSpacing) {
-                        // Header
-                        headerSection
-                        
-                        // Warranty Summary Card
-                        warrantySummaryCard
-                        
-                        // Your Appliances Section
-                        appliancesSection
-                    }
-                    .padding(AppTheme.spacing)
+        ZStack {
+            // Background
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            ScrollView {
+                LazyVStack(spacing: AppTheme.largeSpacing) {
+                    // Header
+                    headerSection
+                    
+                    // Warranty Summary Card
+                    warrantySummaryCard
+                    
+                    // Your Appliances Section
+                    appliancesSection
                 }
+                .padding(AppTheme.spacing)
             }
-            .navigationBarHidden(true)
         }
+        .navigationBarHidden(true)
         .sheet(isPresented: $showingProfileEdit) {
             ProfileEditView()
         }

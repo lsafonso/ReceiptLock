@@ -28,21 +28,19 @@ struct SettingsView: View {
     @StateObject private var profileManager = UserProfileManager.shared
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: AppTheme.largeSpacing) {
-                    profilePersonalizationSection
-                    receiptApplianceSection
-                    notificationsRemindersSection
-                    securityPrivacySection
-                    backupSyncSection
-                    dataManagementSection
-                    aboutSupportSection
-                }
-                .padding(AppTheme.spacing)
+        ScrollView {
+            LazyVStack(spacing: AppTheme.largeSpacing) {
+                profilePersonalizationSection
+                receiptApplianceSection
+                notificationsRemindersSection
+                securityPrivacySection
+                backupSyncSection
+                dataManagementSection
+                aboutSupportSection
             }
-            .navigationTitle("Settings")
+            .padding(AppTheme.spacing)
         }
+        .navigationTitle("Settings")
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
