@@ -27,6 +27,15 @@ struct SettingsView: View {
     @StateObject private var currencyManager = CurrencyManager.shared
     @StateObject private var profileManager = UserProfileManager.shared
     
+    // Expandable sections state
+    @State private var isCurrencyExpanded = true
+    @State private var isReceiptApplianceExpanded = true
+    @State private var isNotificationsRemindersExpanded = true
+    @State private var isSecurityPrivacyExpanded = true
+    @State private var isBackupSyncExpanded = true
+    @State private var isDataManagementExpanded = true
+    @State private var isAboutSupportExpanded = true
+    
     var body: some View {
         ScrollView {
             LazyVStack(spacing: AppTheme.largeSpacing) {
@@ -107,7 +116,11 @@ struct SettingsView: View {
     // MARK: - Profile & Personalization Section
     
     private var profilePersonalizationSection: some View {
-        SettingsSection(title: "Currency Settings", icon: "creditcard.fill") {
+        ExpandableSettingsSection(
+            title: "Currency Settings", 
+            icon: "creditcard.fill", 
+            isExpanded: $isCurrencyExpanded
+        ) {
             SettingsRow(
                 title: "Currency Preferences",
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
@@ -126,7 +139,11 @@ struct SettingsView: View {
     // MARK: - Receipt & Appliance Settings Section
     
     private var receiptApplianceSection: some View {
-        SettingsSection(title: "Receipt & Appliance Settings", icon: "doc.text.fill") {
+        ExpandableSettingsSection(
+            title: "Receipt & Appliance Settings", 
+            icon: "doc.text.fill", 
+            isExpanded: $isReceiptApplianceExpanded
+        ) {
             SettingsRow(
                 title: "Receipt Categories",
                 subtitle: "Manage receipt organization",
@@ -165,7 +182,11 @@ struct SettingsView: View {
     // MARK: - Notifications & Reminders Section
     
     private var notificationsRemindersSection: some View {
-        SettingsSection(title: "Notifications & Reminders", icon: "bell.fill") {
+        ExpandableSettingsSection(
+            title: "Notifications & Reminders", 
+            icon: "bell.fill", 
+            isExpanded: $isNotificationsRemindersExpanded
+        ) {
             SettingsRow(
                 title: "Reminder Settings",
                 subtitle: "Configure multiple reminders and custom messages",
@@ -213,7 +234,11 @@ struct SettingsView: View {
     // MARK: - Security & Privacy Section
     
     private var securityPrivacySection: some View {
-        SettingsSection(title: "Security & Privacy", icon: "lock.shield.fill") {
+        ExpandableSettingsSection(
+            title: "Security & Privacy", 
+            icon: "lock.shield.fill", 
+            isExpanded: $isSecurityPrivacyExpanded
+        ) {
             SettingsRow(
                 title: "Biometric Authentication",
                 subtitle: "Face ID, Touch ID, and passcode",
@@ -252,7 +277,11 @@ struct SettingsView: View {
     // MARK: - Backup & Sync Section
     
     private var backupSyncSection: some View {
-        SettingsSection(title: "Backup & Sync", icon: "icloud.fill") {
+        ExpandableSettingsSection(
+            title: "Backup & Sync", 
+            icon: "icloud.fill", 
+            isExpanded: $isBackupSyncExpanded
+        ) {
             SettingsRow(
                 title: "iCloud Sync",
                 subtitle: "Automatically sync across devices",
@@ -317,7 +346,11 @@ struct SettingsView: View {
     // MARK: - Data Management Section
     
     private var dataManagementSection: some View {
-        SettingsSection(title: "Data Management", icon: "folder.fill") {
+        ExpandableSettingsSection(
+            title: "Data Management", 
+            icon: "folder.fill", 
+            isExpanded: $isDataManagementExpanded
+        ) {
             SettingsRow(
                 title: "Storage Usage",
                 subtitle: "View app storage and cleanup options",
@@ -356,7 +389,11 @@ struct SettingsView: View {
     // MARK: - About & Support Section
     
     private var aboutSupportSection: some View {
-        SettingsSection(title: "About & Support", icon: "info.circle.fill") {
+        ExpandableSettingsSection(
+            title: "About & Support", 
+            icon: "info.circle.fill", 
+            isExpanded: $isAboutSupportExpanded
+        ) {
             SettingsRow(
                 title: "App Version",
                 subtitle: appVersion,
@@ -468,6 +505,67 @@ struct SettingsSection<Content: View>: View {
             }
         }
         .padding()
+        .background(AppTheme.cardBackground)
+        .cornerRadius(AppTheme.cornerRadius)
+    }
+}
+
+// MARK: - Expandable Settings Section Component
+struct ExpandableSettingsSection<Content: View>: View {
+    let title: String
+    let icon: String
+    @Binding var isExpanded: Bool
+    let content: Content
+    
+    init(title: String, icon: String, isExpanded: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.icon = icon
+        self._isExpanded = isExpanded
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with arrow
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundColor(AppTheme.primary)
+                        .font(.title2)
+                    
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(AppTheme.text)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(AppTheme.secondaryText)
+                        .font(.title3)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+                }
+                .padding()
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Content with animation
+            if isExpanded {
+                VStack(spacing: AppTheme.smallSpacing) {
+                    content
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal: .opacity.combined(with: .move(edge: .top))
+                ))
+            }
+        }
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
     }
