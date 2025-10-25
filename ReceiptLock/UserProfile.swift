@@ -12,112 +12,17 @@ import Foundation
 struct UserProfile: Codable {
     var name: String
     var email: String
-    var country: String
     var avatarData: Data?
     var preferences: UserPreferences
     
-    init(name: String = "", email: String = "", country: String = "", avatarData: Data? = nil, preferences: UserPreferences = UserPreferences()) {
+    init(name: String = "", email: String = "", avatarData: Data? = nil, preferences: UserPreferences = UserPreferences()) {
         self.name = name
         self.email = email
-        self.country = country
         self.avatarData = avatarData
         self.preferences = preferences
     }
 }
 
-// MARK: - Countries
-struct Country: Identifiable {
-    let id: UUID
-    let code: String
-    let name: String
-    
-    init(code: String, name: String) {
-        self.id = UUID()
-        self.code = code
-        self.name = name
-    }
-    
-    static let allCountries = [
-        Country(code: "US", name: "United States"),
-        Country(code: "GB", name: "United Kingdom"),
-        Country(code: "DE", name: "Germany"),
-        Country(code: "FR", name: "France"),
-        Country(code: "IT", name: "Italy"),
-        Country(code: "ES", name: "Spain"),
-        Country(code: "NL", name: "Netherlands"),
-        Country(code: "BE", name: "Belgium"),
-        Country(code: "CH", name: "Switzerland"),
-        Country(code: "AT", name: "Austria"),
-        Country(code: "SE", name: "Sweden"),
-        Country(code: "NO", name: "Norway"),
-        Country(code: "DK", name: "Denmark"),
-        Country(code: "FI", name: "Finland"),
-        Country(code: "IE", name: "Ireland"),
-        Country(code: "PT", name: "Portugal"),
-        Country(code: "GR", name: "Greece"),
-        Country(code: "PL", name: "Poland"),
-        Country(code: "CZ", name: "Czech Republic"),
-        Country(code: "HU", name: "Hungary"),
-        Country(code: "SK", name: "Slovakia"),
-        Country(code: "SI", name: "Slovenia"),
-        Country(code: "HR", name: "Croatia"),
-        Country(code: "RO", name: "Romania"),
-        Country(code: "BG", name: "Bulgaria"),
-        Country(code: "LT", name: "Lithuania"),
-        Country(code: "LV", name: "Latvia"),
-        Country(code: "EE", name: "Estonia"),
-        Country(code: "CY", name: "Cyprus"),
-        Country(code: "MT", name: "Malta"),
-        Country(code: "LU", name: "Luxembourg"),
-        Country(code: "BR", name: "Brazil")
-    ]
-    
-    // Country to currency mapping (only supported currencies)
-    static let countryToCurrency: [String: String] = [
-        "US": "USD",
-        "GB": "GBP",
-        "DE": "EUR",
-        "FR": "EUR",
-        "IT": "EUR",
-        "ES": "EUR",
-        "NL": "EUR",
-        "BE": "EUR",
-        "AT": "EUR",
-        "FI": "EUR",
-        "IE": "EUR",
-        "PT": "EUR",
-        "GR": "EUR",
-        "LU": "EUR",
-        "CY": "EUR",
-        "MT": "EUR",
-        "SI": "EUR",
-        "SK": "EUR",
-        "EE": "EUR",
-        "LV": "EUR",
-        "LT": "EUR",
-        "CH": "CHF",
-        "SE": "SEK",
-        "NO": "NOK",
-        "DK": "DKK",
-        "PL": "PLN",
-        "CZ": "CZK",
-        "HU": "HUF",
-        "RO": "RON",
-        "BG": "BGN",
-        "HR": "HRK",
-        "BR": "BRL"
-    ]
-    
-    // Get default currency for a country
-    static func getDefaultCurrency(for countryName: String) -> String {
-        // Find the country by name and return its currency
-        if let country = allCountries.first(where: { $0.name == countryName }),
-           let currency = countryToCurrency[country.code] {
-            return currency
-        }
-        return "USD" // Default fallback
-    }
-}
 
 // MARK: - User Preferences
 struct UserPreferences: Codable {
@@ -276,15 +181,12 @@ struct ProfileEditView: View {
     @ObservedObject private var profileManager = UserProfileManager.shared
     @State private var name: String
     @State private var email: String
-    @State private var country: String
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
-    @State private var showingCountryPicker = false
     
     init() {
         self._name = State(initialValue: UserProfileManager.shared.currentProfile.name)
         self._email = State(initialValue: UserProfileManager.shared.currentProfile.email)
-        self._country = State(initialValue: UserProfileManager.shared.currentProfile.country)
     }
     
     var body: some View {
@@ -299,9 +201,6 @@ struct ProfileEditView: View {
                     
                     // Email Section
                     emailSection
-                    
-                    // Country Section
-                    countrySection
                 }
                 .padding(AppTheme.spacing)
             }
@@ -325,21 +224,6 @@ struct ProfileEditView: View {
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(selectedImage: $selectedImage)
-        }
-        .sheet(isPresented: $showingCountryPicker) {
-            CountryPickerView(selectedCountry: $country)
-        }
-        .onChange(of: country) { _, newCountry in
-            // Automatically update currency when country changes
-            let newCurrency = Country.getDefaultCurrency(for: newCountry)
-            
-            // Only update if the currency is valid and different from current
-            if CurrencyManager.shared.isValidCurrency(newCurrency) && 
-               newCurrency != profileManager.currentProfile.preferences.preferredCurrency {
-                var updatedPreferences = profileManager.currentProfile.preferences
-                updatedPreferences.preferredCurrency = newCurrency
-                profileManager.updatePreferences(updatedPreferences)
-            }
         }
     }
     
@@ -392,54 +276,19 @@ struct ProfileEditView: View {
         }
     }
     
-    private var countrySection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-            Text("Country/Region")
-                .font(.headline)
-                .foregroundColor(AppTheme.text)
-            
-            Button(action: {
-                showingCountryPicker = true
-            }) {
-                HStack {
-                    Text(country.isEmpty ? "Select your country" : country)
-                        .foregroundColor(country.isEmpty ? AppTheme.secondaryText : AppTheme.text)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(AppTheme.secondaryText)
-                        .font(.caption)
-                }
-                .padding(.horizontal, AppTheme.spacing)
-                .padding(.vertical, AppTheme.smallSpacing)
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.cornerRadius)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                        .stroke(AppTheme.border, lineWidth: 1)
-                )
-            }
-        }
-    }
     
     private func saveProfile() {
         var updatedProfile = profileManager.currentProfile
         updatedProfile.name = name
         updatedProfile.email = email
-        updatedProfile.country = country
-        
-        // Update currency based on country
-        let newCurrency = Country.getDefaultCurrency(for: country)
-        if CurrencyManager.shared.isValidCurrency(newCurrency) {
-            updatedProfile.preferences.preferredCurrency = newCurrency
-        }
         
         if let selectedImage = selectedImage {
             profileManager.setAvatarImage(selectedImage)
         }
         
         profileManager.updateProfile(updatedProfile)
+        
+        dismiss()
     }
 }
 
@@ -484,52 +333,3 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 }
 
-// MARK: - Country Picker View
-struct CountryPickerView: View {
-    @Binding var selectedCountry: String
-    @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
-    
-    private var filteredCountries: [Country] {
-        if searchText.isEmpty {
-            return Country.allCountries
-        } else {
-            return Country.allCountries.filter { country in
-                country.name.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-    }
-    
-    var body: some View {
-        NavigationStack {
-            List(filteredCountries) { country in
-                Button(action: {
-                    selectedCountry = country.name
-                    dismiss()
-                }) {
-                    HStack {
-                        Text(country.name)
-                            .foregroundColor(AppTheme.text)
-                        
-                        Spacer()
-                        
-                        if selectedCountry == country.name {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(AppTheme.primary)
-                        }
-                    }
-                }
-            }
-            .searchable(text: $searchText, prompt: "Search countries")
-            .navigationTitle("Select Country")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
