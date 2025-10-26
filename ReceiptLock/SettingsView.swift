@@ -12,7 +12,6 @@ struct SettingsView: View {
     @State private var showingImportPicker = false
     @State private var showingDeleteAlert = false
     @State private var showingReminderManagement = false
-    @State private var showingOnboardingReset = false
     @State private var showingReceiptCategories = false
     @State private var showingStoragePreferences = false
     @State private var showingNotificationPreferences = false
@@ -34,7 +33,6 @@ struct SettingsView: View {
     @State private var isSecurityPrivacyExpanded = true
     @State private var isBackupSyncExpanded = true
     @State private var isDataManagementExpanded = true
-    @State private var isAboutSupportExpanded = true
     
     var body: some View {
         ScrollView {
@@ -45,7 +43,6 @@ struct SettingsView: View {
                 securityPrivacySection
                 backupSyncSection
                 dataManagementSection
-                aboutSupportSection
             }
             .padding(AppTheme.spacing)
         }
@@ -57,14 +54,6 @@ struct SettingsView: View {
             }
         } message: {
             Text("This will permanently delete all receipts and associated files. This action cannot be undone.")
-        }
-        .alert("Reset Onboarding", isPresented: $showingOnboardingReset) {
-            Button("Cancel", role: .cancel) { }
-            Button("Reset", role: .destructive) {
-                profileManager.resetOnboarding()
-            }
-        } message: {
-            Text("This will show the onboarding flow again on next app launch.")
         }
         .sheet(isPresented: $showingExportSheet) {
             ExportView()
@@ -386,65 +375,6 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - About & Support Section
-    
-    private var aboutSupportSection: some View {
-        ExpandableSettingsSection(
-            title: "About & Support", 
-            icon: "info.circle.fill", 
-            isExpanded: $isAboutSupportExpanded
-        ) {
-            SettingsRow(
-                title: "App Version",
-                subtitle: appVersion,
-                icon: "app.badge.fill"
-            ) {
-                EmptyView()
-            }
-            
-            SettingsRow(
-                title: "Build",
-                subtitle: appBuild,
-                icon: "hammer.fill"
-            ) {
-                EmptyView()
-            }
-            
-            SettingsRow(
-                title: "Terms & Privacy",
-                subtitle: "Read our terms and privacy policy",
-                icon: "doc.text.fill"
-            ) {
-                NavigationLink("View") {
-                    TermsPrivacyView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Support & Feedback",
-                subtitle: "Get help and send feedback",
-                icon: "questionmark.circle.fill"
-            ) {
-                NavigationLink("Contact") {
-                    SupportFeedbackView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Reset Onboarding",
-                subtitle: "Show onboarding flow again",
-                icon: "arrow.clockwise"
-            ) {
-                Button("Reset") {
-                    showingOnboardingReset = true
-                }
-                .foregroundColor(AppTheme.warning)
-            }
-        }
-    }
-    
     // MARK: - Helper Methods
     
     private func deleteAllData() {
@@ -624,91 +554,7 @@ struct ExportView: View {
     }
 }
 
-// MARK: - Terms & Privacy View
-struct TermsPrivacyView: View {
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    Text("Terms of Service")
-                        .font(.title2.weight(.semibold))
-                    Text("By using ReceiptLock, you agree to the following terms...")
-                        .foregroundColor(AppTheme.secondaryText)
-                    Divider()
-                    Text("Privacy Policy")
-                        .font(.title2.weight(.semibold))
-                    Text("We value your privacy. All data is stored on-device and protected with encryption and biometrics.")
-                        .foregroundColor(AppTheme.secondaryText)
-                }
-                .padding(AppTheme.spacing)
-            }
-            .navigationTitle("Terms & Privacy")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Support & Feedback View
-struct SupportFeedbackView: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var message: String = ""
-    @State private var email: String = ""
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Contact") {
-                    TextField("Email (optional)", text: $email)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                }
-                Section("Message") {
-                    TextEditor(text: $message)
-                        .frame(minHeight: 120)
-                }
-                Section {
-                    Button("Send Feedback") {
-                        sendFeedback()
-                    }
-                    .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-            .navigationTitle("Support & Feedback")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") { dismiss() }
-                }
-            }
-        }
-    }
-    private func sendFeedback() {
-        // Basic mailto fallback
-        let subject = "ReceiptLock Feedback"
-        let body = message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let address = email.isEmpty ? "support@example.com" : email
-        if let url = URL(string: "mailto:\(address)?subject=\(subject)&body=\(body)") {
-            UIApplication.shared.open(url)
-        }
-        dismiss()
-    }
-}
-
 #Preview {
     SettingsView()
         .environmentObject(CurrencyManager.shared)
-} 
-
-// MARK: - App Info Helpers
-private var appVersion: String {
-    Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-}
-
-private var appBuild: String {
-    Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
 } 
