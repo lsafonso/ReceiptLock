@@ -27,12 +27,12 @@ struct SettingsView: View {
     @StateObject private var profileManager = UserProfileManager.shared
     
     // Expandable sections state
-    @State private var isCurrencyExpanded = true
-    @State private var isReceiptApplianceExpanded = true
-    @State private var isNotificationsRemindersExpanded = true
-    @State private var isSecurityPrivacyExpanded = true
-    @State private var isBackupSyncExpanded = true
-    @State private var isDataManagementExpanded = true
+    @State private var isCurrencyExpanded = false
+    @State private var isReceiptApplianceExpanded = false
+    @State private var isNotificationsRemindersExpanded = false
+    @State private var isSecurityPrivacyExpanded = false
+    @State private var isBackupSyncExpanded = false
+    @State private var isDataManagementExpanded = false
     
     var body: some View {
         ScrollView {
