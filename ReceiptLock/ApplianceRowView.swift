@@ -38,15 +38,17 @@ struct ApplianceRowView: View {
                     
                     Spacer()
                     
-                    // Store Badge with improved contrast
+                    // Store Badge with filled pill style
                     Text(storeBadgeText)
                         .font(.caption2.weight(.bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.white) // Explicit white text for contrast
                         .lineLimit(1)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(primaryDark)
-                        .clipShape(Capsule())
+                        .background(
+                            Capsule()
+                                .fill(primaryDark)
+                        )
                         .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
                         .help(appliance.brand ?? "Unknown")
                 }
@@ -458,4 +460,23 @@ struct CustomProgressBar: View {
         }
         .frame(height: 7)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    // Note: This is a simplified preview as ApplianceRowView requires Core Data context
+    ZStack {
+        AppTheme.background
+        Text("ApplianceRowView Preview")
+            .foregroundColor(AppTheme.text)
+    }
+}
+
+#Preview("Dark Mode") {
+    ZStack {
+        AppTheme.background
+        Text("ApplianceRowView Preview (Dark Mode)")
+            .foregroundColor(AppTheme.text)
+    }
+    .preferredColorScheme(.dark)
 }

@@ -139,18 +139,18 @@ struct ContentView: View {
             VStack(spacing: 4) {
                 ZStack {
                     if selectedTab == 2 {
-                        // Active state: white icon on blue background
+                        // Active state: white icon on blue background - larger size
                         Circle()
                             .fill(AppTheme.primary)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 41, height: 41) // Slightly larger than 32
                         
                         Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: 20, weight: .medium)) // Increased from 16
                             .foregroundColor(.white)
                     } else {
                         // Inactive state: gray outline icon
                         Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 20, weight: .medium))
+                            .font(.system(size: 22, weight: .medium))
                             .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                     }
                 }

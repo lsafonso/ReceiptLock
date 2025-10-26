@@ -191,7 +191,7 @@ struct OnboardingPageView: View {
             // Icon
             Image(systemName: page.imageName)
                 .font(.system(size: 80, weight: .light))
-                .foregroundColor(.white)
+                .foregroundColor(page.backgroundColor.rlOn())
                 .frame(width: 160, height: 160)
                 .background(
                     Circle()

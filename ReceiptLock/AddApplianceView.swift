@@ -189,16 +189,18 @@ struct AddApplianceView: View {
                 HStack(spacing: AppTheme.smallSpacing) {
                     Image(systemName: "doc.text.viewfinder")
                         .font(.title2)
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundColor(.white) // Explicit white for icon
                     
                     Text("Scan receipt")
-                        .rlHeadline()
-                        .foregroundColor(.white)
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(.white) // Explicit white for text
                 }
-                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(AppTheme.spacing)
                 .background(AppTheme.primary)
                 .cornerRadius(AppTheme.cornerRadius)
+                .opacity(isProcessingOCR ? 0.6 : 1.0) // Slight overlay when disabled
             }
             .disabled(isProcessingOCR)
             

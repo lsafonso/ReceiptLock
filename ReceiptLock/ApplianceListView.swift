@@ -462,15 +462,15 @@ struct ApplianceFilterChip: View {
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(isSelected ? .white : color.opacity(0.2))
+                            .fill(isSelected ? AppTheme.onSuccess : color.opacity(0.2))
                     )
             }
-            .foregroundColor(isSelected ? color : AppTheme.secondaryText)
+            .foregroundColor(isSelected ? AppTheme.onSuccess : AppTheme.text)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(
                 Capsule()
-                    .fill(isSelected ? color : Color.clear)
+                    .fill(isSelected ? AppTheme.success : Color.clear)
                     .overlay(
                         Capsule()
                             .stroke(isSelected ? Color.clear : color.opacity(0.3), lineWidth: 1.5)
@@ -498,17 +498,48 @@ struct ApplianceFilterChip: View {
             if icon == "checkmark.circle.fill" {
                 Image(systemName: "checkmark")
                     .font(.caption2.bold())
+                    .symbolRenderingMode(.monochrome)
             } else if icon == "exclamationmark.triangle.fill" {
                 Image(systemName: "exclamationmark")
                     .font(.caption2.bold())
+                    .symbolRenderingMode(.monochrome)
             } else if icon == "clock.fill" {
                 Image(systemName: "clock")
                     .font(.caption2.bold())
+                    .symbolRenderingMode(.monochrome)
             } else {
                 Text("•")
                     .font(.caption2.bold())
             }
         }
-        .foregroundColor(color)
+        .foregroundColor(AppTheme.onSuccess)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    ApplianceFilterChip(
+        title: "All",
+        icon: "list.bullet",
+        color: AppTheme.secondary,
+        isSelected: true,
+        count: 12
+    ) {
+        // Action
+    }
+    .padding()
+}
+
+#Preview("Dark Mode") {
+    ApplianceFilterChip(
+        title: "Valid",
+        icon: "checkmark.circle.fill",
+        color: AppTheme.success,
+        isSelected: false,
+        count: 8
+    ) {
+        // Action
+    }
+    .padding()
+    .preferredColorScheme(.dark)
 }

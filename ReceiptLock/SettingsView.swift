@@ -40,7 +40,7 @@ struct SettingsView: View {
                 profilePersonalizationSection
                 receiptApplianceSection
                 notificationsRemindersSection
-                securityPrivacySection
+                // securityPrivacySection // Hidden as requested
                 backupSyncSection
                 dataManagementSection
             }

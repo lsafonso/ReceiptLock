@@ -23,6 +23,13 @@ struct AppTheme {
     static let success = Color(red: 107/255, green: 183/255, blue: 124/255) // Muted green for valid warranties
     static let border = Color(red: 200/255, green: 200/255, blue: 200/255) // Light gray for borders
     
+    // MARK: - On-Color Roles (Text on colored backgrounds for AA contrast)
+    static let onPrimary = Color.white // Text on primary background
+    static let onSuccess = Color.white // Text on success background
+    static let onWarning = Color.white // Text on warning background
+    static let onDanger = Color.white // Text on error/danger background
+    static let onTint = Color.white // Text on tinted/accent background
+    
     // MARK: - Gradients
     static let primaryGradient = LinearGradient(
         colors: [primary, primary.opacity(0.8)],
@@ -101,7 +108,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline.weight(.semibold))
-            .foregroundColor(.white)
+            .foregroundColor(AppTheme.onPrimary)
             .padding(.horizontal, AppTheme.largeSpacing)
             .padding(.vertical, AppTheme.spacing)
             .background(
@@ -149,7 +156,7 @@ struct FloatingActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.title2.weight(.semibold))
-            .foregroundColor(.white)
+            .foregroundColor(backgroundColor.rlOn())
             .frame(width: 56, height: 56)
             .background(
                 backgroundColor

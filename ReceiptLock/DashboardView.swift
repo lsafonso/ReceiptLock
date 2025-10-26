@@ -107,7 +107,8 @@ struct DashboardView: View {
             SummaryColumn(
                 icon: "house.fill",
                 value: "\(sortedAppliances.count)",
-                caption: "Active devices"
+                caption: "Active devices",
+                backgroundColor: Color(red: 43/255, green: 87/255, blue: 87/255)
             )
             
             // Divider
@@ -119,7 +120,8 @@ struct DashboardView: View {
             SummaryColumn(
                 icon: "checkmark.circle.fill",
                 value: "\(validWarranties.count)",
-                caption: "Valid warranty"
+                caption: "Valid warranty",
+                backgroundColor: AppTheme.success
             )
             
             // Divider
@@ -131,7 +133,8 @@ struct DashboardView: View {
             SummaryColumn(
                 icon: "exclamationmark.triangle.fill",
                 value: "\(expiredWarranties.count)",
-                caption: "Expired warranty"
+                caption: "Expired warranty",
+                backgroundColor: AppTheme.error
             )
         }
         .padding(AppTheme.spacing)
@@ -143,20 +146,24 @@ struct DashboardView: View {
         let icon: String
         let value: String
         let caption: String
+        let backgroundColor: Color
         
         var body: some View {
             VStack(alignment: .center, spacing: 6) {
                 Image(systemName: icon)
                     .font(.title3) // Slightly reduced from title2
-                    .foregroundColor(AppTheme.primary)
+                    .foregroundColor(backgroundColor.rlOn()) // White on colored background
+                    .frame(width: 32, height: 32)
+                    .background(backgroundColor)
+                    .clipShape(Circle())
                 
                 Text(value)
                     .font(.title.weight(.black)) // Heavier weight for numbers
-                    .foregroundColor(AppTheme.text)
+                    .foregroundColor(AppTheme.text) // Dark text on light card background
                 
                 Text(caption)
                     .font(.caption) // Regular weight
-                    .foregroundColor(AppTheme.secondaryText)
+                    .foregroundColor(AppTheme.secondaryText) // Dark text on light card background
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppTheme.largeSpacing)
@@ -231,14 +238,16 @@ struct DashboardView: View {
         }) {
             HStack {
                 Text("View All Appliances")
-                    .rlHeadline()
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(.white) // Explicit white for text
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.semibold))
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundColor(.white) // Explicit white for icon
             }
-            .foregroundColor(.white)
             .padding(AppTheme.largeSpacing)
             .background(AppTheme.primary)
             .cornerRadius(AppTheme.cornerRadius)
@@ -409,12 +418,14 @@ struct ExpandableApplianceCard: View {
                     
                     // Store Badge
                     Text(storeBadgeText)
-                        .rlCaption2Strong()
-                        .foregroundColor(.white)
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.white) // Explicit white text for contrast
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(AppTheme.primary)
-                        .cornerRadius(4)
+                        .background(
+                            Capsule()
+                                .fill(Color(red: 43/255, green: 87/255, blue: 87/255))
+                        )
                         .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
                         .help(appliance.brand ?? "Unknown")
                 }

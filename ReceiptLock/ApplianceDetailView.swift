@@ -176,12 +176,13 @@ struct ApplianceDetailView: View {
             Button(action: shareAppliance) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
+                        .symbolRenderingMode(.monochrome)
                     Text("Share Appliance")
                 }
+                .foregroundColor(AppTheme.onPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(AppTheme.spacing)
                 .background(AppTheme.primary)
-                .foregroundColor(.white)
                 .cornerRadius(AppTheme.cornerRadius)
             }
             

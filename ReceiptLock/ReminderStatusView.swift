@@ -169,7 +169,7 @@ struct ReminderCountBadge: View {
                 Text("\(activeReminders.count)")
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.onPrimary)
                     .frame(width: 16, height: 16)
                     .background(AppTheme.primary)
                     .clipShape(Circle())
