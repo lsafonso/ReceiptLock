@@ -252,21 +252,13 @@ struct ApplianceDetailView: View {
     private var formattedPurchaseDate: String {
         guard let purchaseDate = appliance.purchaseDate else { return "Unknown" }
         
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: purchaseDate)
+        return FormatterStore.expiryShort.string(from: purchaseDate)
     }
     
     private var formattedExpiryDate: String {
         guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown" }
         
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: expiryDate)
+        return FormatterStore.expiryShort.string(from: expiryDate)
     }
     
     private var formattedPrice: String {
@@ -274,11 +266,7 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedCreatedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: appliance.createdAt ?? Date())
+        return FormatterStore.expiryShort.string(from: appliance.createdAt ?? Date())
     }
     
     // MARK: - Helper Methods

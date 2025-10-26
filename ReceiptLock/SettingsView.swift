@@ -515,7 +515,7 @@ struct SettingsRow<Content: View>: View {
     }
     
     var body: some View {
-        HStack {
+        HStack(alignment: .top) {
             Image(systemName: icon)
                 .foregroundColor(AppTheme.secondaryText)
                 .font(.title3)

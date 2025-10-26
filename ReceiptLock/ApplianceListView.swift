@@ -447,38 +447,35 @@ struct ApplianceFilterChip: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                    Image(systemName: icon)
-                    .font(.caption.weight(.semibold))
+            HStack(spacing: 4) {
+                // Leading glyph for active chip only
+                if isSelected {
+                    leadingGlyph
+                }
                 
                 Text(title)
-                    .rlCaption()
-                    .fontWeight(.medium)
+                    .font(.caption.weight(.medium))
                 
                 Text("\(count)")
-                    .rlCaption2Strong()
-                    .padding(.horizontal, 6)
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
                             .fill(isSelected ? .white : color.opacity(0.2))
                     )
-                    .scaleEffect(isSelected ? 1.1 : 1.0)
-                    .animation(AppTheme.springAnimation, value: isSelected)
             }
             .foregroundColor(isSelected ? color : AppTheme.secondaryText)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
             .background(
                 Capsule()
-                    .fill(isSelected ? color.opacity(0.1) : AppTheme.cardBackground)
+                    .fill(isSelected ? color : Color.clear)
                     .overlay(
                         Capsule()
-                            .stroke(isSelected ? color.opacity(0.3) : Color.clear, lineWidth: 1.5)
+                            .stroke(isSelected ? Color.clear : color.opacity(0.3), lineWidth: 1.5)
                     )
             )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(AppTheme.springAnimation, value: isSelected)
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .animation(AppTheme.springAnimation, value: isPressed)
         }
@@ -493,5 +490,25 @@ struct ApplianceFilterChip: View {
                 }
             }
         }
+    }
+    
+    // Leading glyph based on filter type
+    private var leadingGlyph: some View {
+        Group {
+            if icon == "checkmark.circle.fill" {
+                Image(systemName: "checkmark")
+                    .font(.caption2.bold())
+            } else if icon == "exclamationmark.triangle.fill" {
+                Image(systemName: "exclamationmark")
+                    .font(.caption2.bold())
+            } else if icon == "clock.fill" {
+                Image(systemName: "clock")
+                    .font(.caption2.bold())
+            } else {
+                Text("•")
+                    .font(.caption2.bold())
+            }
+        }
+        .foregroundColor(color)
     }
 }

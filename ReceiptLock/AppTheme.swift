@@ -49,7 +49,7 @@ struct AppTheme {
     static let extraLargeSpacing: CGFloat = 32
     
     // MARK: - Corner Radius
-    static let cornerRadius: CGFloat = 12
+    static let cornerRadius: CGFloat = 14 // Increased from 12 to match iOS 17 feel
     static let smallCornerRadius: CGFloat = 8
     static let largeCornerRadius: CGFloat = 16
     static let extraLargeCornerRadius: CGFloat = 20
@@ -60,9 +60,10 @@ struct AppTheme {
     static let shadowOffset = CGSize(width: 0, height: 2)
     
     // MARK: - Animations
-    static let springAnimation = Animation.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)
+    static let springAnimation = Animation.spring(response: 0.5, dampingFraction: 0.9, blendDuration: 0) // Less bouncy
     static let easeOutAnimation = Animation.easeOut(duration: 0.3)
     static let easeInOutAnimation = Animation.easeInOut(duration: 0.4)
+    static let snappyAnimation = Animation.snappy(duration: 0.2) // For micro-interactions
 }
 
 // MARK: - Custom View Modifiers
@@ -108,14 +109,14 @@ struct PrimaryButtonStyle: ButtonStyle {
                     .opacity(configuration.isPressed ? 0.8 : 1.0)
             )
             .cornerRadius(AppTheme.cornerRadius)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .shadow(
                 color: AppTheme.primary.opacity(0.2),
                 radius: configuration.isPressed ? 6 : 8,
                 x: 0,
                 y: configuration.isPressed ? 2 : 3
             )
-            .animation(AppTheme.springAnimation, value: configuration.isPressed)
+            .animation(AppTheme.snappyAnimation, value: configuration.isPressed)
     }
 }
 
@@ -312,7 +313,7 @@ struct EmptyStateView: View {
                         Text(actionTitle)
                     }
                 }
-                .primaryButton()
+                .buttonStyle(PrimaryButtonStyle())
                 .padding(.top, AppTheme.spacing)
                 .scaleTransition()
             }

@@ -58,14 +58,17 @@ struct DashboardView: View {
     
     // MARK: - Header Section
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-            HStack {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .lastTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Welcome")
-                        .rlSubheadlineMuted()
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
                     
                     Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
-                        .rlLargeTitle()
+                        .font(.system(size: 34, weight: .regular, design: .default))
+                        .foregroundColor(AppTheme.text)
+                        .lineSpacing(-4)
                 }
                 
                 Spacer()
@@ -76,6 +79,8 @@ struct DashboardView: View {
                             .font(.title2)
                             .foregroundColor(AppTheme.primary)
                     }
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
                     
                     Button(action: {
                         showingProfileEdit = true
@@ -86,78 +91,76 @@ struct DashboardView: View {
                             showBorder: false
                         )
                     }
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
                 }
             }
         }
         .padding(.horizontal, AppTheme.spacing)
+        .padding(.bottom, 6) // Add 6pt space below header
     }
     
     // MARK: - Warranty Summary Card
     private var warrantySummaryCard: some View {
         HStack(spacing: 0) {
             // All devices
-            VStack(spacing: AppTheme.smallSpacing) {
-                Image(systemName: "house.fill")
-                    .font(.title2)
-                    .foregroundColor(AppTheme.primary)
-                
-                Text("\(sortedAppliances.count)")
-                    .font(.title.weight(.bold))
-                    .foregroundColor(AppTheme.text)
-                
-                Text("Active devices")
-                    .rlCaption()
-                    .fontWeight(.medium)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, AppTheme.largeSpacing)
+            SummaryColumn(
+                icon: "house.fill",
+                value: "\(sortedAppliances.count)",
+                caption: "Active devices"
+            )
             
             // Divider
-            Rectangle()
-                .frame(width: 1, height: 60)
-                .foregroundColor(AppTheme.secondaryText.opacity(0.3))
+            Divider()
+                .frame(height: 60)
+                .foregroundColor(AppTheme.secondaryText.opacity(0.2))
             
             // Valid warranty
-            VStack(spacing: AppTheme.smallSpacing) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(AppTheme.primary)
-                
-                Text("\(validWarranties.count)")
-                    .font(.title.weight(.bold))
-                    .foregroundColor(AppTheme.text)
-                
-                Text("Valid warranty")
-                    .rlCaption()
-                    .fontWeight(.medium)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, AppTheme.largeSpacing)
+            SummaryColumn(
+                icon: "checkmark.circle.fill",
+                value: "\(validWarranties.count)",
+                caption: "Valid warranty"
+            )
             
             // Divider
-            Rectangle()
-                .frame(width: 1, height: 60)
-                .foregroundColor(AppTheme.secondaryText.opacity(0.3))
+            Divider()
+                .frame(height: 60)
+                .foregroundColor(AppTheme.secondaryText.opacity(0.2))
             
             // Expired warranty
-            VStack(spacing: AppTheme.smallSpacing) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.title2)
+            SummaryColumn(
+                icon: "exclamationmark.triangle.fill",
+                value: "\(expiredWarranties.count)",
+                caption: "Expired warranty"
+            )
+        }
+        .padding(AppTheme.spacing)
+        .cardBackground()
+    }
+    
+    // MARK: - Summary Column Component
+    private struct SummaryColumn: View {
+        let icon: String
+        let value: String
+        let caption: String
+        
+        var body: some View {
+            VStack(alignment: .center, spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title3) // Slightly reduced from title2
                     .foregroundColor(AppTheme.primary)
                 
-                Text("\(expiredWarranties.count)")
-                    .font(.title.weight(.bold))
+                Text(value)
+                    .font(.title.weight(.black)) // Heavier weight for numbers
                     .foregroundColor(AppTheme.text)
                 
-                Text("Expired warranty")
-                    .rlCaption()
-                    .fontWeight(.medium)
+                Text(caption)
+                    .font(.caption) // Regular weight
+                    .foregroundColor(AppTheme.secondaryText)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppTheme.largeSpacing)
         }
-        .padding(AppTheme.spacing)
-        .cardBackground()
     }
     
     // MARK: - Appliances Section
@@ -599,11 +602,7 @@ struct ExpandableApplianceCard: View {
     private var formattedExpiryDate: String {
         guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown" }
         
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: expiryDate)
+        return FormatterStore.expiryShort.string(from: expiryDate)
     }
     
     private var progressValue: Double {
@@ -619,10 +618,7 @@ struct ExpandableApplianceCard: View {
     }
     
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        return FormatterStore.expiryShort.string(from: date)
     }
     
     // MARK: - Action Methods

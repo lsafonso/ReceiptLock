@@ -119,12 +119,9 @@ struct AddApplianceView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: AppTheme.largeSpacing) {
-                        // Scan Invoice Section
+                    VStack(spacing: AppTheme.extraLargeSpacing) {
+                        // Scan receipt Section
                         scanInvoiceSection
-                        
-                        // Separator
-                        separator
                         
                         // Manual Entry Section
                         manualEntrySection
@@ -182,10 +179,10 @@ struct AddApplianceView: View {
     // MARK: - Scan Invoice Section
     private var scanInvoiceSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Scan Invoice")
+            Text("Scan receipt")
                 .rlHeadline()
             
-            Text("Use invoice image or pdf to autofill details")
+            Text("Use a photo or PDF—store, model and purchase date auto-fill.")
                 .rlSubheadlineMuted()
             
             PhotosPicker(selection: $selectedImage, matching: .images) {
@@ -193,7 +190,7 @@ struct AddApplianceView: View {
                     Image(systemName: "doc.text.viewfinder")
                         .font(.title2)
                     
-                    Text("Scan Invoice")
+                    Text("Scan receipt")
                         .rlHeadline()
                         .foregroundColor(.white)
                 }
@@ -209,31 +206,13 @@ struct AddApplianceView: View {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.8)
-                    Text("Processing invoice...")
+                    Text("Processing receipt...")
                         .rlCaptionMuted()
                 }
             }
         }
         .padding(AppTheme.spacing)
         .cardBackground()
-    }
-    
-    // MARK: - Separator
-    private var separator: some View {
-        HStack {
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppTheme.secondaryText.opacity(0.3))
-            
-            Text("OR")
-                .font(.caption.weight(.medium))
-                .foregroundColor(AppTheme.secondaryText)
-                .padding(.horizontal, AppTheme.spacing)
-            
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(AppTheme.secondaryText.opacity(0.3))
-        }
     }
     
     // MARK: - Manual Entry Section
@@ -249,8 +228,9 @@ struct AddApplianceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppTheme.smallSpacing)
-                .background(selectedTab == .manualEntry ? AppTheme.primary : AppTheme.cardBackground)
-                .foregroundColor(selectedTab == .manualEntry ? .white : AppTheme.text)
+                .background(selectedTab == .manualEntry ? AppTheme.primary : Color.clear)
+                .foregroundColor(selectedTab == .manualEntry ? .white : AppTheme.secondaryText)
+                .font(.subheadline)
                 .cornerRadius(AppTheme.smallCornerRadius, corners: [.topLeft, .bottomLeft])
                 
                 Button("Brands") {
@@ -258,13 +238,14 @@ struct AddApplianceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppTheme.smallSpacing)
-                .background(AppTheme.cardBackground)
-                .foregroundColor(AppTheme.text)
+                .background(Color.clear)
+                .foregroundColor(AppTheme.secondaryText)
+                .font(.subheadline)
                 .cornerRadius(AppTheme.smallCornerRadius, corners: [.topRight, .bottomRight])
             }
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
-                    .stroke(AppTheme.secondaryText.opacity(0.3), lineWidth: 1)
+                    .stroke(AppTheme.secondaryText.opacity(0.2), lineWidth: 1)
             )
             
             if selectedTab == .manualEntry {

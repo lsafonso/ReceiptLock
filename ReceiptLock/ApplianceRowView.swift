@@ -15,6 +15,7 @@ struct ApplianceRowView: View {
     @State private var showingDeleteAlert = false
     @State private var showingActionSheet = false // Added for long press gesture
     @State private var isDeleting = false // Track deletion state to prevent multiple deletions
+    @AppStorage("hasSeenSwipeHint") private var hasSeenSwipeHint = false
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
@@ -29,7 +30,7 @@ struct ApplianceRowView: View {
                 .cornerRadius(AppTheme.smallCornerRadius)
             
             // Appliance details
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(appliance.name ?? "Untitled Appliance")
                         .rlHeadline()
@@ -37,62 +38,76 @@ struct ApplianceRowView: View {
                     
                     Spacer()
                     
-                    // Store Badge
+                    // Store Badge with improved contrast
                     Text(storeBadgeText)
-                        .rlCaption2Strong()
+                        .font(.caption2.weight(.bold))
                         .foregroundColor(.white)
+                        .lineLimit(1)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(AppTheme.primary)
-                        .cornerRadius(4)
+                        .background(primaryDark)
+                        .clipShape(Capsule())
                         .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
                         .help(appliance.brand ?? "Unknown")
                 }
                 
-                HStack {
-                    Text("Warranty expires: \(formattedExpiryDate)")
-                        .rlCaption()
-                        .fontWeight(.medium)
-                        .foregroundColor(expiryStatusColor)
-                    
-                    Spacer()
-                    
-                    // Subtle swipe hint indicator
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.left")
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        // Status icon for color-blind users
+                        Image(systemName: statusIcon)
                             .font(.caption2)
-                            .foregroundColor(AppTheme.secondaryText.opacity(0.6))
-                        Image(systemName: "arrow.right")
-                            .font(.caption2)
-                            .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                            .foregroundColor(AppTheme.secondaryText)
+                        
+                        Text("Expires \(formattedExpiryDate)")
+                            .rlCaption()
+                            .fontWeight(.medium)
+                            .foregroundColor(expiryStatusColor)
+                        
+                        Spacer()
+                        
+                        // Subtle swipe hint indicator
+                        HStack(spacing: 2) {
+                            Image(systemName: "arrow.left")
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                            Image(systemName: "arrow.right")
+                                .font(.caption2)
+                                .foregroundColor(AppTheme.secondaryText.opacity(0.6))
+                        }
+                        .opacity(0.7)
                     }
-                    .opacity(0.7)
+                    
+                    // Custom progress bar
+                    CustomProgressBar(
+                        value: progressValue,
+                        color: expiryStatusColor
+                    )
                 }
                 
-                // Progress bar
-                ProgressView(value: progressValue, total: 1.0)
-                    .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
-                    .frame(height: 4)
-                
-                // Swipe hint text
-                HStack {
-                    Spacer()
-                    Text("Swipe for actions")
-                        .rlCaption2Muted()
-                        .opacity(0.5)
-                        .italic()
+                // Swipe hint text (only show on first unseen card)
+                if !hasSeenSwipeHint {
+                    HStack {
+                        Spacer()
+                        Text("Swipe for actions")
+                            .rlCaption2Muted()
+                            .opacity(0.5)
+                            .italic()
+                    }
+                    .transition(.opacity)
                 }
             }
             
-            // Chevron with animation - ONLY this area is tappable for expand/collapse
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundColor(AppTheme.secondaryText)
-                .rotationEffect(.degrees(isPressed ? 90 : 0))
-                .animation(AppTheme.springAnimation, value: isPressed)
-                .frame(width: 24, height: 24) // Fixed size for consistent tap target
-                .background(Color.clear) // Ensure background is clear
-                .onTapGesture {
+            // Chevron with expanded tap target (44×44pt minimum for accessibility)
+            ZStack {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppTheme.secondaryText)
+                    .rotationEffect(.degrees(isPressed ? 90 : 0))
+                    .animation(AppTheme.springAnimation, value: isPressed)
+            }
+            .frame(width: 44, height: 44) // Minimum 44×44pt tap target for accessibility
+            .contentShape(Rectangle()) // Ensure entire area is tappable
+            .onTapGesture {
                     withAnimation(AppTheme.springAnimation) {
                         isPressed = true
                     }
@@ -116,7 +131,8 @@ struct ApplianceRowView: View {
                     }
                 }
         }
-        .padding(AppTheme.spacing)
+        .padding(.horizontal, AppTheme.spacing)
+        .padding(.vertical, AppTheme.spacing + 2) // Added 2pt vertical padding
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
         .shadow(
@@ -156,6 +172,15 @@ struct ApplianceRowView: View {
             // Delete action (direct deletion from swipe - no confirmation)
             Button(role: .destructive, action: {
                 if !isDeleting {
+                    // Mark hint as seen after first swipe
+                    if !hasSeenSwipeHint {
+                        hasSeenSwipeHint = true
+                        
+                        // Haptic feedback for first swipe
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                    }
+                    
                     deleteAppliance()
                 }
             }) {
@@ -166,6 +191,15 @@ struct ApplianceRowView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             // Quick share action
             Button(action: {
+                // Mark hint as seen after first swipe
+                if !hasSeenSwipeHint {
+                    hasSeenSwipeHint = true
+                    
+                    // Haptic feedback for first swipe
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                    impactFeedback.impactOccurred()
+                }
+                
                 shareAppliance()
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
@@ -285,11 +319,7 @@ struct ApplianceRowView: View {
     private var formattedExpiryDate: String {
         guard let expiryDate = appliance.warrantyExpiryDate else { return "Unknown" }
         
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        
-        return formatter.string(from: expiryDate)
+        return FormatterStore.expiryShort.string(from: expiryDate)
     }
     
     private var progressValue: Double {
@@ -311,6 +341,29 @@ struct ApplianceRowView: View {
         let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
         
         return expiryDate < now || daysUntilExpiry <= 7
+    }
+    
+    // Status icon for color-blind accessibility
+    private var statusIcon: String {
+        guard let expiryDate = appliance.warrantyExpiryDate else { return "circle" }
+        
+        let now = Date()
+        let daysUntilExpiry = Calendar.current.dateComponents([.day], from: now, to: expiryDate).day ?? 0
+        
+        if expiryDate < now || daysUntilExpiry <= 7 {
+            return "xmark.octagon.fill" // Expired or urgent
+        } else if daysUntilExpiry <= 30 {
+            return "exclamationmark.triangle.fill" // Expiring soon
+        } else {
+            return "checkmark.circle.fill" // Valid
+        }
+    }
+    
+    // Darkened primary color for better contrast with white text
+    private var primaryDark: Color {
+        // Reduce brightness by 15% for better WCAG AA contrast
+        // Original: Color(red: 51/255, green: 102/255, blue: 102/255)
+        return Color(red: 43/255, green: 87/255, blue: 87/255)
     }
     
     // MARK: - Helper Methods
@@ -381,5 +434,28 @@ struct ApplianceRowView: View {
         } else {
             return AppTheme.primary
         }
+    }
+}
+
+// MARK: - Custom Progress Bar
+struct CustomProgressBar: View {
+    let value: Double
+    let color: Color
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Track with subtle opacity
+                Capsule()
+                    .fill(color.opacity(0.22))
+                    .frame(height: 7)
+                
+                // Progress fill
+                Capsule()
+                    .fill(color)
+                    .frame(width: geometry.size.width * CGFloat(value), height: 7)
+            }
+        }
+        .frame(height: 7)
     }
 }
