@@ -448,14 +448,15 @@ struct ApplianceFilterChip: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: icon)
+                    Image(systemName: icon)
                     .font(.caption.weight(.semibold))
                 
                 Text(title)
-                    .font(.caption.weight(.medium))
+                    .rlCaption()
+                    .fontWeight(.medium)
                 
                 Text("\(count)")
-                    .font(.caption2.weight(.bold))
+                    .rlCaption2Strong()
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(

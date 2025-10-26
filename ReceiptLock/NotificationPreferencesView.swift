@@ -142,8 +142,7 @@ struct NotificationPreferencesView: View {
                         }
                         
                         Text("Notifications will be silenced during quiet hours")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .rlCaptionMuted()
                     }
                 }
                 

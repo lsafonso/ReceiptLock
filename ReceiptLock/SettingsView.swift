@@ -424,8 +424,7 @@ struct SettingsSection<Content: View>: View {
                     .font(.title2)
                 
                 Text(title)
-                    .font(.headline)
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 Spacer()
             }

@@ -183,12 +183,10 @@ struct AddApplianceView: View {
     private var scanInvoiceSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             Text("Scan Invoice")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
+                .rlHeadline()
             
             Text("Use invoice image or pdf to autofill details")
-                .font(.subheadline)
-                .foregroundColor(AppTheme.secondaryText)
+                .rlSubheadlineMuted()
             
             PhotosPicker(selection: $selectedImage, matching: .images) {
                 HStack(spacing: AppTheme.smallSpacing) {
@@ -196,7 +194,8 @@ struct AddApplianceView: View {
                         .font(.title2)
                     
                     Text("Scan Invoice")
-                        .font(.headline.weight(.semibold))
+                        .rlHeadline()
+                        .foregroundColor(.white)
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -211,8 +210,7 @@ struct AddApplianceView: View {
                     ProgressView()
                         .scaleEffect(0.8)
                     Text("Processing invoice...")
-                        .font(.caption)
-                        .foregroundColor(AppTheme.secondaryText)
+                        .rlCaptionMuted()
                 }
             }
         }
@@ -242,8 +240,7 @@ struct AddApplianceView: View {
     private var manualEntrySection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             Text("Choose from \"Device Type\" or \"Brands\" to proceed")
-                .font(.subheadline)
-                .foregroundColor(AppTheme.text)
+                .rlSubheadline()
             
             // Tab Selection
             HStack(spacing: 0) {
@@ -288,8 +285,8 @@ struct AddApplianceView: View {
                                     .foregroundColor(deviceType.color)
                                 
                                 Text(deviceType.rawValue)
-                                    .font(.caption.weight(.medium))
-                                    .foregroundColor(AppTheme.text)
+                                    .rlCaption()
+                                    .fontWeight(.medium)
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
                             }
@@ -324,8 +321,7 @@ struct AddApplianceView: View {
             // Basic Information Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
                 Text("Basic Information")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 // Appliance Name Field
                 ValidatedTextField(
@@ -381,8 +377,7 @@ struct AddApplianceView: View {
             // Purchase Details Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
                 Text("Purchase Details")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 // Purchase Date Field
                 ValidatedDateField(
@@ -404,8 +399,7 @@ struct AddApplianceView: View {
             // Warranty Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
                 Text("Warranty")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 // Warranty Duration Field
                 ValidatedStepperField(
@@ -435,8 +429,7 @@ struct AddApplianceView: View {
             // Additional Notes Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
                 Text("Additional Notes")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 // Notes Field
                 ValidatedTextField(

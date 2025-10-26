@@ -62,12 +62,10 @@ struct DashboardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Welcome")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
+                        .rlSubheadlineMuted()
                     
                     Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundColor(AppTheme.text)
+                        .rlLargeTitle()
                 }
                 
                 Spacer()
@@ -108,8 +106,8 @@ struct DashboardView: View {
                     .foregroundColor(AppTheme.text)
                 
                 Text("Active devices")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
+                    .rlCaption()
+                    .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppTheme.largeSpacing)
@@ -130,8 +128,8 @@ struct DashboardView: View {
                     .foregroundColor(AppTheme.text)
                 
                 Text("Valid warranty")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
+                    .rlCaption()
+                    .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppTheme.largeSpacing)
@@ -152,8 +150,8 @@ struct DashboardView: View {
                     .foregroundColor(AppTheme.text)
                 
                 Text("Expired warranty")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(AppTheme.secondaryText)
+                    .rlCaption()
+                    .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppTheme.largeSpacing)
@@ -167,8 +165,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             HStack {
                 Text("Your Appliances")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlHeadline()
                 
                 Spacer()
                 
@@ -192,7 +189,8 @@ struct DashboardView: View {
                         Image(systemName: "arrow.up.arrow.down")
                             .font(.caption)
                         Text(selectedSortOrder.rawValue)
-                            .font(.caption.weight(.medium))
+                            .rlCaption()
+                            .fontWeight(.medium)
                         Image(systemName: "chevron.down")
                             .font(.caption2)
                     }
@@ -230,7 +228,7 @@ struct DashboardView: View {
         }) {
             HStack {
                 Text("View All Appliances")
-                    .font(.headline.weight(.semibold))
+                    .rlHeadline()
                 
                 Spacer()
                 
@@ -401,15 +399,14 @@ struct ExpandableApplianceCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(appliance.name ?? "Untitled Appliance")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
+                        .rlHeadline()
                         .lineLimit(1)
                     
                     Spacer()
                     
                     // Store Badge
                     Text(storeBadgeText)
-                        .font(.caption2.weight(.bold))
+                        .rlCaption2Strong()
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -421,7 +418,8 @@ struct ExpandableApplianceCard: View {
                 
                 HStack {
                     Text("Warranty expires: \(formattedExpiryDate)")
-                        .font(.caption.weight(.medium))
+                        .rlCaption()
+                        .fontWeight(.medium)
                         .foregroundColor(expiryStatusColor)
                     
                     Spacer()
@@ -436,8 +434,8 @@ struct ExpandableApplianceCard: View {
                 HStack {
                     Spacer()
                     Text("Swipe for actions")
-                        .font(.caption2)
-                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                        .rlCaption2Muted()
+                        .opacity(0.5)
                         .italic()
                 }
             }
@@ -716,13 +714,14 @@ struct DetailRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.caption.weight(.medium))
+                .rlCaption()
+                .fontWeight(.medium)
                 .foregroundColor(AppTheme.secondaryText)
             
             Spacer()
             
             Text(value)
-                .font(.caption.weight(.semibold))
+                .rlCaptionStrong()
                 .foregroundColor(valueColor)
                 .multilineTextAlignment(.trailing)
         }

@@ -215,7 +215,8 @@ struct AnimatedCounter: View {
                 .contentTransition(.numericText())
             
             Text(title)
-                .font(.caption.weight(.medium))
+                .rlCaption()
+                .fontWeight(.medium)
                 .foregroundColor(AppTheme.secondaryText)
         }
         .onAppear {
@@ -294,13 +295,11 @@ struct EmptyStateView: View {
             
             VStack(spacing: AppTheme.smallSpacing) {
                 Text(title)
-                    .font(.title2.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
+                    .rlTitle2()
                     .multilineTextAlignment(.center)
                 
                 Text(message)
-                    .font(.body)
-                    .foregroundColor(AppTheme.secondaryText)
+                    .rlBodyMuted()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AppTheme.largeSpacing)
             }

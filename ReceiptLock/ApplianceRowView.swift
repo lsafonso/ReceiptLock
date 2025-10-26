@@ -32,15 +32,14 @@ struct ApplianceRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(appliance.name ?? "Untitled Appliance")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
+                        .rlHeadline()
                         .lineLimit(1)
                     
                     Spacer()
                     
                     // Store Badge
                     Text(storeBadgeText)
-                        .font(.caption2.weight(.bold))
+                        .rlCaption2Strong()
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -52,7 +51,8 @@ struct ApplianceRowView: View {
                 
                 HStack {
                     Text("Warranty expires: \(formattedExpiryDate)")
-                        .font(.caption.weight(.medium))
+                        .rlCaption()
+                        .fontWeight(.medium)
                         .foregroundColor(expiryStatusColor)
                     
                     Spacer()
@@ -78,8 +78,8 @@ struct ApplianceRowView: View {
                 HStack {
                     Spacer()
                     Text("Swipe for actions")
-                        .font(.caption2)
-                        .foregroundColor(AppTheme.secondaryText.opacity(0.5))
+                        .rlCaption2Muted()
+                        .opacity(0.5)
                         .italic()
                 }
             }
