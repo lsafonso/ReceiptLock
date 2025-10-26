@@ -181,7 +181,7 @@ struct ApplianceListView: View {
                 applianceRow(for: appliance, at: index)
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: AppTheme.spacing, bottom: AppTheme.spacing, trailing: AppTheme.spacing))
+                    .listRowInsets(EdgeInsets(top: 0, leading: AppTheme.spacing, bottom: 0, trailing: AppTheme.spacing))
             }
         }
         .listStyle(.plain)
@@ -350,22 +350,36 @@ struct ApplianceListView: View {
     private func deleteAppliance(_ appliance: Appliance) {
         print("🗑️ Deleting appliance: \(appliance.name ?? "Unknown")")
         
-        withAnimation(AppTheme.springAnimation) {
-            viewContext.delete(appliance)
+        // Cancel any scheduled notifications
+        NotificationManager.shared.cancelNotification(for: appliance)
+        
+        // Delete associated file if exists
+        if let fileName = appliance.name {
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("receipts").appendingPathComponent(fileName)
             
-            do {
-                try viewContext.save()
-                print("✅ Appliance deleted successfully")
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        
+        // Defer the deletion to the next run loop to ensure UI has fully dismissed
+        DispatchQueue.main.async {
+            withAnimation(AppTheme.springAnimation) {
+                self.viewContext.delete(appliance)
                 
-                // Haptic feedback for successful delete
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                impactFeedback.impactOccurred()
-            } catch {
-                print("❌ Error deleting appliance: \(error)")
-                
-                // Haptic feedback for error
-                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                impactFeedback.impactOccurred()
+                do {
+                    try self.viewContext.save()
+                    print("✅ Appliance deleted successfully")
+                    
+                    // Haptic feedback for successful delete
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                    impactFeedback.impactOccurred()
+                } catch {
+                    print("❌ Error deleting appliance: \(error)")
+                    
+                    // Haptic feedback for error
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                    impactFeedback.impactOccurred()
+                }
             }
         }
     }
@@ -373,13 +387,20 @@ struct ApplianceListView: View {
     /// Deletes appliances from Core Data context
     /// - Parameter offsets: Index set of appliances to delete
     private func deleteAppliances(offsets: IndexSet) {
-        withAnimation(AppTheme.springAnimation) {
-            offsets.map { filteredAppliances[$0] }.forEach(viewContext.delete)
-            
-            do {
-                try viewContext.save()
-            } catch {
-                print("Error deleting appliance: \(error)")
+        // Cancel notifications for all appliances being deleted
+        offsets.map { filteredAppliances[$0] }.forEach { appliance in
+            NotificationManager.shared.cancelNotification(for: appliance)
+        }
+        
+        DispatchQueue.main.async {
+            withAnimation(AppTheme.springAnimation) {
+                offsets.map { self.filteredAppliances[$0] }.forEach(self.viewContext.delete)
+                
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("Error deleting appliance: \(error)")
+                }
             }
         }
     }

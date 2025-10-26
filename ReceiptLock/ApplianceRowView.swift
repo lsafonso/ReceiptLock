@@ -14,6 +14,7 @@ struct ApplianceRowView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
     @State private var showingActionSheet = false // Added for long press gesture
+    @State private var isDeleting = false // Track deletion state to prevent multiple deletions
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
@@ -152,12 +153,15 @@ struct ApplianceRowView: View {
             }
             .tint(AppTheme.primary)
             
-            // Delete action
+            // Delete action (direct deletion from swipe - no confirmation)
             Button(role: .destructive, action: {
-                showingDeleteAlert = true
+                if !isDeleting {
+                    deleteAppliance()
+                }
             }) {
                 Label("Delete", systemImage: "trash")
             }
+            .disabled(isDeleting)
         }
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             // Quick share action
@@ -174,6 +178,10 @@ struct ApplianceRowView: View {
     // MARK: - Action Methods
     
     private func deleteAppliance() {
+        // Prevent multiple simultaneous deletions
+        guard !isDeleting else { return }
+        isDeleting = true
+        
         // Cancel any scheduled notifications
         NotificationManager.shared.cancelNotification(for: appliance)
         
@@ -185,17 +193,33 @@ struct ApplianceRowView: View {
             try? FileManager.default.removeItem(at: fileURL)
         }
         
-        // Delete from Core Data
-        viewContext.delete(appliance)
-        
-        do {
-            try viewContext.save()
+        // Defer the deletion to the next run loop to ensure swipe UI has fully dismissed
+        DispatchQueue.main.async {
+            self.viewContext.delete(self.appliance)
             
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
-        } catch {
-            print("Error deleting appliance: \(error)")
+            do {
+                try self.viewContext.save()
+                
+                // Haptic feedback
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+                
+                // Reset deletion state
+                DispatchQueue.main.async {
+                    self.isDeleting = false
+                }
+            } catch {
+                print("Error deleting appliance: \(error)")
+                
+                // Haptic feedback for error
+                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                impactFeedback.impactOccurred()
+                
+                // Reset deletion state
+                DispatchQueue.main.async {
+                    self.isDeleting = false
+                }
+            }
         }
     }
     

@@ -303,34 +303,59 @@ struct ExpandableApplianceCard: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
     @State private var showingActionSheet = false // Added for long press gesture
+    @State private var isDeleting = false // Track deletion state to prevent multiple deletions
     @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
         VStack(spacing: 2) {
-            // Main card content with swipe actions
+            // Main card content with swipe actions applied to exactly the card height
             mainCardContent
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     // Edit action
                     Button(action: {
                         showingEditSheet = true
                     }) {
-                        Label("Edit", systemImage: "pencil")
+                        VStack(spacing: 6) {
+                            Image(systemName: "pencil")
+                                .font(.title3)
+                            Text("Edit")
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxHeight: .infinity)
                     }
                     .tint(AppTheme.primary)
                     
-                    // Delete action
+                    // Delete action (direct deletion from swipe - no confirmation)
                     Button(role: .destructive, action: {
-                        showingDeleteAlert = true
+                        if !isDeleting {
+                            deleteAppliance()
+                        }
                     }) {
-                        Label("Delete", systemImage: "trash")
+                        VStack(spacing: 6) {
+                            Image(systemName: "trash")
+                                .font(.title3)
+                            Text("Delete")
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxHeight: .infinity)
                     }
+                    .disabled(isDeleting)
                 }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                .swipeActions(edge: .leading, allowsFullSwipe: false) {
                     // Quick share action
                     Button(action: {
                         shareAppliance()
                     }) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        VStack(spacing: 6) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.title3)
+                            Text("Share")
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxHeight: .infinity)
                     }
                     .tint(AppTheme.success)
                 }
@@ -445,6 +470,7 @@ struct ExpandableApplianceCard: View {
         .padding(AppTheme.spacing)
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
+        .contentShape(Rectangle()) // Ensure hit testing matches visual bounds
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppTheme.springAnimation, value: isPressed)
         .shadow(color: AppTheme.secondaryText.opacity(0.1), radius: 2, x: 0, y: 1)
@@ -629,13 +655,47 @@ struct ExpandableApplianceCard: View {
     
     /// Deletes the appliance from Core Data
     private func deleteAppliance() {
-        withAnimation(AppTheme.springAnimation) {
-            viewContext.delete(appliance)
+        // Prevent multiple simultaneous deletions
+        guard !isDeleting else { return }
+        isDeleting = true
+        
+        // Cancel any scheduled notifications
+        NotificationManager.shared.cancelNotification(for: appliance)
+        
+        // Delete associated file if exists
+        if let fileName = appliance.name {
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fileURL = documentsPath.appendingPathComponent("receipts").appendingPathComponent(fileName)
+            
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        
+        // Defer the deletion to the next run loop to ensure swipe UI has fully dismissed
+        DispatchQueue.main.async {
+            self.viewContext.delete(self.appliance)
             
             do {
-                try viewContext.save()
+                try self.viewContext.save()
+                
+                // Haptic feedback
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+                
+                // Reset deletion state
+                DispatchQueue.main.async {
+                    self.isDeleting = false
+                }
             } catch {
                 print("Error deleting appliance: \(error)")
+                
+                // Haptic feedback for error
+                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                impactFeedback.impactOccurred()
+                
+                // Reset deletion state
+                DispatchQueue.main.async {
+                    self.isDeleting = false
+                }
             }
         }
     }

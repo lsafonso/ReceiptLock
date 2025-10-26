@@ -126,6 +126,13 @@ struct EditApplianceView: View {
         appliance.warrantySummary = warrantySummary
         appliance.updatedAt = Date()
         
+        // Calculate expiry date based on purchase date and warranty months
+        if warrantyMonths > 0, let expiryDate = Calendar.current.date(byAdding: .month, value: warrantyMonths, to: purchaseDate) {
+            appliance.warrantyExpiryDate = expiryDate
+        } else {
+            appliance.warrantyExpiryDate = nil
+        }
+        
         do {
             try viewContext.save()
             
