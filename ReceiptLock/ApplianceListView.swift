@@ -181,13 +181,11 @@ struct ApplianceListView: View {
                 applianceRow(for: appliance, at: index)
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: 0, leading: AppTheme.spacing, bottom: AppTheme.spacing, trailing: AppTheme.spacing))
             }
         }
-        .listStyle(PlainListStyle())
-        .background(Color.clear)
-        .padding(.horizontal, AppTheme.spacing)
-        .padding(.top, AppTheme.smallSpacing)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
     
     /// Creates an individual appliance row with animations and transitions
@@ -346,6 +344,31 @@ struct ApplianceListView: View {
     }
     
     // MARK: - Helper Methods
+    
+    /// Deletes a single appliance from Core Data
+    /// - Parameter appliance: The appliance to delete
+    private func deleteAppliance(_ appliance: Appliance) {
+        print("🗑️ Deleting appliance: \(appliance.name ?? "Unknown")")
+        
+        withAnimation(AppTheme.springAnimation) {
+            viewContext.delete(appliance)
+            
+            do {
+                try viewContext.save()
+                print("✅ Appliance deleted successfully")
+                
+                // Haptic feedback for successful delete
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+            } catch {
+                print("❌ Error deleting appliance: \(error)")
+                
+                // Haptic feedback for error
+                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                impactFeedback.impactOccurred()
+            }
+        }
+    }
     
     /// Deletes appliances from Core Data context
     /// - Parameter offsets: Index set of appliances to delete

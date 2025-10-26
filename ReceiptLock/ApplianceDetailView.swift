@@ -369,9 +369,32 @@ struct ApplianceDetailView: View {
     }
     
     private func deleteAppliance() {
-        // This would typically delete from Core Data
-        // For now, just dismiss the view
-        dismiss()
+        guard let viewContext = appliance.managedObjectContext else {
+            print("❌ No managed object context available")
+            return
+        }
+        
+        print("🗑️ Deleting appliance: \(appliance.name ?? "Unknown")")
+        
+        viewContext.delete(appliance)
+        
+        do {
+            try viewContext.save()
+            print("✅ Appliance deleted successfully")
+            
+            // Haptic feedback for successful delete
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            // Dismiss the view
+            dismiss()
+        } catch {
+            print("❌ Error deleting appliance: \(error)")
+            
+            // Haptic feedback for error
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+        }
     }
 }
 

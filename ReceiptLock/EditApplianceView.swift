@@ -21,6 +21,8 @@ struct EditApplianceView: View {
     @State private var warrantyMonths: Int
     @State private var notes: String
     @State private var warrantySummary: String
+    @State private var showingSaveSuccessAlert = false
+    @State private var isSaving = false
     
     init(appliance: Appliance) {
         self.appliance = appliance
@@ -84,16 +86,35 @@ struct EditApplianceView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button {
                         saveChanges()
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.primary))
+                        } else {
+                            Text("Save")
+                                .foregroundColor(AppTheme.primary)
+                        }
                     }
-                    .disabled(title.isEmpty || brand.isEmpty)
+                    .disabled(title.isEmpty || brand.isEmpty || isSaving)
                 }
             }
+        }
+        .alert("Success!", isPresented: $showingSaveSuccessAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Appliance updated successfully!")
         }
     }
     
     private func saveChanges() {
+        guard !isSaving else { return }
+        
+        isSaving = true
+        
         appliance.name = title
         appliance.brand = brand
         appliance.model = model
@@ -107,9 +128,23 @@ struct EditApplianceView: View {
         
         do {
             try viewContext.save()
-            dismiss()
+            
+            // Haptic feedback for successful save
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            
+            // Show success alert
+            DispatchQueue.main.async {
+                self.isSaving = false
+                self.showingSaveSuccessAlert = true
+            }
         } catch {
             print("Error saving changes: \(error)")
+            isSaving = false
+            
+            // Haptic feedback for error
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
         }
     }
 }

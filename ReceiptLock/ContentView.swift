@@ -24,23 +24,19 @@ struct ContentView: View {
                 NavigationStack {
                     ZStack {
                         // Main content
-                        TabView(selection: $selectedTab) {
-                            DashboardView()
-                                .tag(0)
-                            
-                            ApplianceListView()
-                                .tag(1)
-                            
-                            AddApplianceView()
-                                .tag(2)
-                            
-                            RemindersTabView()
-                                .tag(3)
-                            
-                            SettingsView()
-                                .tag(4)
+                        Group {
+                            if selectedTab == 0 {
+                                DashboardView()
+                            } else if selectedTab == 1 {
+                                ApplianceListView()
+                            } else if selectedTab == 2 {
+                                AddApplianceView()
+                            } else if selectedTab == 3 {
+                                RemindersTabView()
+                            } else if selectedTab == 4 {
+                                SettingsView()
+                            }
                         }
-                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                         .animation(.easeInOut, value: selectedTab)
                         .padding(.bottom, 100) // Add bottom padding to account for tab bar
                         

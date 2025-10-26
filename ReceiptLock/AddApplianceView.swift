@@ -30,6 +30,8 @@ struct AddApplianceView: View {
     @State private var serialNumber = ""
     @State private var warrantySummary = ""
     @State private var notes = ""
+    @State private var isSaving = false
+    @State private var showingSaveSuccessAlert = false
     
     enum AddMethod {
         case scanInvoice
@@ -141,11 +143,18 @@ struct AddApplianceView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button {
                         saveAppliance()
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.primary))
+                        } else {
+                            Text("Save")
+                                .foregroundColor(AppTheme.primary)
+                        }
                     }
-                    .foregroundColor(AppTheme.primary)
-                    .disabled(title.isEmpty || store.isEmpty)
+                    .disabled(title.isEmpty || store.isEmpty || isSaving)
                 }
             }
         }
@@ -160,6 +169,13 @@ struct AddApplianceView: View {
             }
         } message: {
             Text("Please fix the validation errors before saving.")
+        }
+        .alert("Success!", isPresented: $showingSaveSuccessAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Appliance saved successfully!")
         }
     }
     
@@ -544,6 +560,14 @@ struct AddApplianceView: View {
     }
     
     private func saveAppliance() {
+        // Prevent multiple saves
+        guard !isSaving else {
+            print("⚠️ Save already in progress")
+            return
+        }
+        
+        print("🔄 Starting save process...")
+        
         // Validate all fields before saving
         let isValid = validationManager.validateApplianceForm(
             title: title,
@@ -554,6 +578,7 @@ struct AddApplianceView: View {
         )
         
         if !isValid {
+            print("❌ Validation failed")
             showingValidationAlert = true
             
             // Haptic feedback for validation errors
@@ -563,7 +588,10 @@ struct AddApplianceView: View {
             return
         }
         
-        let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext) as! NSManagedObject
+        print("✅ Validation passed")
+        isSaving = true
+        
+        let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext)
         appliance.setValue(UUID(), forKey: "id")
         appliance.setValue(title.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "name")
         appliance.setValue(store.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "brand")
@@ -581,24 +609,29 @@ struct AddApplianceView: View {
             appliance.setValue(expiryDate, forKey: "warrantyExpiryDate")
         }
         
-        // Note: imageData property doesn't exist in Receipt entity
-        // In a real app, you would save the image to Documents directory
-        // and store the file path in the receipt
-        
+        print("💾 Attempting to save to Core Data...")
         do {
             try viewContext.save()
-            
-            // Schedule notification for warranty expiry
-            // Note: NotificationManager expects Receipt type, so we'll skip this for now
-            // NotificationManager.shared.scheduleNotification(for: appliance)
+            print("✅ Save successful!")
             
             // Haptic feedback for successful save
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
             
-            dismiss()
+            // Reset saving state and show success alert
+            print("🚪 Showing success alert...")
+            DispatchQueue.main.async {
+                self.isSaving = false
+                self.showingSaveSuccessAlert = true
+            }
         } catch {
-            print("Error saving appliance: \(error)")
+            print("❌ Error saving appliance: \(error)")
+            print("Error details: \(error.localizedDescription)")
+            isSaving = false
+            
+            // Haptic feedback for error
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
         }
     }
 }
