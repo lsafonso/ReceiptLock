@@ -9,6 +9,7 @@ import SwiftUI
 import CoreData
 import PhotosUI
 import Vision
+import AVFoundation
 
 struct AddApplianceView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -32,6 +33,9 @@ struct AddApplianceView: View {
     @State private var notes = ""
     @State private var isSaving = false
     @State private var showingSaveSuccessAlert = false
+    @State private var showingBarcodeScanner = false
+    @State private var scannedBarcode: String?
+    @State private var scannedBarcodeType: String?
     
     enum AddMethod {
         case scanInvoice
@@ -179,30 +183,72 @@ struct AddApplianceView: View {
     // MARK: - Scan Invoice Section
     private var scanInvoiceSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Scan receipt")
+            Text("Scan receipt or barcode")
                 .rlHeadline()
             
-            Text("Use a photo or PDF—store, model and purchase date auto-fill.")
+            Text("Use a photo, PDF, or scan a barcode/QR code—store, model and purchase date auto-fill.")
                 .rlSubheadlineMuted()
             
+            // Receipt scanning button
             PhotosPicker(selection: $selectedImage, matching: .images) {
                 HStack(spacing: AppTheme.smallSpacing) {
                     Image(systemName: "doc.text.viewfinder")
                         .font(.title2)
                         .symbolRenderingMode(.monochrome)
-                        .foregroundColor(.white) // Explicit white for icon
+                        .foregroundColor(.white)
                     
-                    Text("Scan receipt")
+                    Text("Scan Receipt")
                         .font(.headline.weight(.semibold))
-                        .foregroundColor(.white) // Explicit white for text
+                        .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(AppTheme.spacing)
                 .background(AppTheme.primary)
                 .cornerRadius(AppTheme.cornerRadius)
-                .opacity(isProcessingOCR ? 0.6 : 1.0) // Slight overlay when disabled
+                .opacity(isProcessingOCR ? 0.6 : 1.0)
             }
             .disabled(isProcessingOCR)
+            
+            // Barcode scanning button
+            Button(action: {
+                showingBarcodeScanner = true
+            }) {
+                HStack(spacing: AppTheme.smallSpacing) {
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.title2)
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundColor(.white)
+                    
+                    Text("Scan Barcode/QR Code")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(AppTheme.spacing)
+                .background(AppTheme.secondary)
+                .cornerRadius(AppTheme.cornerRadius)
+            }
+            
+            // Show scanned barcode info if available
+            if let barcode = scannedBarcode, let type = scannedBarcodeType {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Scanned \(type): \(barcode)")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                    Spacer()
+                    Button("Clear") {
+                        scannedBarcode = nil
+                        scannedBarcodeType = nil
+                    }
+                    .font(.caption)
+                    .foregroundColor(AppTheme.primary)
+                }
+                .padding(AppTheme.smallSpacing)
+                .background(AppTheme.cardBackground)
+                .cornerRadius(AppTheme.smallCornerRadius)
+            }
             
             if isProcessingOCR {
                 HStack {
@@ -215,6 +261,11 @@ struct AddApplianceView: View {
         }
         .padding(AppTheme.spacing)
         .cardBackground()
+        .sheet(isPresented: $showingBarcodeScanner) {
+            BarcodeScannerView { code, type in
+                handleScannedBarcode(code: code, type: type)
+            }
+        }
     }
     
     // MARK: - Manual Entry Section
@@ -608,6 +659,103 @@ struct AddApplianceView: View {
             // Haptic feedback for error
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
+        }
+    }
+    
+    // MARK: - Barcode Handling
+    
+    private func handleScannedBarcode(code: String, type: AVMetadataObject.ObjectType) {
+        scannedBarcode = code
+        scannedBarcodeType = barcodeTypeDisplayName(type)
+        
+        // Auto-fill fields based on barcode type
+        if type == .qr {
+            // QR codes might contain JSON or URL data
+            handleQRCode(code)
+        } else {
+            // Standard barcodes (EAN, UPC, etc.) - typically product identifiers
+            handleProductBarcode(code)
+        }
+        
+        // Dismiss scanner
+        showingBarcodeScanner = false
+    }
+    
+    private func handleQRCode(_ code: String) {
+        // Check if QR code is a URL
+        if let url = URL(string: code), url.scheme != nil {
+            // URL-based QR code - could be product page
+            notes = "Product URL: \(code)"
+            return
+        }
+        
+        // Check if QR code is JSON
+        if let data = code.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            // Extract data from JSON QR code
+            if let productName = json["name"] as? String {
+                title = productName
+            }
+            if let productModel = json["model"] as? String {
+                model = productModel
+            }
+            if let productStore = json["store"] as? String {
+                store = productStore
+            }
+            return
+        }
+        
+        // Plain text QR code - use as model or serial number
+        if model.isEmpty {
+            model = code
+        } else if serialNumber.isEmpty {
+            serialNumber = code
+        } else {
+            notes = "QR Code: \(code)"
+        }
+    }
+    
+    private func handleProductBarcode(_ code: String) {
+        // Standard product barcodes (EAN-13, UPC, etc.)
+        // Use the barcode as a product identifier
+        // In a real app, you might look this up in a product database
+        
+        // For now, store it in notes or use as model identifier
+        if model.isEmpty {
+            // Try to infer product type from barcode if possible
+            model = "Product ID: \(code)"
+        } else {
+            notes = "Barcode: \(code)"
+        }
+        
+        // You could also use the barcode to look up product information
+        // from an external API or database here
+    }
+    
+    private func barcodeTypeDisplayName(_ type: AVMetadataObject.ObjectType) -> String {
+        switch type {
+        case .qr:
+            return "QR Code"
+        case .ean13:
+            return "EAN-13"
+        case .ean8:
+            return "EAN-8"
+        case .code128:
+            return "Code 128"
+        case .code39:
+            return "Code 39"
+        case .code93:
+            return "Code 93"
+        case .upce:
+            return "UPC-E"
+        case .pdf417:
+            return "PDF417"
+        case .aztec:
+            return "Aztec"
+        case .dataMatrix:
+            return "Data Matrix"
+        default:
+            return "Barcode"
         }
     }
 }
