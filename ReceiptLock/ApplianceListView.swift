@@ -530,16 +530,3 @@ struct ApplianceFilterChip: View {
     .padding()
 }
 
-#Preview("Dark Mode") {
-    ApplianceFilterChip(
-        title: "Valid",
-        icon: "checkmark.circle.fill",
-        color: AppTheme.success,
-        isSelected: false,
-        count: 8
-    ) {
-        // Action
-    }
-    .padding()
-    .preferredColorScheme(.dark)
-}

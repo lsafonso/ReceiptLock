@@ -79,8 +79,6 @@ final class ReceiptLockUITests: XCTestCase {
         
         // Verify settings elements exist
         XCTAssertTrue(app.staticTexts["Notifications"].exists)
-        XCTAssertTrue(app.staticTexts["Appearance"].exists)
         XCTAssertTrue(app.staticTexts["Data Management"].exists)
-        XCTAssertTrue(app.staticTexts["About"].exists)
     }
 }

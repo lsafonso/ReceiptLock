@@ -32,7 +32,7 @@ struct UserPreferences: Codable {
     var preferredCurrency: String
     
     init(
-        theme: ThemeMode = .system,
+        theme: ThemeMode = .light,
         notificationsEnabled: Bool = true,
         showWelcomeMessage: Bool = true,
         preferredCurrency: String = "USD"
@@ -46,16 +46,10 @@ struct UserPreferences: Codable {
 
 // MARK: - App Theme Enum
 enum ThemeMode: String, CaseIterable, Codable {
-    case system = "system"
     case light = "light"
-    case dark = "dark"
     
     var displayName: String {
-        switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
-        }
+        return "Light"
     }
 }
 
@@ -288,7 +282,7 @@ struct ProfileEditView: View {
         
         profileManager.updateProfile(updatedProfile)
         
-        dismiss()
+        // Note: dismiss() is handled by the Save button action to avoid double dismissal
     }
 }
 

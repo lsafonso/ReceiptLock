@@ -316,7 +316,7 @@ enum RetentionPeriod: String, Codable, CaseIterable {
 }
 
 struct PrivacySettings: Codable {
-    var theme: ThemeMode = .system
+    var theme: ThemeMode = .light
     var notificationsEnabled: Bool = true
     var dataSharingEnabled: Bool = false
     var analyticsEnabled: Bool = false

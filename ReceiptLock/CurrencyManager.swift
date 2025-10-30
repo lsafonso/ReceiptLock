@@ -42,7 +42,17 @@ class CurrencyManager: ObservableObject {
     
     private init() {
         // Load saved currency or default to USD
-        self.currentCurrency = userDefaults.string(forKey: currencyKey) ?? "USD"
+        let savedCurrency = userDefaults.string(forKey: currencyKey) ?? "USD"
+        
+        // Validate that the saved currency is still in supportedCurrencies
+        // If not, reset to USD to prevent invalid currency codes
+        if CurrencyManager.supportedCurrencies[savedCurrency] != nil {
+            self.currentCurrency = savedCurrency
+        } else {
+            // Currency is no longer supported, reset to USD
+            self.currentCurrency = "USD"
+            userDefaults.set("USD", forKey: currencyKey)
+        }
     }
     
     // MARK: - Currency Properties

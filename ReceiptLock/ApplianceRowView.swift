@@ -472,11 +472,3 @@ struct CustomProgressBar: View {
     }
 }
 
-#Preview("Dark Mode") {
-    ZStack {
-        AppTheme.background
-        Text("ApplianceRowView Preview (Dark Mode)")
-            .foregroundColor(AppTheme.text)
-    }
-    .preferredColorScheme(.dark)
-}
