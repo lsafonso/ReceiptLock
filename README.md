@@ -18,17 +18,14 @@ A comprehensive iOS app for managing receipts and warranty information with OCR 
 ## Features
 
 ### 🔒 **Security & Privacy** ✅ **COMPLETE**
-- **Face ID/Touch ID Protection**: Biometric authentication with device passcode fallback
 - **Data Encryption**: AES-256 encryption for all sensitive data using CryptoKit
 - **Secure Storage**: Encrypted data storage with iOS Keychain integration
 - **Privacy Controls**: GDPR-compliant consent management and data retention policies
 - **Security Auditing**: Comprehensive security assessment and real-time monitoring
-- **Auto-Lock System**: Configurable session timeout and biometric lock protection
 - **Data Export/Deletion**: Full GDPR compliance with data portability and right to be forgotten
 
 ### 💰 **Multi-Currency Support** ✅ **COMPLETE**
-- **20+ Supported Currencies**: USD, EUR, GBP, CAD, AUD, JPY, CHF, CNY, INR, BRL, and more
-- **Country-Based Currency**: Automatically set currency based on selected country/region
+- **3 Supported Currencies**: USD (US Dollar), GBP (British Pound), EUR (Euro)
 - **Dynamic Currency Switching**: Change currency preferences in settings
 - **Global Updates**: All price displays update automatically
 - **OCR Integration**: Receipt scanning adapts to selected currency
@@ -74,8 +71,7 @@ The app features a comprehensive, logically organized settings hierarchy:
 #### **1. Profile & Personalization**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
 - **Email Address**: Add and manage your email address
-- **Country/Region**: Select your country with automatic currency detection
-- **Currency Preferences**: Full currency selection with 20+ supported currencies (auto-set based on country)
+- **Currency Preferences**: Select from 3 supported currencies (USD, GBP, EUR)
 
 #### **2. Receipt & Appliance Settings**
 - **Receipt Categories**: Manage receipt organization and categorization
@@ -89,7 +85,6 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **Custom Reminder Messages**: Personalize notification content
 
 #### **4. Security & Privacy**
-- **Biometric Authentication**: Face ID, Touch ID, and passcode configuration
 - **Encryption Settings**: Data encryption levels and security configuration
 - **Privacy Controls**: Data sharing consent and retention management
 
@@ -130,7 +125,6 @@ The app features a comprehensive, logically organized settings hierarchy:
 - **FileManager**: Local file storage management
 
 ### 🔒 **Security Technologies**
-- **LocalAuthentication**: Face ID and Touch ID biometric authentication
 - **CryptoKit**: AES-256 encryption and secure key management
 - **Security Framework**: iOS Keychain integration for secure storage
 - **Core Data Encryption**: Encrypted attributes and secure data persistence
@@ -208,13 +202,10 @@ ReceiptLock/
 │   │   ├── ProfileView.swift         # User profile management
 │   │   └── SettingsView.swift        # Enhanced settings hierarchy
 │   ├── 🔒 Security/                  # Security & Privacy
-│   │   ├── AuthenticationWrapperView.swift
-│   │   ├── BiometricAuthenticationManager.swift
 │   │   ├── DataEncryptionManager.swift
 │   │   ├── SecureStorageManager.swift
 │   │   ├── PrivacyManager.swift
 │   │   ├── SecuritySettingsView.swift
-│   │   ├── AuthenticationService.swift
 │   │   └── KeychainWrapper.swift
 │   ├── Managers/                     # Business logic
 │   │   ├── NotificationManager.swift
@@ -287,7 +278,6 @@ The enhanced settings provide comprehensive control over your app experience:
 - Create personalized reminder messages
 
 #### **Security & Privacy**
-- Enable biometric authentication (Face ID/Touch ID)
 - Configure encryption settings
 - Manage privacy controls and data consent
 
@@ -326,7 +316,6 @@ Basic UI tests are included for core workflows:
 - OCR processing
 - Save and reminder scheduling
 - Settings navigation
-- Authentication flows
 
 ## Permissions
 
@@ -336,7 +325,6 @@ The app requires the following permissions:
 - **File Access**: For importing/exporting data
 
 ### 🔒 **Security Permissions**
-- **Face ID/Touch ID**: For biometric authentication (optional, with passcode fallback)
 - **Keychain Access**: For secure storage of encryption keys and sensitive data
 - **iCloud**: Enable the iCloud capability and container if using sync
 
@@ -378,7 +366,7 @@ The app includes comprehensive error handling for:
 - **Enhanced settings hierarchy fully implemented and production-ready**
 
 ### 💰 **Multi-Currency Support** ✅ **COMPLETE**
-- **20+ currencies supported with dynamic switching**
+- **3 currencies supported (USD, GBP, EUR) with dynamic switching**
 
 ### Core Features
 - Cloud sync with iCloud ✅ **IMPLEMENTED**

@@ -2,13 +2,9 @@ import SwiftUI
 import LocalAuthentication
 
 struct SecuritySettingsView: View {
-    @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var privacyManager = PrivacyManager.shared
     @StateObject private var secureStorage = SecureStorageManager.shared
-    @StateObject private var biometricManager = BiometricAuthenticationManager.shared
     
-    @State private var showingBiometricSetup = false
-    @State private var showingPasscodeSetup = false
     @State private var showingSecurityAudit = false
     @State private var showingPrivacyPolicy = false
     @State private var showingDataExport = false
@@ -22,47 +18,6 @@ struct SecuritySettingsView: View {
     var body: some View {
         NavigationView {
             List {
-                // MARK: - Authentication Section
-                Section("Authentication") {
-                    HStack {
-                        Image(systemName: "lock.shield")
-                            .foregroundColor(.blue)
-                        Text("Biometric Authentication")
-                        Spacer()
-                        Toggle("", isOn: $privacyManager.privacySettings.biometricLockEnabled)
-                            .onChange(of: privacyManager.privacySettings.biometricLockEnabled) { _, newValue in
-                                if newValue {
-                                    checkBiometricAvailability()
-                                }
-                            }
-                    }
-                    
-                    if privacyManager.privacySettings.biometricLockEnabled {
-                        HStack {
-                            Image(systemName: biometricManager.biometricType == .faceID ? "faceid" : "touchid")
-                                .foregroundColor(.green)
-                            Text("Biometric Type")
-                            Spacer()
-                            Text(biometricManager.biometricTypeDescription)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        HStack {
-                            Image(systemName: "timer")
-                                .foregroundColor(Color(red: 230/255, green: 154/255, blue: 100/255))
-                            Text("Auto-Lock Timeout")
-                            Spacer()
-                            Text(formatTimeInterval(privacyManager.privacySettings.autoLockTimeout))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Button("Configure Auto-Lock") {
-                            showingPasscodeSetup = true
-                        }
-                        .foregroundColor(.blue)
-                    }
-                }
-                
                 // MARK: - Security Section
                 Section("Security") {
                     HStack {
@@ -168,35 +123,6 @@ struct SecuritySettingsView: View {
                     .foregroundColor(.red)
                 }
                 
-                // MARK: - Session Section
-                Section("Current Session") {
-                    HStack {
-                        Image(systemName: "clock")
-                            .foregroundColor(.blue)
-                        Text("Session Status")
-                        Spacer()
-                        Text(authManager.isAuthenticated ? "Active" : "Inactive")
-                            .foregroundColor(authManager.isAuthenticated ? .green : .red)
-                    }
-                    
-                    if let lastAuth = authManager.lastAuthenticationTime {
-                        HStack {
-                            Image(systemName: "checkmark.circle")
-                                .foregroundColor(.green)
-                            Text("Last Authentication")
-                            Spacer()
-                            Text(lastAuth, style: .relative)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    if authManager.isAuthenticated {
-                        Button("Logout") {
-                            authManager.logout()
-                        }
-                        .foregroundColor(.red)
-                    }
-                }
             }
             .navigationTitle("Security & Privacy")
             .navigationBarTitleDisplayMode(.large)
@@ -210,12 +136,6 @@ struct SecuritySettingsView: View {
         }
         .onAppear {
             runSecurityAudit()
-        }
-        .sheet(isPresented: $showingBiometricSetup) {
-            BiometricSetupView()
-        }
-        .sheet(isPresented: $showingPasscodeSetup) {
-            AutoLockSetupView()
         }
         .sheet(isPresented: $showingSecurityAudit) {
             SecurityAuditView(auditResult: securityAuditResult ?? SecurityAuditResult())
@@ -235,14 +155,6 @@ struct SecuritySettingsView: View {
     }
     
     // MARK: - Private Methods
-    
-    private func checkBiometricAvailability() {
-        let status = biometricManager.checkBiometricSettings()
-        
-        if status != .available {
-            showingBiometricSetup = true
-        }
-    }
     
     private func runSecurityAudit() {
         securityAuditResult = secureStorage.performSecurityAudit()

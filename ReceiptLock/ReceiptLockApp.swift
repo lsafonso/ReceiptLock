@@ -14,25 +14,18 @@ struct ReceiptLockApp: App {
     
     var body: some Scene {
         WindowGroup {
-            AuthenticationWrapperView(
-                requireAuthentication: true,
-                securityLevel: .high,
-                autoLockEnabled: true
-            ) {
-                ContentView()
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                    .preferredColorScheme(.light)
-                    .onAppear {
-                        NotificationManager.shared.requestPermission()
-                        // Initialize backup manager
-                        _ = DataBackupManager.shared
-                        // Initialize security managers
-                        _ = BiometricAuthenticationManager.shared
-                        _ = DataEncryptionManager.shared
-                        _ = PrivacyManager.shared
-                        _ = SecureStorageManager.shared
-                    }
-            }
+            ContentView()
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .preferredColorScheme(.light)
+                .onAppear {
+                    NotificationManager.shared.requestPermission()
+                    // Initialize backup manager
+                    _ = DataBackupManager.shared
+                    // Initialize security managers
+                    _ = DataEncryptionManager.shared
+                    _ = PrivacyManager.shared
+                    _ = SecureStorageManager.shared
+                }
         }
     }
 }

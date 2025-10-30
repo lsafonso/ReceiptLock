@@ -25,19 +25,8 @@ class CurrencyManager: ObservableObject {
     // Supported currencies with their symbols and formatting
     static let supportedCurrencies: [String: CurrencyInfo] = [
         "USD": CurrencyInfo(symbol: "$", name: "US Dollar", code: "USD"),
-        "EUR": CurrencyInfo(symbol: "€", name: "Euro", code: "EUR"),
         "GBP": CurrencyInfo(symbol: "£", name: "British Pound", code: "GBP"),
-        "BRL": CurrencyInfo(symbol: "R$", name: "Brazilian Real", code: "BRL"),
-        "CHF": CurrencyInfo(symbol: "CHF", name: "Swiss Franc", code: "CHF"),
-        "SEK": CurrencyInfo(symbol: "kr", name: "Swedish Krona", code: "SEK"),
-        "NOK": CurrencyInfo(symbol: "kr", name: "Norwegian Krone", code: "NOK"),
-        "DKK": CurrencyInfo(symbol: "kr", name: "Danish Krone", code: "DKK"),
-        "PLN": CurrencyInfo(symbol: "zł", name: "Polish Złoty", code: "PLN"),
-        "CZK": CurrencyInfo(symbol: "Kč", name: "Czech Koruna", code: "CZK"),
-        "HUF": CurrencyInfo(symbol: "Ft", name: "Hungarian Forint", code: "HUF"),
-        "RON": CurrencyInfo(symbol: "lei", name: "Romanian Leu", code: "RON"),
-        "BGN": CurrencyInfo(symbol: "лв", name: "Bulgarian Lev", code: "BGN"),
-        "HRK": CurrencyInfo(symbol: "kn", name: "Croatian Kuna", code: "HRK")
+        "EUR": CurrencyInfo(symbol: "€", name: "Euro", code: "EUR")
     ]
     
     private init() {
