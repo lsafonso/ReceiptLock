@@ -178,6 +178,10 @@ class BarcodeScannerService: NSObject, ObservableObject {
         // Set metadata output rect of interest to full screen
         metadataOutput.rectOfInterest = CGRect(x: 0, y: 0, width: 1, height: 1)
     }
+    
+    func updateRectOfInterest(_ rect: CGRect) {
+        metadataOutput.rectOfInterest = rect
+    }
 }
 
 // MARK: - AVCaptureMetadataOutputObjectsDelegate
@@ -235,7 +239,7 @@ struct BarcodeScannerPreviewView: UIViewRepresentable {
             // Update metadata output rect of interest
             if let connection = previewLayer.connection {
                 let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: uiView.bounds)
-                scannerService.metadataOutput.rectOfInterest = rect
+                scannerService.updateRectOfInterest(rect)
             }
         }
     }

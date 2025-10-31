@@ -10,6 +10,7 @@ import CoreData
 import PhotosUI
 import Vision
 import AVFoundation
+import UIKit
 
 struct AddApplianceView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -262,9 +263,9 @@ struct AddApplianceView: View {
         .padding(AppTheme.spacing)
         .cardBackground()
         .sheet(isPresented: $showingBarcodeScanner) {
-            BarcodeScannerView { code, type in
+            BarcodeScannerView(onCodeScanned: { code, type in
                 handleScannedBarcode(code: code, type: type)
-            }
+            })
         }
     }
     
