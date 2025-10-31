@@ -25,7 +25,6 @@ struct AddApplianceView: View {
     @State private var imageData: Data?
     @State private var isProcessingOCR = false
     @State private var selectedDeviceType: DeviceType?
-    @State private var selectedTab: AddMethod = .scanInvoice
     @StateObject private var validationManager = ValidationManager()
     @State private var showingValidationAlert = false
     @State private var model = ""
@@ -33,15 +32,12 @@ struct AddApplianceView: View {
     @State private var warrantySummary = ""
     @State private var notes = ""
     @State private var isSaving = false
-    @State private var showingSaveSuccessAlert = false
     @State private var showingBarcodeScanner = false
     @State private var scannedBarcode: String?
     @State private var scannedBarcodeType: String?
-    
-    enum AddMethod {
-        case scanInvoice
-        case manualEntry
-    }
+    @State private var savedApplianceID: UUID?
+    @State private var navigateToDetail = false
+    @State private var navigationPath = NavigationPath()
     
     enum DeviceType: String, CaseIterable {
         case airConditioner = "Air Conditioner"
@@ -118,7 +114,7 @@ struct AddApplianceView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppTheme.background
                     .ignoresSafeArea()
@@ -160,6 +156,13 @@ struct AddApplianceView: View {
                 }
             }
         }
+        .onAppear {
+            // Clear any lingering validation errors when view appears
+            // This ensures clean state when navigating back from detail view
+            if navigationPath.isEmpty {
+                validationManager.clearErrors()
+            }
+        }
         .onChange(of: selectedImage) { _, _ in
             Task {
                 await loadImage()
@@ -172,12 +175,34 @@ struct AddApplianceView: View {
         } message: {
             Text("Please fix the validation errors before saving.")
         }
-        .alert("Success!", isPresented: $showingSaveSuccessAlert) {
-            Button("OK") {
-                dismiss()
+        .navigationDestination(for: UUID.self) { applianceID in
+            Group {
+                if let appliance = fetchAppliance(id: applianceID) {
+                    ApplianceDetailView(appliance: appliance)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Add Another") {
+                                    // Navigate back first
+                                    navigationPath.removeLast()
+                                    savedApplianceID = nil
+                                    
+                                    // Reset form after navigation starts
+                                    // This ensures the view updates properly when we return
+                                    DispatchQueue.main.async {
+                                        self.resetForm()
+                                    }
+                                }
+                                .foregroundColor(AppTheme.primary)
+                            }
+                        }
+                }
             }
-        } message: {
-            Text("Appliance saved successfully!")
+        }
+        .onChange(of: navigateToDetail) { _, shouldNavigate in
+            if shouldNavigate, let applianceID = savedApplianceID {
+                navigationPath.append(applianceID)
+                navigateToDetail = false
+            }
         }
     }
     
@@ -272,75 +297,46 @@ struct AddApplianceView: View {
     // MARK: - Manual Entry Section
     private var manualEntrySection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Choose from \"Device Type\" or \"Brands\" to proceed")
+            Text("Select a device type to get started")
                 .rlSubheadline()
             
-            // Tab Selection
-            HStack(spacing: 0) {
-                Button("Device Type") {
-                    selectedTab = .manualEntry
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppTheme.smallSpacing)
-                .background(selectedTab == .manualEntry ? AppTheme.primary : Color.clear)
-                .foregroundColor(selectedTab == .manualEntry ? .white : AppTheme.secondaryText)
-                .font(.subheadline)
-                .cornerRadius(AppTheme.smallCornerRadius, corners: [.topLeft, .bottomLeft])
-                
-                Button("Brands") {
-                    // TODO: Implement brands selection
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppTheme.smallSpacing)
-                .background(Color.clear)
-                .foregroundColor(AppTheme.secondaryText)
-                .font(.subheadline)
-                .cornerRadius(AppTheme.smallCornerRadius, corners: [.topRight, .bottomRight])
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
-                    .stroke(AppTheme.secondaryText.opacity(0.2), lineWidth: 1)
-            )
-            
-            if selectedTab == .manualEntry {
-                // Device Type Grid
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: AppTheme.spacing) {
-                    ForEach(DeviceType.allCases, id: \.self) { deviceType in
-                        Button(action: {
-                            selectedDeviceType = deviceType
-                            title = deviceType.rawValue
-                            // Pre-fill model with device type as default
-                            if model.isEmpty {
-                                model = deviceType.rawValue
-                            }
-                        }) {
-                            VStack(spacing: AppTheme.smallSpacing) {
-                                Image(systemName: deviceType.icon)
-                                    .font(.title2)
-                                    .foregroundColor(deviceType.color)
-                                
-                                Text(deviceType.rawValue)
-                                    .rlCaption()
-                                    .fontWeight(.medium)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                            }
-                            .frame(height: 80)
-                            .frame(maxWidth: .infinity)
-                            .background(selectedDeviceType == deviceType ? deviceType.color.opacity(0.1) : AppTheme.cardBackground)
-                            .cornerRadius(AppTheme.cornerRadius)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                    .stroke(selectedDeviceType == deviceType ? deviceType.color : AppTheme.secondaryText.opacity(0.2), lineWidth: 1)
-                            )
+            // Device Type Grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: AppTheme.spacing) {
+                ForEach(DeviceType.allCases, id: \.self) { deviceType in
+                    Button(action: {
+                        selectedDeviceType = deviceType
+                        title = deviceType.rawValue
+                        // Pre-fill model with device type as default
+                        if model.isEmpty {
+                            model = deviceType.rawValue
                         }
-                        .buttonStyle(PlainButtonStyle())
+                    }) {
+                        VStack(spacing: AppTheme.smallSpacing) {
+                            Image(systemName: deviceType.icon)
+                                .font(.title2)
+                                .foregroundColor(deviceType.color)
+                            
+                            Text(deviceType.rawValue)
+                                .rlCaption()
+                                .fontWeight(.medium)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+                        .frame(height: 80)
+                        .frame(maxWidth: .infinity)
+                        .background(selectedDeviceType == deviceType ? deviceType.color.opacity(0.1) : AppTheme.cardBackground)
+                        .cornerRadius(AppTheme.cornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                .stroke(selectedDeviceType == deviceType ? deviceType.color : AppTheme.secondaryText.opacity(0.2), lineWidth: 1)
+                        )
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                
-                // Form Fields
-                formFields
             }
+            
+            // Form Fields
+            formFields
         }
         .padding(AppTheme.spacing)
         .cardBackground()
@@ -646,11 +642,19 @@ struct AddApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
             
-            // Reset saving state and show success alert
-            print("🚪 Showing success alert...")
-            DispatchQueue.main.async {
-                self.isSaving = false
-                self.showingSaveSuccessAlert = true
+            // Store the saved appliance ID and navigate to detail view
+            if let savedID = appliance.value(forKey: "id") as? UUID {
+                DispatchQueue.main.async {
+                    self.isSaving = false
+                    self.savedApplianceID = savedID
+                    self.navigateToDetail = true
+                }
+            } else {
+                // Fallback: dismiss if we can't get the ID
+                DispatchQueue.main.async {
+                    self.isSaving = false
+                    dismiss()
+                }
             }
         } catch {
             print("❌ Error saving appliance: \(error)")
@@ -731,6 +735,37 @@ struct AddApplianceView: View {
         
         // You could also use the barcode to look up product information
         // from an external API or database here
+    }
+    
+    private func resetForm() {
+        // Reset all form fields first
+        title = ""
+        store = ""
+        purchaseDate = Date()
+        price = 0.0
+        warrantyMonths = 12
+        selectedImage = nil
+        imageData = nil
+        selectedDeviceType = nil
+        model = ""
+        serialNumber = ""
+        warrantySummary = ""
+        notes = ""
+        scannedBarcode = nil
+        scannedBarcodeType = nil
+        
+        // Clear validation errors after resetting fields
+        // Use async to ensure it happens after all field updates are processed
+        DispatchQueue.main.async {
+            self.validationManager.clearErrors()
+        }
+    }
+    
+    private func fetchAppliance(id: UUID) -> Appliance? {
+        let fetchRequest = Appliance.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        fetchRequest.fetchLimit = 1
+        return try? viewContext.fetch(fetchRequest).first
     }
     
     private func barcodeTypeDisplayName(_ type: AVMetadataObject.ObjectType) -> String {
