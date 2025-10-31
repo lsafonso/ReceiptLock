@@ -557,25 +557,13 @@ ReceiptLock/
 - ✅ **Data Management**: Complete data management and export options
 - ✅ **About & Support**: App information and support resources
 
-### 🚀 **Next Priority Features to Implement**
+### 🚀 **Future Enhancements**
 
-#### **Advanced Analytics & Reporting** (Medium Impact)
-- Statistics dashboard for warranty analytics
-- Expiry forecasting and predictive analysis
-- Cost analysis and replacement tracking
-- Usage patterns and user behavior analytics
-
-#### **Platform Extensions** (Medium Impact)
-- iOS home screen widgets for quick warranty status
-- Apple Watch companion app
-- Siri integration for voice commands
-- iOS Shortcuts app integration
-
-#### **AI & Machine Learning** (Low Impact)
-- Receipt template recognition for different store formats
-- Smart appliance categorization based on content
-- Warranty period suggestions based on product type
-- Predictive reminder timing optimization
+*The app is focused on core warranty tracking functionality. Future enhancements may include:*
+- Enhanced OCR accuracy
+- Additional appliance categories
+- Improved receipt scanning
+- Performance optimizations
 
 ---
 

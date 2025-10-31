@@ -112,11 +112,6 @@ class PrivacyManager: ObservableObject {
         savePrivacySettings()
     }
     
-    func enableAnalytics(_ enabled: Bool) {
-        privacySettings.analyticsEnabled = enabled
-        saveUserConsent()
-    }
-    
     func enableCrashReporting(_ enabled: Bool) {
         privacySettings.crashReportingEnabled = enabled
         saveUserConsent()
@@ -270,7 +265,6 @@ class PrivacyManager: ObservableObject {
             theme: privacySettings.theme,
             notifications: privacySettings.notificationsEnabled,
             dataSharing: privacySettings.dataSharingEnabled,
-            analytics: privacySettings.analyticsEnabled,
             crashReporting: privacySettings.crashReportingEnabled
         )
     }
@@ -319,7 +313,6 @@ struct PrivacySettings: Codable {
     var theme: ThemeMode = .light
     var notificationsEnabled: Bool = true
     var dataSharingEnabled: Bool = false
-    var analyticsEnabled: Bool = false
     var crashReportingEnabled: Bool = false
     var biometricLockEnabled: Bool = true
     var autoLockTimeout: TimeInterval = 300 // 5 minutes
@@ -371,7 +364,6 @@ struct ConsentRecord: Codable {
 
 enum ConsentType: String, Codable, CaseIterable {
     case dataProcessing = "data_processing"
-    case analytics = "analytics"
     case crashReporting = "crash_reporting"
     case dataSharing = "data_sharing"
     case marketing = "marketing"
@@ -380,8 +372,6 @@ enum ConsentType: String, Codable, CaseIterable {
         switch self {
         case .dataProcessing:
             return "Data Processing"
-        case .analytics:
-            return "Analytics"
         case .crashReporting:
             return "Crash Reporting"
         case .dataSharing:
@@ -395,8 +385,6 @@ enum ConsentType: String, Codable, CaseIterable {
         switch self {
         case .dataProcessing:
             return "Process your data to provide app functionality"
-        case .analytics:
-            return "Collect anonymous usage data to improve the app"
         case .crashReporting:
             return "Collect crash reports to fix issues"
         case .dataSharing:
@@ -448,6 +436,5 @@ struct SettingsExport: Codable {
     let theme: ThemeMode
     let notifications: Bool
     let dataSharing: Bool
-    let analytics: Bool
     let crashReporting: Bool
 }

@@ -220,7 +220,6 @@ struct SecuritySettingsView: View {
             }
             
             Section("Privacy") {
-                Toggle("Analytics Consent", isOn: $privacyManager.analyticsConsent)
                 Toggle("Crash Reporting", isOn: $privacyManager.crashReportingConsent)
                 Button("Export My Data") {
                     Task { await exportUserData() }

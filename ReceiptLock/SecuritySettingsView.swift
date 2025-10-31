@@ -66,21 +66,6 @@ struct SecuritySettingsView: View {
                     }
                     
                     HStack {
-                        Image(systemName: "chart.bar")
-                            .foregroundColor(.blue)
-                        Text("Analytics")
-                        Spacer()
-                        Toggle("", isOn: $privacyManager.privacySettings.analyticsEnabled)
-                            .onChange(of: privacyManager.privacySettings.analyticsEnabled) { _, newValue in
-                                if newValue {
-                                    privacyManager.grantConsent(for: .analytics)
-                                } else {
-                                    privacyManager.revokeConsent(for: .analytics)
-                                }
-                            }
-                    }
-                    
-                    HStack {
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundColor(.red)
                         Text("Crash Reporting")

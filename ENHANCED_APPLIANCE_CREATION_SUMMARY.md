@@ -137,7 +137,7 @@ All new fields are properly integrated with the existing Core Data model:
 - **Data Completeness**: Richer appliance information for better management
 - **Warranty Tracking**: Enhanced warranty information for better tracking
 - **Search & Filter**: More detailed data enables better search capabilities
-- **Reporting**: Comprehensive data supports better analytics and reporting
+- **Reporting**: Comprehensive data supports better warranty tracking and management
 
 ### **For Development**
 - **Code Consistency**: Unified field handling across add and edit views

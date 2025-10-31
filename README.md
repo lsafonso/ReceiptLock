@@ -371,14 +371,11 @@ The app includes comprehensive error handling for:
 ### Core Features
 - Cloud sync with iCloud ✅ **IMPLEMENTED**
 - Multiple currency support ✅ **IMPLEMENTED**
-- Enhanced OCR with machine learning
+- OCR text extraction ✅ **IMPLEMENTED**
 - Appliance categorization ✅ **IMPLEMENTED**
-- Statistics and analytics
-- Widget support
-- Apple Watch companion app
-- Batch OCR processing for multiple receipts
-- Receipt template recognition for different store formats
-- Advanced image preprocessing for better OCR accuracy
+- Receipt scanning and processing ✅ **IMPLEMENTED**
+- Camera integration ✅ **IMPLEMENTED**
+- PDF support ✅ **IMPLEMENTED**
 
 ## License
 
