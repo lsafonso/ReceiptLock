@@ -161,6 +161,13 @@ struct AddApplianceView: View {
             // This ensures clean state when navigating back from detail view
             if navigationPath.isEmpty {
                 validationManager.clearErrors()
+                
+                // If we have a saved appliance ID but path is empty, 
+                // user navigated back - reset the form
+                if savedApplianceID != nil {
+                    resetForm()
+                    savedApplianceID = nil
+                }
             }
         }
         .onChange(of: selectedImage) { _, _ in
@@ -179,22 +186,6 @@ struct AddApplianceView: View {
             Group {
                 if let appliance = fetchAppliance(id: applianceID) {
                     ApplianceDetailView(appliance: appliance)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Add Another") {
-                                    // Navigate back first
-                                    navigationPath.removeLast()
-                                    savedApplianceID = nil
-                                    
-                                    // Reset form after navigation starts
-                                    // This ensures the view updates properly when we return
-                                    DispatchQueue.main.async {
-                                        self.resetForm()
-                                    }
-                                }
-                                .foregroundColor(AppTheme.primary)
-                            }
-                        }
                 }
             }
         }

@@ -31,8 +31,7 @@ struct ApplianceDetailView: View {
             .padding(AppTheme.spacing)
         }
         .background(AppTheme.background)
-        .navigationTitle("Appliance Details")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -68,37 +67,41 @@ struct ApplianceDetailView: View {
     
     // MARK: - Header Section
     private var headerSection: some View {
-        VStack(spacing: AppTheme.spacing) {
-            // Appliance icon
+        HStack(spacing: AppTheme.spacing) {
+            // Appliance icon - smaller size
             Image(systemName: getApplianceIcon())
-                .font(.system(size: 60))
+                .font(.system(size: 40))
                 .foregroundColor(getApplianceColor())
-                .frame(width: 120, height: 120)
+                .frame(width: 60, height: 60)
                 .background(getApplianceColor().opacity(0.1))
-                .cornerRadius(AppTheme.largeCornerRadius)
+                .cornerRadius(AppTheme.cornerRadius)
             
-            VStack(spacing: AppTheme.smallSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
                 Text(appliance.name ?? "Untitled Appliance")
-                    .font(.title2.weight(.bold))
+                    .font(.title3.weight(.semibold))
                     .foregroundColor(AppTheme.text)
-                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
                 
-                Text(appliance.brand ?? "Unknown Brand")
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.secondaryText)
+                if let model = appliance.model, !model.isEmpty {
+                    Text(model)
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
+                } else {
+                    Text(appliance.brand ?? "Unknown Brand")
+                        .font(.subheadline)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
             }
+            
+            Spacer()
         }
-        .padding(AppTheme.largeSpacing)
+        .padding(AppTheme.spacing)
         .cardBackground()
     }
     
     // MARK: - Details Section
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Appliance Details")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
-            
             VStack(spacing: AppTheme.smallSpacing) {
                 ApplianceInfoRow(title: "Purchase Date", value: formattedPurchaseDate)
                 ApplianceInfoRow(title: "Price", value: formattedPrice)
