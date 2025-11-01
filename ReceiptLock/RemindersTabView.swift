@@ -26,7 +26,7 @@ struct RemindersTabView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    LazyVStack(spacing: AppTheme.largeSpacing) {
+                    LazyVStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
                         // Header
                         headerSection
                         
@@ -39,12 +39,17 @@ struct RemindersTabView: View {
                         // Reminder Settings
                         reminderSettingsSection
                     }
-                    .padding(AppTheme.spacing)
+                    .padding(.bottom, AppTheme.spacing)
                 }
             }
-            .navigationTitle("Reminders")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text("Reminders")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppTheme.text)
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Manage") {
                         showingReminderManagement = true
@@ -96,13 +101,14 @@ struct RemindersTabView: View {
                     systemImage: "bell.slash"
                 )
             } else {
-                VStack(spacing: AppTheme.spacing) {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
                     ForEach(reminderManager.preferences.enabledReminders) { reminder in
                         ReminderDisplayRow(reminder: reminder)
                     }
                 }
             }
         }
+        .padding(.horizontal, AppTheme.spacing)
     }
     
     // MARK: - Upcoming Reminders Section
@@ -115,19 +121,23 @@ struct RemindersTabView: View {
             let upcomingReminders = getUpcomingReminders()
             
             if upcomingReminders.isEmpty {
-                EmptyStateView(
-                    title: "No Upcoming Reminders",
-                    message: "All your warranties are up to date.",
-                    systemImage: "checkmark.circle"
-                )
+                HStack {
+                    EmptyStateView(
+                        title: "No Upcoming Reminders",
+                        message: "All your warranties are up to date.",
+                        systemImage: "checkmark.circle"
+                    )
+                    Spacer()
+                }
             } else {
-                VStack(spacing: AppTheme.spacing) {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
                     ForEach(upcomingReminders.prefix(5)) { reminder in
                         UpcomingReminderRowView(reminder: reminder)
                     }
                 }
             }
         }
+        .padding(.horizontal, AppTheme.spacing)
     }
     
     // MARK: - Reminder Settings Section
@@ -137,7 +147,7 @@ struct RemindersTabView: View {
                 .font(.headline.weight(.semibold))
                 .foregroundColor(AppTheme.text)
             
-            VStack(spacing: AppTheme.smallSpacing) {
+            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
                 Button(action: { showingReminderManagement = true }) {
                     HStack {
                         Image(systemName: "bell.badge")
@@ -175,6 +185,7 @@ struct RemindersTabView: View {
                 }
             }
         }
+        .padding(.horizontal, AppTheme.spacing)
     }
     
     // MARK: - Helper Methods

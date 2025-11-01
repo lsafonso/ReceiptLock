@@ -36,7 +36,14 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: AppTheme.largeSpacing) {
+            LazyVStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
+                // Page Title at top left
+                Text("Settings")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                    .padding(.horizontal, AppTheme.spacing)
+                    .padding(.top, AppTheme.smallSpacing)
+                
                 profilePersonalizationSection
                 receiptApplianceSection
                 notificationsRemindersSection
@@ -44,9 +51,9 @@ struct SettingsView: View {
                 backupSyncSection
                 dataManagementSection
             }
-            .padding(AppTheme.spacing)
+            .padding(.bottom, AppTheme.spacing)
         }
-        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {

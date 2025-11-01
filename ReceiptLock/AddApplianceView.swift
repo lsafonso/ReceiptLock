@@ -113,6 +113,18 @@ struct AddApplianceView: View {
         }
     }
     
+    // Computed property to check if user has started entering any data
+    private var hasStartedEnteringData: Bool {
+        !title.isEmpty ||
+        !store.isEmpty ||
+        !model.isEmpty ||
+        !serialNumber.isEmpty ||
+        price > 0 ||
+        selectedDeviceType != nil ||
+        selectedImage != nil ||
+        scannedBarcode != nil
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -120,39 +132,48 @@ struct AddApplianceView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: AppTheme.extraLargeSpacing) {
+                    VStack(alignment: .leading, spacing: AppTheme.extraLargeSpacing) {
+                        // Page Title at top left
+                        Text("Add Appliance")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppTheme.text)
+                            .padding(.horizontal, AppTheme.spacing)
+                            .padding(.top, AppTheme.smallSpacing)
+                        
                         // Scan receipt Section
                         scanInvoiceSection
                         
                         // Manual Entry Section
                         manualEntrySection
                     }
-                    .padding(AppTheme.spacing)
+                    .padding(.bottom, AppTheme.spacing)
                 }
             }
-            .navigationTitle("Add Appliance")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                // Only show Cancel and Save buttons when user has started entering data
+                if hasStartedEnteringData {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                        .foregroundColor(AppTheme.primary)
                     }
-                    .foregroundColor(AppTheme.primary)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        saveAppliance()
-                    } label: {
-                        if isSaving {
+                    
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            saveAppliance()
+                        } label: {
+                            if isSaving {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.primary))
-                        } else {
-                            Text("Save")
-                                .foregroundColor(AppTheme.primary)
+                            } else {
+                                Text("Save")
+                                    .foregroundColor(AppTheme.primary)
+                            }
                         }
+                        .disabled(title.isEmpty || store.isEmpty || isSaving)
                     }
-                    .disabled(title.isEmpty || store.isEmpty || isSaving)
                 }
             }
         }
