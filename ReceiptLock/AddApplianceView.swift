@@ -242,7 +242,7 @@ struct AddApplianceView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(AppTheme.spacing)
-                .background(AppTheme.secondary)
+                .background(AppTheme.primary)
                 .cornerRadius(AppTheme.cornerRadius)
             }
             

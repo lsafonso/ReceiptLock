@@ -299,10 +299,10 @@ struct FilterChip: View {
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(isSelected ? .white : color.opacity(0.2))
+                            .fill(isSelected ? color.opacity(0.7) : color.opacity(0.2))
                     )
             }
-            .foregroundColor(isSelected ? color : AppTheme.secondaryText)
+            .foregroundColor(isSelected ? (color == AppTheme.success || color == AppTheme.primary || color == AppTheme.secondary ? .white : color) : AppTheme.secondaryText)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(

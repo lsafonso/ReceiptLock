@@ -206,7 +206,7 @@ struct ApplianceRowView: View {
             }) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
-            .tint(AppTheme.secondary)
+            .tint(AppTheme.primary)
         }
         .allowsHitTesting(true) // Ensure the view can receive gestures
     }

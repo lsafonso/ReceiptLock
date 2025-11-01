@@ -462,15 +462,15 @@ struct ApplianceFilterChip: View {
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(isSelected ? AppTheme.onSuccess : color.opacity(0.2))
+                            .fill(isSelected ? color.opacity(0.7) : color.opacity(0.2))
                     )
             }
-            .foregroundColor(isSelected ? AppTheme.onSuccess : AppTheme.text)
+            .foregroundColor(isSelected ? AppTheme.onPrimary : AppTheme.text)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .background(
                 Capsule()
-                    .fill(isSelected ? AppTheme.success : Color.clear)
+                    .fill(isSelected ? AppTheme.primary : Color.clear)
                     .overlay(
                         Capsule()
                             .stroke(isSelected ? Color.clear : color.opacity(0.3), lineWidth: 1.5)
@@ -512,7 +512,7 @@ struct ApplianceFilterChip: View {
                     .font(.caption2.bold())
             }
         }
-        .foregroundColor(AppTheme.onSuccess)
+        .foregroundColor(AppTheme.onPrimary)
     }
 }
 

@@ -136,10 +136,10 @@ struct ReminderQuickActions: View {
                             .font(.caption)
                             .fontWeight(.medium)
                     }
-                    .foregroundColor(AppTheme.success)
+                    .foregroundColor(AppTheme.primary)
                     .padding(.horizontal, AppTheme.smallSpacing)
                     .padding(.vertical, 6)
-                    .background(AppTheme.success.opacity(0.1))
+                    .background(AppTheme.primary.opacity(0.1))
                     .cornerRadius(AppTheme.cornerRadius)
                 }
             }

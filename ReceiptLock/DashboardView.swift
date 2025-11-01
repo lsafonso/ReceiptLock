@@ -367,7 +367,7 @@ struct ExpandableApplianceCard: View {
                         }
                         .frame(maxHeight: .infinity)
                     }
-                    .tint(AppTheme.success)
+                    .tint(AppTheme.primary)
                 }
             
             // Expanded content
