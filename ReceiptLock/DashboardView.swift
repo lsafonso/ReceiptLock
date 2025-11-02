@@ -214,11 +214,19 @@ struct DashboardView: View {
             }
             
             if sortedAppliances.isEmpty {
-                EmptyStateView(
-                    title: "No Appliances Yet",
-                    message: "Start by adding your first appliance to track warranties.",
-                    systemImage: "plus.circle"
-                )
+                VStack {
+                    Spacer()
+                    
+                    EmptyStateView(
+                        title: "No Appliances Yet",
+                        message: "Start by adding your first appliance to track warranties.",
+                        systemImage: "plus.circle"
+                    )
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(minHeight: 400)
             } else {
                 LazyVStack(spacing: AppTheme.spacing) {
                     ForEach(sortedAppliances, id: \.id) { appliance in
