@@ -13,7 +13,7 @@ struct AppTheme {
     static let primary = Color(red: 51/255, green: 102/255, blue: 102/255) // Muted green as primary
     static let secondary = Color(red: 102/255, green: 204/255, blue: 153/255) // Light green for secondary actions
     static let accent = Color(red: 102/255, green: 204/255, blue: 153/255) // Light green for success states
-    static let background = Color(red: 242/255, green: 240/255, blue: 239/255) // Off-white background
+    static let background = Color(red: 242/255, green: 244/255, blue: 246/255) // #F2F4F6
     static let cardBackground = Color.white
     static let secondaryBackground = Color(red: 245/255, green: 245/255, blue: 245/255)
     static let text = Color(red: 26/255, green: 26/255, blue: 26/255) // Dark text
@@ -22,6 +22,8 @@ struct AppTheme {
     static let warning = Color(red: 230/255, green: 154/255, blue: 100/255) // Muted orange for expiring warranties
     static let success = Color(red: 107/255, green: 183/255, blue: 124/255) // Muted green for valid warranties
     static let border = Color(red: 200/255, green: 200/255, blue: 200/255) // Light gray for borders
+    static let separator = Color(red: 230/255, green: 233/255, blue: 237/255) // #E6E9ED separator color
+    static let inactiveTabColor = Color(red: 122/255, green: 132/255, blue: 140/255) // #7A848C inactive tab color
     
     // MARK: - On-Color Roles (Text on colored backgrounds for AA contrast)
     static let onPrimary = Color.white // Text on primary background
@@ -60,6 +62,11 @@ struct AppTheme {
     static let smallCornerRadius: CGFloat = 8
     static let largeCornerRadius: CGFloat = 16
     static let extraLargeCornerRadius: CGFloat = 20
+    
+    // MARK: - Card Tokens
+    static let card = Color.white // #FFFFFF
+    static let cardRadius: CGFloat = 16
+    static let cardPadding: CGFloat = 16
     
     // MARK: - Shadows
     static let shadowRadius: CGFloat = 8
@@ -174,10 +181,30 @@ struct FloatingActionButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Card Modifier
+struct CardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(AppTheme.cardPadding)
+            .background(AppTheme.card)
+            .cornerRadius(AppTheme.cardRadius)
+            .shadow(
+                color: .black.opacity(AppTheme.shadowOpacity),
+                radius: AppTheme.shadowRadius,
+                x: AppTheme.shadowOffset.width,
+                y: AppTheme.shadowOffset.height
+            )
+    }
+}
+
 // MARK: - View Extensions
 extension View {
     func cardBackground() -> some View {
         modifier(CardBackgroundModifier())
+    }
+    
+    func card() -> some View {
+        modifier(CardModifier())
     }
     
     func primaryButton() -> some View {
@@ -288,7 +315,7 @@ struct EmptyStateView: View {
             Spacer()
             
             Image(systemName: systemImage)
-                .font(.system(size: 60, weight: .light))
+                .font(.system(size: 72, weight: .light)) // Icon 72pt
                 .foregroundColor(AppTheme.secondaryText)
                 .scaleEffect(isAnimating ? 1.1 : 1.0)
                 .animation(
@@ -301,15 +328,17 @@ struct EmptyStateView: View {
                     isAnimating = true
                 }
             
-            VStack(spacing: AppTheme.smallSpacing) {
+            VStack(spacing: 0) {
                 Text(title)
                     .rlTitle2()
                     .multilineTextAlignment(.center)
+                    .padding(.top, 16) // Icon→title 16pt
                 
                 Text(message)
                     .rlBodyMuted()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AppTheme.largeSpacing)
+                    .padding(.top, 8) // Title→message 8pt
             }
             .slideInTransition()
             
@@ -320,8 +349,8 @@ struct EmptyStateView: View {
                         Text(actionTitle)
                     }
                 }
+                .padding(.top, 16) // Message→action 16pt
                 .buttonStyle(PrimaryButtonStyle())
-                .padding(.top, AppTheme.spacing)
                 .scaleTransition()
             }
             

@@ -38,7 +38,6 @@ struct ContentView: View {
                             }
                         }
                         .animation(.easeInOut, value: selectedTab)
-                        .padding(.bottom, 100) // Add bottom padding to account for tab bar
                         
                         // Custom tab bar
                         VStack {
@@ -52,7 +51,7 @@ struct ContentView: View {
                         setupTabBarAppearance()
                     }
                     .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
-                        selectedTab = 1 // Switch to Appliances tab (now at index 1)
+                        selectedTab = 1 // Switch to Items tab (now at index 1)
                     }
                 }
             }
@@ -61,53 +60,54 @@ struct ContentView: View {
     
     // MARK: - Custom Tab Bar
     private var customTabBar: some View {
-        HStack(spacing: 0) {
-            // Home Tab
-            tabButton(
-                icon: "house.fill",
-                title: "Home",
-                isSelected: selectedTab == 0,
-                action: { selectedTab = 0 }
-            )
+        VStack(spacing: 0) {
+            // 1px top separator edge-to-edge
+            Rectangle()
+                .fill(AppTheme.separator)
+                .frame(height: 1)
             
-            // Appliances Tab
-            tabButton(
-                icon: "list.bullet",
-                title: "Appliances",
-                isSelected: selectedTab == 1,
-                action: { selectedTab = 1 }
-            )
-            
-            // Scan Tab (Special styling) - CENTER POSITION
-            scanTabButton
-                .onTapGesture {
-                    selectedTab = 2
-                }
-            
-            // Reminders Tab
-            tabButton(
-                icon: "bell.fill",
-                title: "Reminders",
-                isSelected: selectedTab == 3,
-                action: { selectedTab = 3 }
-            )
-            
-            // Settings Tab
-            tabButton(
-                icon: "gearshape.fill",
-                title: "Settings",
-                isSelected: selectedTab == 4,
-                action: { selectedTab = 4 }
-            )
+            HStack(spacing: 0) {
+                // Home Tab
+                tabButton(
+                    icon: "house.fill",
+                    title: "Home",
+                    isSelected: selectedTab == 0,
+                    action: { selectedTab = 0 }
+                )
+                
+                // Items Tab
+                tabButton(
+                    icon: "list.bullet",
+                    title: "Items",
+                    isSelected: selectedTab == 1,
+                    action: { selectedTab = 1 }
+                )
+                
+                // Scan Tab (Special styling) - CENTER POSITION
+                scanTabButton
+                
+                // Reminders Tab
+                tabButton(
+                    icon: "bell.fill",
+                    title: "Reminders",
+                    isSelected: selectedTab == 3,
+                    action: { selectedTab = 3 }
+                )
+                
+                // Settings Tab
+                tabButton(
+                    icon: "gearshape.fill",
+                    title: "Settings",
+                    isSelected: selectedTab == 4,
+                    action: { selectedTab = 4 }
+                )
+            }
+            .padding(.horizontal, 0)
+            .padding(.top, 4) // Reduced internal top padding
+            .padding(.bottom, 0)
+            .frame(height: 50) // Total height 50pt (will be 52pt with separator + safe area)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 0)
-        .background(
-            RoundedRectangle(cornerRadius: 0)
-                .fill(AppTheme.cardBackground)
-                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: -4)
-        )
+        .background(AppTheme.background) // Same as page background
         .safeAreaInset(edge: .bottom) {
             Color.clear.frame(height: 0)
         }
@@ -123,48 +123,59 @@ struct ContentView: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(isSelected ? AppTheme.primary : Color(red: 0.4, green: 0.4, blue: 0.4))
+                    .foregroundColor(isSelected ? AppTheme.primary : AppTheme.inactiveTabColor)
+                    .frame(width: 44, height: 44) // Icon container ≈ 44×44
                 
                 Text(title)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(isSelected ? AppTheme.primary : Color(red: 0.4, green: 0.4, blue: 0.4))
+                    .foregroundColor(isSelected ? AppTheme.primary : AppTheme.inactiveTabColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                    .layoutPriority(1)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
         }
+        .frame(maxWidth: .infinity) // Equal spacing for each tab
     }
     
     private var scanTabButton: some View {
         Button(action: { selectedTab = 2 }) {
             VStack(spacing: 4) {
-                ZStack {
-                    if selectedTab == 2 {
-                        // Active state: white icon on blue background - larger size
+                if selectedTab == 2 {
+                    // Active state: white icon on brand green background
+                    ZStack {
                         Circle()
                             .fill(AppTheme.primary)
-                            .frame(width: 41, height: 41) // Slightly larger than 32
+                            .frame(width: 28, height: 28) // Icon circle size
                         
                         Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 20, weight: .medium)) // Increased from 16
+                            .font(.system(size: 20, weight: .medium)) // Consistent icon size
                             .foregroundColor(.white)
-                    } else {
-                        // Inactive state: gray outline icon
-                        Image(systemName: "qrcode.viewfinder")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                     }
-                }
-                
-                // No text label for scan button when active, show "Scan" when inactive
-                if selectedTab != 2 {
+                    .frame(width: 44, height: 44) // Icon container ≈ 44×44 (same as others)
+                    
                     Text("Scan")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                        .font(.system(size: 10, weight: .medium)) // Consistent label font/size
+                        .foregroundColor(AppTheme.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .layoutPriority(1)
+                } else {
+                    // Inactive state: inactive color icon
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.system(size: 20, weight: .medium)) // Consistent icon size
+                        .foregroundColor(AppTheme.inactiveTabColor)
+                        .frame(width: 44, height: 44) // Icon container ≈ 44×44 (same as others)
+                    
+                    Text("Scan")
+                        .font(.system(size: 10, weight: .medium)) // Consistent label font/size
+                        .foregroundColor(AppTheme.inactiveTabColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .layoutPriority(1)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
         }
+        .frame(maxWidth: .infinity) // Equal spacing (same horizontal footprint as others)
     }
     
     private func setupTabBarAppearance() {

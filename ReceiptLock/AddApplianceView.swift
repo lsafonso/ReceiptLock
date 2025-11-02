@@ -132,7 +132,7 @@ struct AddApplianceView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: AppTheme.extraLargeSpacing) {
+                    VStack(alignment: .leading, spacing: 0) {
                         // Page Title at top left
                         Text("Add Appliance")
                             .font(.headline.weight(.semibold))
@@ -142,11 +142,15 @@ struct AddApplianceView: View {
                         
                         // Scan receipt Section
                         scanInvoiceSection
+                            .padding(.horizontal, 24) // 24pt side insets for card alignment
+                            .padding(.top, 24) // H1→intro block gap 24pt
                         
                         // Manual Entry Section
                         manualEntrySection
+                            .padding(.horizontal, 24) // 24pt side insets for card alignment
+                            .padding(.top, 24) // Block→grid gap 24pt
+                        
                     }
-                    .padding(.bottom, AppTheme.spacing)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -227,44 +231,46 @@ struct AddApplianceView: View {
             Text("Use a photo, PDF, or scan a barcode/QR code—store, model and purchase date auto-fill.")
                 .rlSubheadlineMuted()
             
-            // Receipt scanning button
-            PhotosPicker(selection: $selectedImage, matching: .images) {
-                HStack(spacing: AppTheme.smallSpacing) {
-                    Image(systemName: "doc.text.viewfinder")
-                        .font(.title2)
-                        .symbolRenderingMode(.monochrome)
-                        .foregroundColor(.white)
-                    
-                    Text("Scan Receipt")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(.white)
+            VStack(spacing: 12) { // Buttons stack vertical gap 12pt
+                // Receipt scanning button
+                PhotosPicker(selection: $selectedImage, matching: .images) {
+                    HStack(spacing: AppTheme.smallSpacing) {
+                        Image(systemName: "doc.text.viewfinder")
+                            .font(.title2)
+                            .symbolRenderingMode(.monochrome)
+                            .foregroundColor(.white)
+                        
+                        Text("Scan Receipt")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppTheme.spacing)
+                    .background(AppTheme.primary)
+                    .cornerRadius(AppTheme.cornerRadius)
+                    .opacity(isProcessingOCR ? 0.6 : 1.0)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(AppTheme.spacing)
-                .background(AppTheme.primary)
-                .cornerRadius(AppTheme.cornerRadius)
-                .opacity(isProcessingOCR ? 0.6 : 1.0)
-            }
-            .disabled(isProcessingOCR)
-            
-            // Barcode scanning button
-            Button(action: {
-                showingBarcodeScanner = true
-            }) {
-                HStack(spacing: AppTheme.smallSpacing) {
-                    Image(systemName: "qrcode.viewfinder")
-                        .font(.title2)
-                        .symbolRenderingMode(.monochrome)
-                        .foregroundColor(.white)
-                    
-                    Text("Scan Barcode/QR Code")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(.white)
+                .disabled(isProcessingOCR)
+                
+                // Barcode scanning button
+                Button(action: {
+                    showingBarcodeScanner = true
+                }) {
+                    HStack(spacing: AppTheme.smallSpacing) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.title2)
+                            .symbolRenderingMode(.monochrome)
+                            .foregroundColor(.white)
+                        
+                        Text("Scan Barcode/QR Code")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppTheme.spacing)
+                    .background(AppTheme.primary)
+                    .cornerRadius(AppTheme.cornerRadius)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(AppTheme.spacing)
-                .background(AppTheme.primary)
-                .cornerRadius(AppTheme.cornerRadius)
             }
             
             // Show scanned barcode info if available
@@ -284,8 +290,12 @@ struct AddApplianceView: View {
                     .foregroundColor(AppTheme.primary)
                 }
                 .padding(AppTheme.smallSpacing)
-                .background(AppTheme.cardBackground)
+                .background(AppTheme.card)
                 .cornerRadius(AppTheme.smallCornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                        .stroke(AppTheme.separator, lineWidth: 1)
+                )
             }
             
             if isProcessingOCR {
@@ -297,8 +307,7 @@ struct AddApplianceView: View {
                 }
             }
         }
-        .padding(AppTheme.spacing)
-        .cardBackground()
+        .card() // Apply standard card styling
         .sheet(isPresented: $showingBarcodeScanner) {
             BarcodeScannerView(onCodeScanned: { code, type in
                 handleScannedBarcode(code: code, type: type)
@@ -313,7 +322,7 @@ struct AddApplianceView: View {
                 .rlSubheadline()
             
             // Device Type Grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: AppTheme.spacing) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) { // Card→card gap 12pt (both axes)
                 ForEach(DeviceType.allCases, id: \.self) { deviceType in
                     Button(action: {
                         selectedDeviceType = deviceType
@@ -336,11 +345,18 @@ struct AddApplianceView: View {
                         }
                         .frame(height: 80)
                         .frame(maxWidth: .infinity)
-                        .background(selectedDeviceType == deviceType ? deviceType.color.opacity(0.1) : AppTheme.cardBackground)
-                        .cornerRadius(AppTheme.cornerRadius)
+                        .padding(12) // Mini card padding 12pt
+                        .background(AppTheme.card) // White card fill
+                        .cornerRadius(12) // Mini card radius 12
                         .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                .stroke(selectedDeviceType == deviceType ? deviceType.color : AppTheme.secondaryText.opacity(0.2), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(selectedDeviceType == deviceType ? deviceType.color : AppTheme.separator, lineWidth: 1)
+                        )
+                        .shadow(
+                            color: .black.opacity(AppTheme.shadowOpacity),
+                            radius: AppTheme.shadowRadius,
+                            x: AppTheme.shadowOffset.width,
+                            y: AppTheme.shadowOffset.height
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -350,8 +366,7 @@ struct AddApplianceView: View {
             // Form Fields
             formFields
         }
-        .padding(AppTheme.spacing)
-        .cardBackground()
+        .card() // Apply standard card styling
     }
     
     // MARK: - Form Fields

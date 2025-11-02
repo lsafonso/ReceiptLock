@@ -35,23 +35,38 @@ struct SettingsView: View {
     @State private var isDataManagementExpanded = false
     
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: AppTheme.spacing) {
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
                 // Page Title at top left
                 Text("Settings")
                     .font(.headline.weight(.semibold))
                     .foregroundColor(AppTheme.text)
-                    .padding(.horizontal, AppTheme.spacing)
+                    .padding(.horizontal, 24) // 24pt side insets
                 
                 profilePersonalizationSection
+                    .padding(.top, 24) // Group top margin 24 from page header
+                
                 receiptApplianceSection
+                    .padding(.top, 16) // Group→group 16pt
+                
                 notificationsRemindersSection
+                    .padding(.top, 16) // Group→group 16pt
+                
                 // securityPrivacySection // Hidden as requested
+                
                 backupSyncSection
+                    .padding(.top, 16) // Group→group 16pt
+                
                 dataManagementSection
+                    .padding(.top, 16) // Group→group 16pt
+                }
+                .padding(.horizontal, 24) // 24pt side insets for full-bleed cards
             }
-            .padding(.bottom, AppTheme.spacing)
-            .padding(.horizontal, AppTheme.spacing)
+            .scrollContentBackground(.hidden) // Hide list background
         }
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
@@ -441,7 +456,7 @@ struct SettingsSection<Content: View>: View {
             }
         }
         .padding()
-        .background(AppTheme.cardBackground)
+        .background(Color.clear) // Parent paints bg
         .cornerRadius(AppTheme.cornerRadius)
     }
 }
@@ -485,25 +500,24 @@ struct ExpandableSettingsSection<Content: View>: View {
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .animation(.easeInOut(duration: 0.3), value: isExpanded)
                 }
-                .padding()
+                .padding(AppTheme.cardPadding)
             }
             .buttonStyle(PlainButtonStyle())
             
             // Content with animation
             if isExpanded {
-                VStack(spacing: AppTheme.smallSpacing) {
+                VStack(spacing: 8) { // Row→row 8pt
                     content
                 }
-                .padding(.horizontal)
-                .padding(.bottom)
+                .padding(.horizontal, AppTheme.cardPadding)
+                .padding(.bottom, AppTheme.cardPadding)
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .move(edge: .top)),
                     removal: .opacity.combined(with: .move(edge: .top))
                 ))
             }
         }
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.cornerRadius)
+        .card() // Apply standard card styling
     }
 }
 
@@ -522,16 +536,17 @@ struct SettingsRow<Content: View>: View {
     }
     
     var body: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .top, spacing: 12) { // Icon to text gap 12pt
             Image(systemName: icon)
                 .foregroundColor(AppTheme.secondaryText)
                 .font(.title3)
-                .frame(width: 24)
+                .frame(width: 36, height: 36) // Icon 36pt
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.body)
                     .foregroundColor(AppTheme.text)
+                    .padding(.bottom, 2)
                 
                 Text(subtitle)
                     .font(.caption)
@@ -542,7 +557,8 @@ struct SettingsRow<Content: View>: View {
             
             content
         }
-        .padding(.vertical, AppTheme.smallSpacing)
+        .padding(AppTheme.cardPadding) // Internal padding, parent card provides background
+        .background(Color.clear) // Flat inside outer card
     }
 }
 

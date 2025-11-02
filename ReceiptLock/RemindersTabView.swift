@@ -10,10 +10,6 @@ import CoreData
 
 struct RemindersTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Receipt.expiryDate, ascending: true)],
-        animation: .default)
-    private var receipts: FetchedResults<Receipt>
     
     @ObservedObject private var reminderManager = ReminderManager.shared
     @State private var showingReminderManagement = false
@@ -26,20 +22,15 @@ struct RemindersTabView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         // Header
                         headerSection
+                            .padding(.top, 24) // H1 top inset 24pt
                         
                         // Active Reminders
                         activeRemindersSection
-                        
-                        // Upcoming Reminders
-                        upcomingRemindersSection
-                        
-                        // Reminder Settings
-                        reminderSettingsSection
+                            .padding(.top, 24) // Overview section → "Active Reminders" header 24pt
                     }
-                    .padding(.bottom, AppTheme.spacing)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -65,12 +56,13 @@ struct RemindersTabView: View {
     
     // MARK: - Header Section
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text("Reminder Overview")
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
+                        .padding(.bottom, 8) // Eyebrow sits 8 above the H1
                     
                     Text("Stay on top of your warranties")
                         .font(.title2.weight(.semibold))
@@ -84,7 +76,7 @@ struct RemindersTabView: View {
                     .foregroundColor(AppTheme.primary)
             }
         }
-        .padding(.horizontal, AppTheme.spacing)
+        .padding(.horizontal, 24) // 24pt side insets for card alignment
     }
     
     // MARK: - Active Reminders Section
@@ -100,115 +92,18 @@ struct RemindersTabView: View {
                     message: "Configure reminder settings to get notified about warranty expirations.",
                     systemImage: "bell.slash"
                 )
+                .background(Color.clear) // Parent paints bg
+                .padding(.top, 32) // Block top inset 32 from header
             } else {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                VStack(alignment: .leading, spacing: 16) { // Card→card gap 16pt
                     ForEach(reminderManager.preferences.enabledReminders) { reminder in
                         ReminderDisplayRow(reminder: reminder)
                     }
                 }
+                .padding(.top, 10)
             }
         }
-        .padding(.horizontal, AppTheme.spacing)
-    }
-    
-    // MARK: - Upcoming Reminders Section
-    private var upcomingRemindersSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Upcoming Reminders")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
-            
-            let upcomingReminders = getUpcomingReminders()
-            
-            if upcomingReminders.isEmpty {
-                HStack {
-                    EmptyStateView(
-                        title: "No Upcoming Reminders",
-                        message: "All your warranties are up to date.",
-                        systemImage: "checkmark.circle"
-                    )
-                    Spacer()
-                }
-            } else {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    ForEach(upcomingReminders.prefix(5)) { reminder in
-                        UpcomingReminderRowView(reminder: reminder)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, AppTheme.spacing)
-    }
-    
-    // MARK: - Reminder Settings Section
-    private var reminderSettingsSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Quick Actions")
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
-            
-            VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                Button(action: { showingReminderManagement = true }) {
-                    HStack {
-                        Image(systemName: "bell.badge")
-                            .foregroundColor(AppTheme.primary)
-                        
-                        Text("Manage Reminder Settings")
-                            .foregroundColor(AppTheme.text)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                    .padding(AppTheme.spacing)
-                    .background(AppTheme.cardBackground)
-                    .cornerRadius(AppTheme.cornerRadius)
-                }
-                
-                NavigationLink(destination: NotificationPreferencesView()) {
-                    HStack {
-                        Image(systemName: "gearshape")
-                            .foregroundColor(AppTheme.primary)
-                        
-                        Text("Notification Preferences")
-                            .foregroundColor(AppTheme.text)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(AppTheme.secondaryText)
-                    }
-                    .padding(AppTheme.spacing)
-                    .background(AppTheme.cardBackground)
-                    .cornerRadius(AppTheme.cornerRadius)
-                }
-            }
-        }
-        .padding(.horizontal, AppTheme.spacing)
-    }
-    
-    // MARK: - Helper Methods
-    private func getUpcomingReminders() -> [UpcomingReminder] {
-        var upcoming: [UpcomingReminder] = []
-        
-        for receipt in receipts {
-            if let expiryDate = receipt.expiryDate {
-                for reminder in reminderManager.preferences.enabledReminders {
-                    if let reminderDate = Calendar.current.date(byAdding: .day, value: -reminder.daysBeforeExpiry, to: expiryDate) {
-                        if reminderDate > Date() {
-                            upcoming.append(UpcomingReminder(
-                                receipt: receipt,
-                                reminder: reminder,
-                                reminderDate: reminderDate
-                            ))
-                        }
-                    }
-                }
-            }
-        }
-        
-        return upcoming.sorted { $0.reminderDate < $1.reminderDate }
+        .padding(.horizontal, 24) // 24pt side insets for card alignment
     }
 }
 
@@ -217,15 +112,17 @@ struct ReminderDisplayRow: View {
     let reminder: Reminder
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) { // Icon to text gap 12pt
             Image(systemName: "bell.fill")
                 .foregroundColor(AppTheme.primary)
                 .font(.title3)
+                .frame(width: 36, height: 36) // Icon 36pt
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(reminder.displayText)
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(AppTheme.text)
+                    .padding(.bottom, 8) // Title→subtitle 8pt
                 
                 Text("\(reminder.daysBeforeExpiry) days before expiry")
                     .font(.caption)
@@ -244,44 +141,8 @@ struct ReminderDisplayRow: View {
                     .font(.title3)
             }
         }
-        .padding(AppTheme.spacing)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.cornerRadius)
+        .card() // Apply standard card styling
     }
-}
-
-struct UpcomingReminderRowView: View {
-    let reminder: UpcomingReminder
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(reminder.receipt.title ?? "Unknown Receipt")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(AppTheme.text)
-                
-                Text("Reminder: \(reminder.reminder.displayText)")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-            }
-            
-            Spacer()
-            
-            Text(reminder.reminderDate, style: .date)
-                .font(.caption)
-                .foregroundColor(AppTheme.primary)
-        }
-        .padding(AppTheme.spacing)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.cornerRadius)
-    }
-}
-
-struct UpcomingReminder: Identifiable {
-    let id = UUID()
-    let receipt: Receipt
-    let reminder: Reminder
-    let reminderDate: Date
 }
 
 #Preview {

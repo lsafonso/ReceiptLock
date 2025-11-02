@@ -398,17 +398,17 @@ struct ExpandableApplianceCard: View {
     
     // MARK: - Main Card Content
     private var mainCardContent: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack(spacing: 12) { // Icon to text gap 12pt
             // Appliance icon
             Image(systemName: getApplianceIcon())
                 .font(.title2)
                 .foregroundColor(getApplianceColor())
-                .frame(width: 40, height: 40)
+                .frame(width: 36, height: 36) // Icon 36pt
                 .background(getApplianceColor().opacity(0.1))
                 .cornerRadius(AppTheme.smallCornerRadius)
             
             // Appliance details
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(appliance.name ?? "Untitled Appliance")
                         .rlHeadline()
@@ -429,6 +429,7 @@ struct ExpandableApplianceCard: View {
                         .accessibilityLabel("Store: \(appliance.brand ?? "Unknown")")
                         .help(appliance.brand ?? "Unknown")
                 }
+                .padding(.bottom, 8) // Title→subtitle 8pt
                 
                 HStack {
                     Text("Warranty expires: \(formattedExpiryDate)")
@@ -438,13 +439,15 @@ struct ExpandableApplianceCard: View {
                     
                     Spacer()
                 }
+                .padding(.bottom, 12) // Subtitle→progress 12pt
                 
                 // Progress bar
                 ProgressView(value: progressValue, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: expiryStatusColor))
                     .frame(height: 4)
+                    .padding(.bottom, 12) // Progress to swipe hint 12pt
                 
-                // Swipe hint text
+                // Swipe hint text (12pt above bottom edge)
                 HStack {
                     Spacer()
                     Text("Swipe for actions")
@@ -479,7 +482,7 @@ struct ExpandableApplianceCard: View {
                     }
                 }
         }
-        .padding(AppTheme.spacing)
+        .padding(16) // Top/bottom padding 16pt
         .background(AppTheme.cardBackground)
         .cornerRadius(AppTheme.cornerRadius)
         .contentShape(Rectangle()) // Ensure hit testing matches visual bounds

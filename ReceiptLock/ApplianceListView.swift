@@ -107,9 +107,10 @@ struct ApplianceListView: View {
                 AppTheme.background
                     .ignoresSafeArea()
                 
-                VStack(spacing: AppTheme.spacing) {
+                VStack(spacing: 0) {
                     // Filter Picker
                     filterPicker
+                        .padding(.bottom, 16) // 16pt gap to cards
                     
                     // Appliance List
                     if filteredAppliances.isEmpty {
@@ -140,7 +141,7 @@ struct ApplianceListView: View {
     /// Horizontal scrollable filter picker with animated chips
     private var filterPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppTheme.spacing) {
+            HStack(spacing: 8) { // Chip gap 8pt
                 ForEach(Array(ApplianceFilter.allCases.enumerated()), id: \.element) { index, filter in
                     ApplianceFilterChip(
                         title: filter.rawValue,
@@ -167,9 +168,10 @@ struct ApplianceListView: View {
                     )
                 }
             }
-            .padding(.horizontal, AppTheme.spacing)
+            .padding(.horizontal, 24) // 24pt side padding
         }
-        .padding(.vertical, AppTheme.spacing)
+        .padding(.top, 16) // 16pt below search field
+        .padding(.bottom, 0) // Remove bottom padding, handled by gap
     }
     
     // MARK: - Appliance List
@@ -181,11 +183,12 @@ struct ApplianceListView: View {
                 applianceRow(for: appliance, at: index)
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: AppTheme.spacing, bottom: 0, trailing: AppTheme.spacing))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24)) // 24pt side padding
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .background(AppTheme.background) // Page background
     }
     
     /// Creates an individual appliance row with animations and transitions
@@ -205,7 +208,7 @@ struct ApplianceListView: View {
                 insertion: .scale(scale: 0.95).combined(with: .opacity),
                 removal: .scale(scale: 0.95).combined(with: .opacity)
             ))
-            .padding(.bottom, AppTheme.spacing) // Add spacing between rows
+            .padding(.bottom, 16) // Card→card gap 16pt
     }
     
     // MARK: - Empty State
