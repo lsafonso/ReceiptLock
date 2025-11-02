@@ -36,13 +36,12 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
+            LazyVStack(alignment: .leading, spacing: AppTheme.spacing) {
                 // Page Title at top left
                 Text("Settings")
                     .font(.headline.weight(.semibold))
                     .foregroundColor(AppTheme.text)
                     .padding(.horizontal, AppTheme.spacing)
-                    .padding(.top, AppTheme.smallSpacing)
                 
                 profilePersonalizationSection
                 receiptApplianceSection
@@ -52,6 +51,7 @@ struct SettingsView: View {
                 dataManagementSection
             }
             .padding(.bottom, AppTheme.spacing)
+            .padding(.horizontal, AppTheme.spacing)
         }
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
