@@ -59,16 +59,9 @@ struct RemindersTabView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Reminder Overview")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                        .padding(.bottom, 8) // Eyebrow sits 8 above the H1
-                    
-                    Text("Stay on top of your warranties")
-                        .font(.title2.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
-                }
+                Text("Reminder Overview")
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.secondaryText)
                 
                 Spacer()
                 
@@ -76,6 +69,11 @@ struct RemindersTabView: View {
                     .font(.title)
                     .foregroundColor(AppTheme.primary)
             }
+            .padding(.bottom, 8) // Eyebrow sits 8 above the H1
+            
+            Text("Stay on top of your warranties")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(AppTheme.text)
         }
         .padding(.horizontal, 24) // 24pt side insets for card alignment
     }

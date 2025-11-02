@@ -435,9 +435,6 @@ struct AddApplianceView: View {
             
             // Purchase Details Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                Text("Purchase Details")
-                    .rlHeadline()
-                
                 // Purchase Date Field
                 ValidatedDateField(
                     title: "Purchase Date",
@@ -457,9 +454,6 @@ struct AddApplianceView: View {
             
             // Warranty Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                Text("Warranty")
-                    .rlHeadline()
-                
                 // Warranty Duration Field
                 ValidatedStepperField(
                     title: "Warranty Duration (months)",

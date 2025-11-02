@@ -484,10 +484,11 @@ struct ExpandableSettingsSection<Content: View>: View {
                     isExpanded.toggle()
                 }
             }) {
-                HStack {
+                HStack(spacing: 12) { // Icon to text gap 12pt (match reminders)
                     Image(systemName: icon)
                         .foregroundColor(AppTheme.primary)
-                        .font(.title2)
+                        .font(.title3)
+                        .frame(width: 36, height: 36) // Icon 36pt (match reminders)
                     
                     Text(title)
                         .font(.headline)
@@ -501,17 +502,14 @@ struct ExpandableSettingsSection<Content: View>: View {
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .animation(.easeInOut(duration: 0.3), value: isExpanded)
                 }
-                .padding(AppTheme.cardPadding)
             }
             .buttonStyle(PlainButtonStyle())
             
             // Content with animation
             if isExpanded {
-                VStack(spacing: 8) { // Row→row 8pt
+                VStack(spacing: 0) { // No spacing, rows handle their own spacing
                     content
                 }
-                .padding(.horizontal, AppTheme.cardPadding)
-                .padding(.bottom, AppTheme.cardPadding)
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .move(edge: .top)),
                     removal: .opacity.combined(with: .move(edge: .top))
@@ -558,7 +556,8 @@ struct SettingsRow<Content: View>: View {
             
             content
         }
-        .padding(AppTheme.cardPadding) // Internal padding, parent card provides background
+        .padding(.horizontal, AppTheme.cardPadding)
+        .padding(.vertical, AppTheme.cardPadding)
         .background(Color.clear) // Flat inside outer card
     }
 }

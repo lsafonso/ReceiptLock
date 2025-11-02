@@ -216,16 +216,17 @@ struct ValidatedTextField: View {
             }
             
             TextField(placeholder, text: $text)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(PlainTextFieldStyle())
                 .padding(.horizontal, AppTheme.spacing)
                 .padding(.vertical, AppTheme.smallSpacing)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                         .fill(AppTheme.cardBackground)
                         .overlay(
                             RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
                                 .stroke(
-                                    validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
+                                    validationManager.getError(for: fieldKey) != nil ? AppTheme.error : AppTheme.separator,
                                     lineWidth: 1
                                 )
                         )
@@ -366,24 +367,27 @@ struct ValidatedStepperField: View {
                     .foregroundColor(AppTheme.secondaryText)
             }
             
+            // Only the stepper control area has green background
             Stepper("", value: $value, in: range)
                 .labelsHidden()
+                .padding(.horizontal, AppTheme.smallSpacing)
+                .padding(.vertical, AppTheme.smallSpacing / 2)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                        .fill(AppTheme.primary)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                                .stroke(
+                                    validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .tint(AppTheme.onPrimary)
                 .onChange(of: value) { _, newValue in
                     _ = validationRule(newValue, fieldKey)
                 }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                        .stroke(
-                            validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
-                            lineWidth: 1
-                        )
-                )
-        )
         
         if let error = validationManager.getError(for: fieldKey) {
             Text(error.errorDescription ?? "")
@@ -430,6 +434,7 @@ struct ValidatedDateField: View {
                 Spacer()
             }
             
+            // Only the date picker control area has green background
             DatePicker(
                 "",
                 selection: $date,
@@ -437,22 +442,23 @@ struct ValidatedDateField: View {
             )
             .datePickerStyle(.compact)
             .labelsHidden()
+            .padding(.horizontal, AppTheme.smallSpacing)
+            .padding(.vertical, AppTheme.smallSpacing / 2)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                    .fill(AppTheme.primary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                            .stroke(
+                                validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
+                                lineWidth: 1
+                            )
+                    )
+            )
             .onChange(of: date) { _, newValue in
                 _ = validationManager.validatePurchaseDate(newValue, fieldKey: fieldKey)
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .fill(AppTheme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                        .stroke(
-                            validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
-                            lineWidth: 1
-                        )
-                )
-        )
         
         if let error = validationManager.getError(for: fieldKey) {
             Text(error.errorDescription ?? "")
