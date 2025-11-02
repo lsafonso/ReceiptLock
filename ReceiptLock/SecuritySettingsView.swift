@@ -51,7 +51,7 @@ struct SecuritySettingsView: View {
                     Button("Run Security Audit") {
                         runSecurityAudit()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.black)
                 }
                 
                 // MARK: - Privacy Section
@@ -83,7 +83,7 @@ struct SecuritySettingsView: View {
                     Button("Manage Consent") {
                         showingConsentManagement = true
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.black)
                 }
                 
                 // MARK: - Data Management Section
@@ -100,7 +100,7 @@ struct SecuritySettingsView: View {
                     Button("Export My Data") {
                         showingDataExport = true
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.black)
                     
                     Button("Delete All Data") {
                         showingDataDeletion = true
@@ -168,7 +168,7 @@ struct BiometricSetupView: View {
             VStack(spacing: 30) {
                 Image(systemName: "faceid")
                     .font(.system(size: 80))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.black)
                 
                 Text("Biometric Setup Required")
                     .font(.title2)
@@ -455,7 +455,7 @@ struct DataExportView: View {
                     VStack(spacing: 20) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 80))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.black)
                         
                         Text("Export Your Data")
                             .font(.title2)

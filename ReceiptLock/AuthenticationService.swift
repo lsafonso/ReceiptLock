@@ -310,7 +310,7 @@ struct AuthenticationView: View {
             VStack(spacing: 30) {
                 Image(systemName: "lock.shield")
                     .font(.system(size: 80))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.black)
                 
                 Text("Unlock \(feature.displayName)")
                     .font(.title2)

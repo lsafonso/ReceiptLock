@@ -284,7 +284,7 @@ struct TipRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(.black)
                 .font(.title3)
             
             Text(text)
