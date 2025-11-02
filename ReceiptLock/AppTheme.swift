@@ -68,6 +68,10 @@ struct AppTheme {
     static let cardRadius: CGFloat = 16
     static let cardPadding: CGFloat = 16
     
+    // MARK: - Tab Bar Constants
+    static let tabBarHeight: CGFloat = 51 // 50pt content + 1pt separator
+    static let tabBarBottomPadding: CGFloat = 58 // Tab bar height (51) + 8px breathing room
+    
     // MARK: - Shadows
     static let shadowRadius: CGFloat = 8
     static let shadowOpacity: Double = 0.08

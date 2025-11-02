@@ -32,6 +32,7 @@ struct RemindersTabView: View {
                             .padding(.top, 24) // Overview section → "Active Reminders" header 24pt
                     }
                 }
+                .padding(.bottom, AppTheme.tabBarBottomPadding)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

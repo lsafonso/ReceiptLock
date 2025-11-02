@@ -152,6 +152,7 @@ struct AddApplianceView: View {
                         
                     }
                 }
+                .padding(.bottom, AppTheme.tabBarBottomPadding)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

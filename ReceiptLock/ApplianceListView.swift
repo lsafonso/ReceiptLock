@@ -189,6 +189,7 @@ struct ApplianceListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(AppTheme.background) // Page background
+        .padding(.bottom, AppTheme.tabBarBottomPadding)
     }
     
     /// Creates an individual appliance row with animations and transitions

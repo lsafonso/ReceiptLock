@@ -49,6 +49,7 @@ struct DashboardView: View {
                 }
                 .padding(AppTheme.spacing)
             }
+            .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .navigationBarHidden(true)
         .sheet(isPresented: $showingProfileEdit) {

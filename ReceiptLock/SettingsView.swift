@@ -67,6 +67,7 @@ struct SettingsView: View {
                 .padding(.horizontal, 24) // 24pt side insets for full-bleed cards
             }
             .scrollContentBackground(.hidden) // Hide list background
+            .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
