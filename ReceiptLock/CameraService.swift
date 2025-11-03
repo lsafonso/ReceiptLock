@@ -498,10 +498,17 @@ struct CameraPreviewView: UIViewRepresentable {
         
         // Configure preview layer connection orientation
         if let connection = previewLayer.connection {
-            if connection.isVideoOrientationSupported {
-                if #available(iOS 17.0, *) {
-                    connection.videoRotationAngle = 0.0
-                } else {
+            // Always set to portrait orientation for consistent display
+            // On iPhones, camera sensor is typically mounted in landscape, so portrait requires 90° rotation
+            if #available(iOS 17.0, *) {
+                // Try 90 degrees first (typical for portrait on iPhone)
+                if connection.isVideoRotationAngleSupported(90.0) {
+                    connection.videoRotationAngle = 90.0 // Portrait on iPhone
+                } else if connection.isVideoRotationAngleSupported(0.0) {
+                    connection.videoRotationAngle = 0.0 // Fallback
+                }
+            } else {
+                if connection.isVideoOrientationSupported {
                     connection.videoOrientation = .portrait
                 }
             }
@@ -537,14 +544,14 @@ struct CameraPreviewView: UIViewRepresentable {
         previewLayer.frame = uiView.bounds
         CATransaction.commit()
         
-        // Ensure orientation is set correctly
-        if let connection = previewLayer.connection, connection.isVideoOrientationSupported {
+        // Update orientation when view updates - always keep portrait
+        if let connection = previewLayer.connection {
             if #available(iOS 17.0, *) {
-                if connection.videoRotationAngle != 0.0 {
-                    connection.videoRotationAngle = 0.0
+                if connection.isVideoRotationAngleSupported(0.0) {
+                    connection.videoRotationAngle = 0.0 // Portrait
                 }
             } else {
-                if connection.videoOrientation != .portrait {
+                if connection.isVideoOrientationSupported {
                     connection.videoOrientation = .portrait
                 }
             }
@@ -565,12 +572,19 @@ class CameraPreviewContainerView: UIView {
         previewLayer.frame = bounds
         CATransaction.commit()
         
-        // Ensure orientation is set correctly after layout
-        if let connection = previewLayer.connection, connection.isVideoOrientationSupported {
+        // Update orientation when layout changes - always keep portrait
+        // On iPhones, camera sensor is typically mounted in landscape, so portrait requires 90° rotation
+        if let connection = previewLayer.connection {
             if #available(iOS 17.0, *) {
-                connection.videoRotationAngle = 0.0
+                if connection.isVideoRotationAngleSupported(90.0) {
+                    connection.videoRotationAngle = 90.0 // Portrait on iPhone
+                } else if connection.isVideoRotationAngleSupported(0.0) {
+                    connection.videoRotationAngle = 0.0 // Fallback
+                }
             } else {
-                connection.videoOrientation = .portrait
+                if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                }
             }
         }
     }

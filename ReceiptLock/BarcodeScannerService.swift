@@ -419,12 +419,19 @@ struct BarcodeScannerPreviewView: UIViewRepresentable {
         let previewLayer = AVCaptureVideoPreviewLayer(session: scannerService.session)
         previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
         
-        // Configure preview layer connection
+        // Configure preview layer connection orientation
         if let connection = previewLayer.connection {
-            if connection.isVideoOrientationSupported {
-                if #available(iOS 17.0, *) {
-                    connection.videoRotationAngle = 0.0
-                } else {
+            // Always set to portrait orientation for consistent display
+            // On iPhones, camera sensor is typically mounted in landscape, so portrait requires 90° rotation
+            if #available(iOS 17.0, *) {
+                // Try 90 degrees first (typical for portrait on iPhone)
+                if connection.isVideoRotationAngleSupported(90.0) {
+                    connection.videoRotationAngle = 90.0 // Portrait on iPhone
+                } else if connection.isVideoRotationAngleSupported(0.0) {
+                    connection.videoRotationAngle = 0.0 // Fallback
+                }
+            } else {
+                if connection.isVideoOrientationSupported {
                     connection.videoOrientation = .portrait
                 }
             }
@@ -460,6 +467,54 @@ struct BarcodeScannerPreviewView: UIViewRepresentable {
         previewLayer.frame = uiView.bounds
         CATransaction.commit()
         
+        // Update orientation when view updates
+        if let connection = previewLayer.connection {
+            let statusBarOrientation: UIInterfaceOrientation
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                statusBarOrientation = windowScene.interfaceOrientation
+            } else {
+                statusBarOrientation = .portrait
+            }
+            
+            if #available(iOS 17.0, *) {
+                var rotationAngle: CGFloat = 0.0
+                switch statusBarOrientation {
+                case .portrait:
+                    rotationAngle = 0.0
+                case .portraitUpsideDown:
+                    rotationAngle = 180.0
+                case .landscapeLeft:
+                    rotationAngle = 90.0
+                case .landscapeRight:
+                    rotationAngle = 270.0
+                default:
+                    rotationAngle = 0.0
+                }
+                if connection.videoRotationAngle != rotationAngle {
+                    connection.videoRotationAngle = rotationAngle
+                }
+            } else {
+                if connection.isVideoOrientationSupported {
+                    let targetOrientation: AVCaptureVideoOrientation
+                    switch statusBarOrientation {
+                    case .portrait:
+                        targetOrientation = .portrait
+                    case .portraitUpsideDown:
+                        targetOrientation = .portraitUpsideDown
+                    case .landscapeLeft:
+                        targetOrientation = .landscapeLeft
+                    case .landscapeRight:
+                        targetOrientation = .landscapeRight
+                    default:
+                        targetOrientation = .portrait
+                    }
+                    if connection.videoOrientation != targetOrientation {
+                        connection.videoOrientation = targetOrientation
+                    }
+                }
+            }
+        }
+        
         // Update metadata output rect of interest when view layout changes
         if !uiView.bounds.isEmpty, let connection = previewLayer.connection {
             let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: uiView.bounds)
@@ -480,6 +535,22 @@ class PreviewContainerView: UIView {
         CATransaction.setDisableActions(true)
         previewLayer.frame = bounds
         CATransaction.commit()
+        
+        // Update orientation when layout changes - always keep portrait
+        // On iPhones, camera sensor is typically mounted in landscape, so portrait requires 90° rotation
+        if let connection = previewLayer.connection {
+            if #available(iOS 17.0, *) {
+                if connection.isVideoRotationAngleSupported(90.0) {
+                    connection.videoRotationAngle = 90.0 // Portrait on iPhone
+                } else if connection.isVideoRotationAngleSupported(0.0) {
+                    connection.videoRotationAngle = 0.0 // Fallback
+                }
+            } else {
+                if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                }
+            }
+        }
         
         // Update metadata output rect of interest when layout changes
         if let connection = previewLayer.connection {
