@@ -104,13 +104,14 @@ struct OnboardingView: View {
     }
     
     private var navigationControls: some View {
-        VStack(spacing: AppTheme.spacing) {
-            // Page Indicators
-            PaginationDots(
-                currentPage: currentPage,
-                totalPages: onboardingPages.count + 1
+        VStack(spacing: 0) {
+            // Pill Pagination
+            // 24pt gap from subtitle (handled in OnboardingPageView)
+            PillPagination(
+                current: currentPage,
+                total: onboardingPages.count + 1
             )
-            .padding(.bottom, AppTheme.spacing)
+            .padding(.bottom, 16) // 16pt gap → controls
             
             // Navigation Buttons
             HStack {
@@ -306,42 +307,48 @@ struct WelcomeMessageView: View {
     }
 }
 
-// MARK: - Pagination Dots Component
-struct PaginationDots: View {
-    let currentPage: Int
-    let totalPages: Int
+// MARK: - Pill Pagination Component
+struct PillPagination: View {
+    let current: Int
+    let total: Int
     
-    // Dot styling constants
-    private let dotSize: CGFloat = 10
-    private let dotSpacing: CGFloat = 9 // Total gap ≈ 8-10pt between dots
-    private let activeScale: CGFloat = 1.0
-    private let inactiveScale: CGFloat = 0.9
+    // Public tokens
+    var activeColor: Color = AppTheme.primary
+    var inactiveColor: Color = Color(red: 215/255, green: 219/255, blue: 223/255) // #D7DBDF
+    var dotSize: CGFloat = 8
+    var pillHeight: CGFloat = 8
+    var pillWidth: CGFloat = 20
+    var spacing: CGFloat = 10
     
     var body: some View {
-        HStack(spacing: 0) {
-            Spacer()
-            
-            // Progress label
-            Text("\(currentPage + 1) of \(totalPages)")
-                .rlSubheadlineMuted()
-                .padding(.trailing, 12)
-            
-            // Dots
-            HStack(spacing: dotSpacing) {
-                ForEach(0..<totalPages, id: \.self) { index in
+        HStack(spacing: spacing) {
+            ForEach(0..<total, id: \.self) { index in
+                if index == current {
+                    // Active: Capsule (pill)
+                    Capsule()
+                        .fill(activeColor)
+                        .frame(width: pillWidth, height: pillHeight)
+                        .transition(.asymmetric(
+                            insertion: .scale.combined(with: .opacity),
+                            removal: .scale.combined(with: .opacity)
+                        ))
+                        .accessibilityHidden(true)
+                } else {
+                    // Inactive: Circle (dot)
                     Circle()
-                        .fill(index == currentPage ? AppTheme.primary : AppTheme.paginationInactive)
+                        .fill(inactiveColor)
                         .frame(width: dotSize, height: dotSize)
-                        .scaleEffect(index == currentPage ? activeScale : inactiveScale)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
+                        .scaleEffect(0.95)
                         .accessibilityHidden(true)
                 }
             }
-            
-            Spacer()
         }
+        .padding(.vertical, 6)
+        .frame(minHeight: 44) // Minimum hit area 44×44
+        .frame(maxWidth: .infinity)
+        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: current)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Slide \(currentPage + 1) of \(totalPages)")
+        .accessibilityLabel("Slide \(current + 1) of \(total)")
         .accessibilityHint("Onboarding progress indicator")
     }
 }
