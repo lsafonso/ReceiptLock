@@ -70,24 +70,44 @@ class BarcodeScannerService: NSObject, ObservableObject {
     // MARK: - Scanner Setup
     
     private func setupScanner() {
+        // Prevent multiple setups
+        guard session.inputs.isEmpty || session.outputs.isEmpty else {
+            return // Already configured
+        }
+        
         session.beginConfiguration()
         
+        // Remove existing inputs/outputs if any
+        session.inputs.forEach { session.removeInput($0) }
+        session.outputs.forEach { session.removeOutput($0) }
+        
         // Set session preset for barcode scanning
-        session.sessionPreset = .high
+        if session.canSetSessionPreset(.high) {
+            session.sessionPreset = .high
+        } else {
+            session.sessionPreset = .medium
+        }
         
         // Add video input
-        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition),
-              let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
+        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition) else {
             error = .deviceNotFound
             session.commitConfiguration()
             return
         }
         
-        if session.canAddInput(videoInput) {
-            session.addInput(videoInput)
-            currentCamera = videoDevice
-        } else {
-            error = .inputError(BarcodeScannerError.deviceNotFound)
+        do {
+            let videoInput = try AVCaptureDeviceInput(device: videoDevice)
+            
+            if session.canAddInput(videoInput) {
+                session.addInput(videoInput)
+                currentCamera = videoDevice
+            } else {
+                error = .inputError(BarcodeScannerError.deviceNotFound)
+                session.commitConfiguration()
+                return
+            }
+        } catch {
+            self.error = .inputError(error)
             session.commitConfiguration()
             return
         }
@@ -97,6 +117,17 @@ class BarcodeScannerService: NSObject, ObservableObject {
             session.addOutput(metadataOutput)
             metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
             metadataOutput.metadataObjectTypes = supportedMetadataTypes
+            
+            // Configure metadata output connection
+            if let connection = metadataOutput.connection(with: .video) {
+                if connection.isVideoOrientationSupported {
+                    if #available(iOS 17.0, *) {
+                        connection.videoRotationAngle = 0.0
+                    } else {
+                        connection.videoOrientation = .portrait
+                    }
+                }
+            }
         } else {
             error = .outputError
             session.commitConfiguration()
@@ -109,15 +140,42 @@ class BarcodeScannerService: NSObject, ObservableObject {
     // MARK: - Session Control
     
     func startScanning() {
-        guard !session.isRunning else { return }
-        
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.startRunning()
-            DispatchQueue.main.async {
+        guard !session.isRunning else { 
+            // Already running, but update state
+            DispatchQueue.main.async { [weak self] in
                 self?.isSessionRunning = true
                 self?.isScanning = true
-                self?.scannedCode = nil
-                self?.scannedCodeType = nil
+            }
+            return 
+        }
+        
+        // Ensure session is configured before starting
+        if session.inputs.count == 0 || session.outputs.count == 0 {
+            // Session not configured, try to set it up
+            if isAuthorized {
+                setupScanner()
+            } else {
+                checkAuthorizationStatus()
+            }
+            return
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            // Start session
+            self.session.startRunning()
+            
+            DispatchQueue.main.async {
+                self.isSessionRunning = self.session.isRunning
+                self.isScanning = self.session.isRunning
+                self.scannedCode = nil
+                self.scannedCodeType = nil
+                
+                if !self.session.isRunning {
+                    print("Warning: Camera session failed to start")
+                    self.error = .unknown
+                }
             }
         }
     }
@@ -220,28 +278,87 @@ extension BarcodeScannerService: AVCaptureMetadataOutputObjectsDelegate {
 struct BarcodeScannerPreviewView: UIViewRepresentable {
     let scannerService: BarcodeScannerService
     
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
+    func makeUIView(context: Context) -> PreviewContainerView {
+        let containerView = PreviewContainerView()
         
+        // Create preview layer
         let previewLayer = AVCaptureVideoPreviewLayer(session: scannerService.session)
         previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
-        previewLayer.frame = view.bounds
         
-        view.layer.addSublayer(previewLayer)
+        // Configure preview layer connection
+        if let connection = previewLayer.connection {
+            if connection.isVideoOrientationSupported {
+                if #available(iOS 17.0, *) {
+                    connection.videoRotationAngle = 0.0
+                } else {
+                    connection.videoOrientation = .portrait
+                }
+            }
+            
+            // Ensure connection is enabled
+            if connection.isEnabled == false {
+                connection.isEnabled = true
+            }
+        }
         
-        return view
+        containerView.previewLayer = previewLayer
+        containerView.layer.addSublayer(previewLayer)
+        
+        // Ensure preview layer frame is set after a brief delay to allow view to layout
+        DispatchQueue.main.async {
+            if !containerView.bounds.isEmpty {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                previewLayer.frame = containerView.bounds
+                CATransaction.commit()
+            }
+        }
+        
+        return containerView
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = uiView.bounds
-            
-            // Update metadata output rect of interest
-            if let connection = previewLayer.connection {
-                let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: uiView.bounds)
+    func updateUIView(_ uiView: PreviewContainerView, context: Context) {
+        guard let previewLayer = uiView.previewLayer else { return }
+        
+        // Update frame when view bounds change
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        previewLayer.frame = uiView.bounds
+        CATransaction.commit()
+        
+        // Update metadata output rect of interest when view layout changes
+        if !uiView.bounds.isEmpty, let connection = previewLayer.connection {
+            let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: uiView.bounds)
+            scannerService.updateRectOfInterest(rect)
+        }
+    }
+}
+
+class PreviewContainerView: UIView {
+    var previewLayer: AVCaptureVideoPreviewLayer?
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        guard let previewLayer = previewLayer, !bounds.isEmpty else { return }
+        
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        previewLayer.frame = bounds
+        CATransaction.commit()
+        
+        // Update metadata output rect of interest when layout changes
+        if let connection = previewLayer.connection {
+            let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: bounds)
+            if let scannerService = findBarcodeScannerService() {
                 scannerService.updateRectOfInterest(rect)
             }
         }
+    }
+    
+    // Helper to find the service - we'll pass it through a different mechanism
+    private func findBarcodeScannerService() -> BarcodeScannerService? {
+        return BarcodeScannerService.shared
     }
 }
 

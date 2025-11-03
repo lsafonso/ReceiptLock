@@ -16,28 +16,19 @@ struct OnboardingView: View {
     
     private let onboardingPages = [
         OnboardingPage(
-            title: "Welcome to Appliance Warranty Tracker",
-            subtitle: "Keep track of all your appliance warranties in one place",
-            imageName: "house.fill",
-            backgroundColor: AppTheme.primary
+            title: "All your warranties, in one safe place.",
+            subtitle: "Store receipts, cover, and purchase dates without the paperwork",
+            imageName: "house.fill"
         ),
         OnboardingPage(
-            title: "Smart Warranty Management",
-            subtitle: "Never miss an expiry date with intelligent reminders and notifications",
-            imageName: "bell.fill",
-            backgroundColor: AppTheme.secondary
+            title: "Add items in seconds.",
+            subtitle: "Scan a receipt or barcode to fill in details automatically",
+            imageName: "plus.circle.fill"
         ),
         OnboardingPage(
-            title: "Quick & Easy Setup",
-            subtitle: "Add appliances with photos, scan receipts, or manual entry",
-            imageName: "plus.circle.fill",
-            backgroundColor: AppTheme.accent
-        ),
-        OnboardingPage(
-            title: "Stay Organized",
-            subtitle: "Categorize appliances, track costs, and manage warranties efficiently",
-            imageName: "list.bullet",
-            backgroundColor: AppTheme.primary
+            title: "We'll remind you before the expiry date.",
+            subtitle: "Choose 30, 14, or 7 day alerts so you never miss a claim",
+            imageName: "bell.fill"
         )
     ]
     
@@ -61,6 +52,7 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 .animation(.easeInOut, value: currentPage)
+                .accessibilityLabel("Onboarding slides")
                 
                 // Navigation Controls
                 navigationControls
@@ -114,20 +106,24 @@ struct OnboardingView: View {
     private var navigationControls: some View {
         VStack(spacing: AppTheme.spacing) {
             // Page Indicators
-            HStack(spacing: AppTheme.smallSpacing) {
-                ForEach(0..<(onboardingPages.count + 1), id: \.self) { index in
-                    Circle()
-                        .fill(index == currentPage ? AppTheme.primary : AppTheme.secondaryText.opacity(0.3))
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(index == currentPage ? 1.2 : 1.0)
-                        .animation(.spring(), value: currentPage)
-                }
-            }
+            PaginationDots(
+                currentPage: currentPage,
+                totalPages: onboardingPages.count + 1
+            )
             .padding(.bottom, AppTheme.spacing)
             
             // Navigation Buttons
             HStack {
-                if currentPage > 0 {
+                if currentPage == 0 {
+                    Button("Skip") {
+                        withAnimation {
+                            currentPage = onboardingPages.count
+                        }
+                    }
+                    .foregroundColor(AppTheme.secondaryText)
+                    .accessibilityLabel("Skip onboarding")
+                    .accessibilityHint("Skip to profile setup")
+                } else if currentPage > 0 {
                     Button("Back") {
                         withAnimation {
                             currentPage -= 1
@@ -145,11 +141,15 @@ struct OnboardingView: View {
                         }
                     }
                     .primaryButton()
+                    .accessibilityLabel("Next slide")
+                    .accessibilityHint("Move to slide \(currentPage + 2) of \(onboardingPages.count + 1)")
                 } else {
-                    Button("Get Started") {
+                    Button("Get started") {
                         completeOnboarding()
                     }
                     .primaryButton()
+                    .accessibilityLabel("Get started")
+                    .accessibilityHint("Complete onboarding and start using the app")
                 }
             }
             .padding(.horizontal, AppTheme.largeSpacing)
@@ -176,37 +176,24 @@ struct OnboardingPage {
     let title: String
     let subtitle: String
     let imageName: String
-    let backgroundColor: Color
+    /// Optional semantic color override (e.g., warning, success)
+    /// If nil, defaults to AppTheme.primary
+    let semanticColor: Color? = nil
 }
 
 // MARK: - Onboarding Page View
 struct OnboardingPageView: View {
     let page: OnboardingPage
-    @State private var isAnimating = false
     
     var body: some View {
         VStack(spacing: AppTheme.extraLargeSpacing) {
             Spacer()
             
-            // Icon
-            Image(systemName: page.imageName)
-                .font(.system(size: 80, weight: .light))
-                .foregroundColor(page.backgroundColor.rlOn())
-                .frame(width: 160, height: 160)
-                .background(
-                    Circle()
-                        .fill(page.backgroundColor)
-                        .shadow(color: page.backgroundColor.opacity(0.3), radius: 20, x: 0, y: 10)
-                )
-                .scaleEffect(isAnimating ? 1.1 : 1.0)
-                .animation(
-                    Animation.easeInOut(duration: 2.0)
-                        .repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
-                .onAppear {
-                    isAnimating = true
-                }
+            // Hero Icon
+            HeroIcon(
+                symbolName: page.imageName,
+                semanticColor: page.semanticColor
+            )
             
             // Text Content
             VStack(spacing: AppTheme.spacing) {
@@ -214,18 +201,67 @@ struct OnboardingPageView: View {
                     .font(.title.weight(.bold))
                     .foregroundColor(AppTheme.text)
                     .multilineTextAlignment(.center)
+                    .accessibilityLabel(page.title)
                 
                 Text(page.subtitle)
                     .font(.body)
                     .foregroundColor(AppTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, AppTheme.largeSpacing)
+                    .accessibilityLabel(page.subtitle)
             }
             .slideInTransition()
             
             Spacer()
         }
         .padding(AppTheme.largeSpacing)
+    }
+}
+
+// MARK: - Hero Icon Component
+/// Reusable hero icon component for onboarding slides
+/// Uses consistent sizing (96pt icon), brand green color, and animations
+struct HeroIcon: View {
+    let symbolName: String
+    let semanticColor: Color?
+    @State private var isAnimating = false
+    
+    /// Hero circle background color - defaults to brand green, allows semantic overrides
+    private var heroColor: Color {
+        semanticColor ?? AppTheme.primary
+    }
+    
+    // Hero styling constants
+    private let iconSize: CGFloat = 96
+    private let circleFrame: CGFloat = 160
+    private let shadowRadius: CGFloat = 20
+    private let shadowOffset: CGFloat = 10
+    private let shadowOpacity: Double = 0.3
+    
+    var body: some View {
+        Image(systemName: symbolName)
+            .font(.system(size: iconSize, weight: .light))
+            .foregroundColor(heroColor.rlOn())
+            .frame(width: circleFrame, height: circleFrame)
+            .background(
+                Circle()
+                    .fill(heroColor)
+                    .shadow(
+                        color: heroColor.opacity(shadowOpacity),
+                        radius: shadowRadius,
+                        x: 0,
+                        y: shadowOffset
+                    )
+            )
+            .scaleEffect(isAnimating ? 1.1 : 1.0)
+            .animation(
+                Animation.easeInOut(duration: 2.0)
+                    .repeatForever(autoreverses: true),
+                value: isAnimating
+            )
+            .onAppear {
+                isAnimating = true
+            }
     }
 }
 
@@ -267,5 +303,45 @@ struct WelcomeMessageView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Pagination Dots Component
+struct PaginationDots: View {
+    let currentPage: Int
+    let totalPages: Int
+    
+    // Dot styling constants
+    private let dotSize: CGFloat = 10
+    private let dotSpacing: CGFloat = 9 // Total gap ≈ 8-10pt between dots
+    private let activeScale: CGFloat = 1.0
+    private let inactiveScale: CGFloat = 0.9
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer()
+            
+            // Progress label
+            Text("\(currentPage + 1) of \(totalPages)")
+                .rlSubheadlineMuted()
+                .padding(.trailing, 12)
+            
+            // Dots
+            HStack(spacing: dotSpacing) {
+                ForEach(0..<totalPages, id: \.self) { index in
+                    Circle()
+                        .fill(index == currentPage ? AppTheme.primary : AppTheme.paginationInactive)
+                        .frame(width: dotSize, height: dotSize)
+                        .scaleEffect(index == currentPage ? activeScale : inactiveScale)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
+                        .accessibilityHidden(true)
+                }
+            }
+            
+            Spacer()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Slide \(currentPage + 1) of \(totalPages)")
+        .accessibilityHint("Onboarding progress indicator")
     }
 }

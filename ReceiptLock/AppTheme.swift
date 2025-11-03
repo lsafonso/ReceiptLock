@@ -24,6 +24,7 @@ struct AppTheme {
     static let border = Color(red: 200/255, green: 200/255, blue: 200/255) // Light gray for borders
     static let separator = Color(red: 230/255, green: 233/255, blue: 237/255) // #E6E9ED separator color
     static let inactiveTabColor = Color(red: 122/255, green: 132/255, blue: 140/255) // #7A848C inactive tab color
+    static let paginationInactive = Color(red: 215/255, green: 219/255, blue: 223/255) // #D7DBDF pagination inactive dots
     
     // MARK: - On-Color Roles (Text on colored backgrounds for AA contrast)
     static let onPrimary = Color.white // Text on primary background

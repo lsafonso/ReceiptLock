@@ -354,21 +354,40 @@ extension CameraService: AVCapturePhotoCaptureDelegate {
 struct CameraPreviewView: UIViewRepresentable {
     let cameraService: CameraService
     
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
+    func makeUIView(context: Context) -> CameraPreviewContainerView {
+        let containerView = CameraPreviewContainerView()
         
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraService.session)
         previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
-        previewLayer.frame = view.bounds
+        containerView.previewLayer = previewLayer
         
-        view.layer.addSublayer(previewLayer)
+        containerView.layer.addSublayer(previewLayer)
         
-        return view
+        return containerView
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
+    func updateUIView(_ uiView: CameraPreviewContainerView, context: Context) {
+        if let previewLayer = uiView.previewLayer {
+            // Update frame when view bounds change
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             previewLayer.frame = uiView.bounds
+            CATransaction.commit()
+        }
+    }
+}
+
+class CameraPreviewContainerView: UIView {
+    var previewLayer: AVCaptureVideoPreviewLayer?
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        if let previewLayer = previewLayer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.frame = bounds
+            CATransaction.commit()
         }
     }
 }

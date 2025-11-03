@@ -17,12 +17,28 @@ struct BarcodeScannerView: View {
     
     var body: some View {
         ZStack {
+            // Background color - should not be visible if camera works
+            Color.black
+                .ignoresSafeArea()
+            
             // Scanner preview
-            if scannerService.isAuthorized {
+            if scannerService.isAuthorized && scannerService.isSessionRunning {
                 BarcodeScannerPreviewView(scannerService: scannerService)
                     .ignoresSafeArea()
-                
-                // Scanning overlay
+            } else if scannerService.isAuthorized {
+                // Show loading state while session is starting
+                VStack {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.5)
+                    Text("Starting camera...")
+                        .foregroundColor(.white)
+                        .padding(.top)
+                }
+            }
+            
+            // Scanning overlay - only show when authorized
+            if scannerService.isAuthorized {
                 scanningOverlay
                 
                 // Top controls
@@ -116,7 +132,16 @@ struct BarcodeScannerView: View {
                 // Call external handler if provided
                 onCodeScanned?(code, type)
             }
-            scannerService.startScanning()
+            
+            // Ensure session is set up and start scanning
+            if scannerService.isAuthorized {
+                scannerService.startScanning()
+            }
+        }
+        .onChange(of: scannerService.isAuthorized) { oldValue, newValue in
+            if newValue {
+                scannerService.startScanning()
+            }
         }
         .onDisappear {
             scannerService.stopScanning()
