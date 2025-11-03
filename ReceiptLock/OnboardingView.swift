@@ -323,30 +323,46 @@ struct PillPagination: View {
     var body: some View {
         HStack(spacing: spacing) {
             ForEach(0..<total, id: \.self) { index in
-                if index == current {
-                    // Active: Capsule (pill)
-                    Capsule()
-                        .fill(activeColor)
-                        .frame(width: pillWidth, height: pillHeight)
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                        .accessibilityHidden(true)
-                } else {
-                    // Inactive: Circle (dot)
-                    Circle()
-                        .fill(inactiveColor)
-                        .frame(width: dotSize, height: dotSize)
-                        .scaleEffect(0.95)
-                        .accessibilityHidden(true)
+                ZStack {
+                    if index == current {
+                        // Active: Capsule (pill) with enhanced morphing animation
+                        Capsule()
+                            .fill(activeColor)
+                            .frame(width: pillWidth, height: pillHeight)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.3)
+                                    .combined(with: .opacity)
+                                    .combined(with: .move(edge: index < current ? .trailing : .leading)),
+                                removal: .scale(scale: 0.6)
+                                    .combined(with: .opacity)
+                                    .combined(with: .move(edge: index < current ? .leading : .trailing))
+                            ))
+                            .accessibilityHidden(true)
+                    } else {
+                        // Inactive: Circle (dot) with smooth fade and scale
+                        Circle()
+                            .fill(inactiveColor)
+                            .frame(width: dotSize, height: dotSize)
+                            .scaleEffect(0.85)
+                            .opacity(0.6)
+                            .transition(.asymmetric(
+                                insertion: .scale(scale: 0.6).combined(with: .opacity),
+                                removal: .scale(scale: 0.6).combined(with: .opacity)
+                            ))
+                            .accessibilityHidden(true)
+                    }
                 }
+                .animation(
+                    .spring(response: 0.4, dampingFraction: 0.7, blendDuration: 0.15)
+                        .delay(Double(abs(index - current)) * 0.03), // Staggered animation
+                    value: current
+                )
             }
         }
         .padding(.vertical, 6)
         .frame(minHeight: 44) // Minimum hit area 44×44
         .frame(maxWidth: .infinity)
-        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: current)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75, blendDuration: 0.2), value: current)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Slide \(current + 1) of \(total)")
         .accessibilityHint("Onboarding progress indicator")
