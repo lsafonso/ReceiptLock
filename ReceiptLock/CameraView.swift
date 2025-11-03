@@ -11,8 +11,12 @@ struct CameraView: View {
     
     var body: some View {
         ZStack {
+            // Background color
+            Color.black
+                .ignoresSafeArea()
+            
             // Camera preview
-            if cameraService.isAuthorized {
+            if cameraService.isAuthorized && cameraService.isSessionRunning {
                 CameraPreviewView(cameraService: cameraService)
                     .ignoresSafeArea()
                     .onTapGesture { location in
@@ -38,6 +42,16 @@ struct CameraView: View {
                 // Receipt frame guide
                 if !showingCameraGuide {
                     ReceiptFrameGuide()
+                }
+            } else if cameraService.isAuthorized {
+                // Show loading state while session is starting
+                VStack {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.5)
+                    Text("Starting camera...")
+                        .foregroundColor(.white)
+                        .padding(.top)
                 }
             } else {
                 CameraPermissionView()

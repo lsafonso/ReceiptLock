@@ -24,6 +24,12 @@ class CameraService: NSObject, ObservableObject {
     private let sessionPreset: AVCaptureSession.Preset = .photo
     private let photoCompressionQuality: Float = 0.9
     
+    // Dedicated queue for session operations
+    private let sessionQueue = DispatchQueue(label: "com.receiptlock.camera.session")
+    private var isSetupInProgress = false
+    private var startRetryCount = 0
+    private let maxStartRetries = 5
+    
     private override init() {
         super.init()
         checkAuthorizationStatus()
@@ -56,41 +62,104 @@ class CameraService: NSObject, ObservableObject {
     
     // MARK: - Camera Setup
     
-    private func setupCamera() {
-        session.beginConfiguration()
-        
-        // Set session preset for high quality
-        session.sessionPreset = sessionPreset
-        
-        // Add video input
-        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition),
-              let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
-            error = .deviceNotFound
-            session.commitConfiguration()
+    private func setupCamera(completion: ((Bool) -> Void)? = nil) {
+        // Prevent multiple concurrent setups
+        guard !isSetupInProgress else {
+            completion?(false)
             return
         }
         
-        if session.canAddInput(videoInput) {
-            session.addInput(videoInput)
-            currentCamera = videoDevice
-            setupCameraSettings(for: videoDevice)
-        } else {
-            error = .inputError(CameraError.deviceNotFound)
-            session.commitConfiguration()
-            return
+        // Run setup on dedicated session queue for thread safety
+        sessionQueue.async { [weak self] in
+            guard let self = self else {
+                completion?(false)
+                return
+            }
+            
+            // Check if already configured
+            if !self.session.inputs.isEmpty && !self.session.outputs.isEmpty {
+                DispatchQueue.main.async {
+                    self.isSetupInProgress = false
+                    completion?(true)
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isSetupInProgress = true
+            }
+            
+            self.session.beginConfiguration()
+            
+            // Set session preset for high quality
+            self.session.sessionPreset = self.sessionPreset
+            
+            // Add video input
+            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.currentCameraPosition) else {
+                print("❌ Camera: Camera device not found")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .deviceNotFound
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            guard let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
+                print("❌ Camera: Cannot create video input")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .deviceNotFound
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            if self.session.canAddInput(videoInput) {
+                self.session.addInput(videoInput)
+                self.currentCamera = videoDevice
+                self.setupCameraSettings(for: videoDevice)
+                print("✅ Camera: Video input added")
+            } else {
+                print("❌ Camera: Cannot add video input")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .inputError(CameraError.deviceNotFound)
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            // Add photo output
+            if self.session.canAddOutput(self.photoOutput) {
+                self.session.addOutput(self.photoOutput)
+                self.setupPhotoOutput()
+                print("✅ Camera: Photo output added")
+            } else {
+                print("❌ Camera: Cannot add photo output")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .inputError(CameraError.deviceNotFound)
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            self.session.commitConfiguration()
+            
+            // Verify setup was successful
+            let setupSuccessful = !self.session.inputs.isEmpty && !self.session.outputs.isEmpty
+            print("✅ Camera: Setup complete. Inputs: \(self.session.inputs.count), Outputs: \(self.session.outputs.count)")
+            
+            DispatchQueue.main.async {
+                self.isSetupInProgress = false
+                completion?(setupSuccessful)
+            }
         }
-        
-        // Add photo output
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
-            setupPhotoOutput()
-        } else {
-            error = .inputError(CameraError.deviceNotFound)
-            session.commitConfiguration()
-            return
-        }
-        
-        session.commitConfiguration()
     }
     
     private func setupCameraSettings(for device: AVCaptureDevice) {
@@ -137,12 +206,69 @@ class CameraService: NSObject, ObservableObject {
     // MARK: - Session Control
     
     func startSession() {
-        guard !session.isRunning else { return }
-        
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.session.startRunning()
-            DispatchQueue.main.async {
+        guard !session.isRunning else { 
+            // Update state if already running
+            DispatchQueue.main.async { [weak self] in
                 self?.isSessionRunning = true
+            }
+            return 
+        }
+        
+        // Check if session is configured on the session queue
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let isConfigured = !self.session.inputs.isEmpty && !self.session.outputs.isEmpty
+            
+            if !isConfigured {
+                // Session not configured, try to set it up
+                DispatchQueue.main.async {
+                    if self.isAuthorized {
+                        print("🔧 Camera: Starting setup (attempt \(self.startRetryCount + 1)/\(self.maxStartRetries))")
+                        self.startRetryCount += 1
+                        
+                        if self.startRetryCount > self.maxStartRetries {
+                            self.error = .unknown
+                            print("❌ Camera: Failed to start after \(self.maxStartRetries) attempts")
+                            self.startRetryCount = 0
+                            return
+                        }
+                        
+                        self.setupCamera { [weak self] success in
+                            guard let self = self else { return }
+                            if success {
+                                print("✅ Camera: Setup successful, starting session")
+                                self.startRetryCount = 0
+                                self.startSession() // Retry starting now that setup is complete
+                            } else {
+                                print("❌ Camera: Setup failed, retrying...")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    self.startSession()
+                                }
+                            }
+                        }
+                    }
+                }
+                return
+            }
+            
+            // Session is configured, reset retry count and start
+            DispatchQueue.main.async {
+                self.startRetryCount = 0
+            }
+            
+            print("🚀 Camera: Starting session")
+            self.session.startRunning()
+            
+            DispatchQueue.main.async {
+                self.isSessionRunning = self.session.isRunning
+                
+                if self.session.isRunning {
+                    print("✅ Camera: Session started successfully")
+                } else {
+                    print("❌ Camera: Session failed to start")
+                    self.error = .unknown
+                }
             }
         }
     }
@@ -150,7 +276,7 @@ class CameraService: NSObject, ObservableObject {
     func stopSession() {
         guard session.isRunning else { return }
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        sessionQueue.async { [weak self] in
             self?.session.stopRunning()
             DispatchQueue.main.async {
                 self?.isSessionRunning = false
@@ -168,28 +294,37 @@ class CameraService: NSObject, ObservableObject {
             return
         }
         
-        session.beginConfiguration()
-        
-        // Remove current input
-        if let currentInput = session.inputs.first {
-            session.removeInput(currentInput)
-        }
-        
-        // Add new input
-        do {
-            let newInput = try AVCaptureDeviceInput(device: newCamera)
-            if session.canAddInput(newInput) {
-                session.addInput(newInput)
-                currentCamera = newCamera
-                currentCameraPosition = newPosition
-                cameraPosition = newPosition
-                setupCameraSettings(for: newCamera)
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.session.beginConfiguration()
+            
+            // Remove current input
+            if let currentInput = self.session.inputs.first {
+                self.session.removeInput(currentInput)
             }
-        } catch {
-            self.error = .inputError(error)
+            
+            // Add new input
+            do {
+                let newInput = try AVCaptureDeviceInput(device: newCamera)
+                if self.session.canAddInput(newInput) {
+                    self.session.addInput(newInput)
+                    self.currentCamera = newCamera
+                    self.currentCameraPosition = newPosition
+                    self.setupCameraSettings(for: newCamera)
+                    
+                    DispatchQueue.main.async {
+                        self.cameraPosition = newPosition
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.error = .inputError(error)
+                }
+            }
+            
+            self.session.commitConfiguration()
         }
-        
-        session.commitConfiguration()
     }
     
     func toggleFlash() {
@@ -357,22 +492,62 @@ struct CameraPreviewView: UIViewRepresentable {
     func makeUIView(context: Context) -> CameraPreviewContainerView {
         let containerView = CameraPreviewContainerView()
         
+        // Create preview layer
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraService.session)
         previewLayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
-        containerView.previewLayer = previewLayer
         
+        // Configure preview layer connection orientation
+        if let connection = previewLayer.connection {
+            if connection.isVideoOrientationSupported {
+                if #available(iOS 17.0, *) {
+                    connection.videoRotationAngle = 0.0
+                } else {
+                    connection.videoOrientation = .portrait
+                }
+            }
+            
+            // Ensure connection is enabled
+            if connection.isEnabled == false {
+                connection.isEnabled = true
+            }
+        }
+        
+        containerView.previewLayer = previewLayer
         containerView.layer.addSublayer(previewLayer)
+        
+        // Ensure preview layer frame is set after a brief delay to allow view to layout
+        DispatchQueue.main.async {
+            if !containerView.bounds.isEmpty {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                previewLayer.frame = containerView.bounds
+                CATransaction.commit()
+            }
+        }
         
         return containerView
     }
     
     func updateUIView(_ uiView: CameraPreviewContainerView, context: Context) {
-        if let previewLayer = uiView.previewLayer {
-            // Update frame when view bounds change
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            previewLayer.frame = uiView.bounds
-            CATransaction.commit()
+        guard let previewLayer = uiView.previewLayer else { return }
+        
+        // Update frame when view bounds change
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        previewLayer.frame = uiView.bounds
+        CATransaction.commit()
+        
+        // Ensure orientation is set correctly
+        if let connection = previewLayer.connection, connection.isVideoOrientationSupported {
+            if #available(iOS 17.0, *) {
+                if connection.videoRotationAngle != 0.0 {
+                    connection.videoRotationAngle = 0.0
+                }
+            } else {
+                if connection.videoOrientation != .portrait {
+                    connection.videoOrientation = .portrait
+                }
+            }
         }
     }
 }
@@ -383,11 +558,20 @@ class CameraPreviewContainerView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        if let previewLayer = previewLayer {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            previewLayer.frame = bounds
-            CATransaction.commit()
+        guard let previewLayer = previewLayer, !bounds.isEmpty else { return }
+        
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        previewLayer.frame = bounds
+        CATransaction.commit()
+        
+        // Ensure orientation is set correctly after layout
+        if let connection = previewLayer.connection, connection.isVideoOrientationSupported {
+            if #available(iOS 17.0, *) {
+                connection.videoRotationAngle = 0.0
+            } else {
+                connection.videoOrientation = .portrait
+            }
         }
     }
 }

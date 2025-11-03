@@ -19,6 +19,12 @@ class BarcodeScannerService: NSObject, ObservableObject {
     private var currentCamera: AVCaptureDevice?
     private var currentCameraPosition: AVCaptureDevice.Position = .back
     
+    // Dedicated queue for session operations
+    private let sessionQueue = DispatchQueue(label: "com.receiptlock.barcode.session")
+    private var isSetupInProgress = false
+    private var startRetryCount = 0
+    private let maxStartRetries = 5
+    
     // Supported barcode types
     var supportedMetadataTypes: [AVMetadataObject.ObjectType] {
         return [
@@ -69,72 +75,155 @@ class BarcodeScannerService: NSObject, ObservableObject {
     
     // MARK: - Scanner Setup
     
-    private func setupScanner() {
+    private func setupScanner(completion: ((Bool) -> Void)? = nil) {
         // Prevent multiple setups
-        guard session.inputs.isEmpty || session.outputs.isEmpty else {
-            return // Already configured
-        }
-        
-        session.beginConfiguration()
-        
-        // Remove existing inputs/outputs if any
-        session.inputs.forEach { session.removeInput($0) }
-        session.outputs.forEach { session.removeOutput($0) }
-        
-        // Set session preset for barcode scanning
-        if session.canSetSessionPreset(.high) {
-            session.sessionPreset = .high
-        } else {
-            session.sessionPreset = .medium
-        }
-        
-        // Add video input
-        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentCameraPosition) else {
-            error = .deviceNotFound
-            session.commitConfiguration()
+        guard !isSetupInProgress else {
+            completion?(false)
             return
         }
         
-        do {
-            let videoInput = try AVCaptureDeviceInput(device: videoDevice)
-            
-            if session.canAddInput(videoInput) {
-                session.addInput(videoInput)
-                currentCamera = videoDevice
-            } else {
-                error = .inputError(BarcodeScannerError.deviceNotFound)
-                session.commitConfiguration()
+        // Check if already configured on session queue
+        sessionQueue.async { [weak self] in
+            guard let self = self else {
+                completion?(false)
                 return
             }
-        } catch {
-            self.error = .inputError(error)
-            session.commitConfiguration()
-            return
-        }
-        
-        // Add metadata output
-        if session.canAddOutput(metadataOutput) {
-            session.addOutput(metadataOutput)
-            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = supportedMetadataTypes
             
-            // Configure metadata output connection
-            if let connection = metadataOutput.connection(with: .video) {
-                if connection.isVideoOrientationSupported {
-                    if #available(iOS 17.0, *) {
-                        connection.videoRotationAngle = 0.0
-                    } else {
-                        connection.videoOrientation = .portrait
+            if !self.session.inputs.isEmpty && !self.session.outputs.isEmpty {
+                // Already configured
+                DispatchQueue.main.async {
+                    self.isSetupInProgress = false
+                    completion?(true)
+                }
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.isSetupInProgress = true
+            }
+            
+            self.session.beginConfiguration()
+            
+            // Remove existing inputs/outputs if any
+            self.session.inputs.forEach { self.session.removeInput($0) }
+            self.session.outputs.forEach { self.session.removeOutput($0) }
+            
+            // Set session preset for barcode scanning
+            if self.session.canSetSessionPreset(.high) {
+                self.session.sessionPreset = .high
+            } else {
+                self.session.sessionPreset = .medium
+            }
+            
+            // Add video input
+            // Try to get the camera device - check authorization first
+            let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+            guard authStatus == .authorized else {
+                print("❌ BarcodeScanner: Camera not authorized. Status: \(authStatus.rawValue)")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .notAuthorized
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            // Try to discover available camera devices first, then fallback to default
+            let discoverySession = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInWideAngleCamera],
+                mediaType: .video,
+                position: self.currentCameraPosition
+            )
+            
+            let videoDevice = discoverySession.devices.first ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.currentCameraPosition)
+            
+            guard let videoDevice = videoDevice else {
+                // Log available devices for debugging
+                let allDevices = AVCaptureDevice.DiscoverySession(
+                    deviceTypes: [.builtInWideAngleCamera],
+                    mediaType: .video,
+                    position: .unspecified
+                ).devices
+                print("❌ BarcodeScanner: Camera device not found. Total cameras: \(allDevices.count), Position requested: \(self.currentCameraPosition == .back ? "back" : "front")")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .deviceNotFound
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            print("✅ BarcodeScanner: Found camera device: \(videoDevice.localizedName)")
+            
+            do {
+                let videoInput = try AVCaptureDeviceInput(device: videoDevice)
+                
+                if self.session.canAddInput(videoInput) {
+                    self.session.addInput(videoInput)
+                    self.currentCamera = videoDevice
+                    print("✅ BarcodeScanner: Video input added")
+                } else {
+                    print("❌ BarcodeScanner: Cannot add video input")
+                    self.session.commitConfiguration()
+                    DispatchQueue.main.async {
+                        self.error = .inputError(BarcodeScannerError.deviceNotFound)
+                        self.isSetupInProgress = false
+                        completion?(false)
+                    }
+                    return
+                }
+            } catch {
+                print("❌ BarcodeScanner: Error creating video input: \(error.localizedDescription)")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .inputError(error)
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
+            }
+            
+            // Add metadata output
+            if self.session.canAddOutput(self.metadataOutput) {
+                self.session.addOutput(self.metadataOutput)
+                self.metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+                self.metadataOutput.metadataObjectTypes = self.supportedMetadataTypes
+                
+                // Configure metadata output connection
+                if let connection = self.metadataOutput.connection(with: .video) {
+                    if connection.isVideoOrientationSupported {
+                        if #available(iOS 17.0, *) {
+                            connection.videoRotationAngle = 0.0
+                        } else {
+                            connection.videoOrientation = .portrait
+                        }
                     }
                 }
+                print("✅ BarcodeScanner: Metadata output added")
+            } else {
+                print("❌ BarcodeScanner: Cannot add metadata output")
+                self.session.commitConfiguration()
+                DispatchQueue.main.async {
+                    self.error = .outputError
+                    self.isSetupInProgress = false
+                    completion?(false)
+                }
+                return
             }
-        } else {
-            error = .outputError
-            session.commitConfiguration()
-            return
+            
+            self.session.commitConfiguration()
+            
+            // Verify setup was successful
+            let setupSuccessful = !self.session.inputs.isEmpty && !self.session.outputs.isEmpty
+            print("✅ BarcodeScanner: Setup complete. Inputs: \(self.session.inputs.count), Outputs: \(self.session.outputs.count)")
+            
+            DispatchQueue.main.async {
+                self.isSetupInProgress = false
+                completion?(setupSuccessful)
+            }
         }
-        
-        session.commitConfiguration()
     }
     
     // MARK: - Session Control
@@ -149,21 +238,64 @@ class BarcodeScannerService: NSObject, ObservableObject {
             return 
         }
         
-        // Ensure session is configured before starting
-        if session.inputs.count == 0 || session.outputs.count == 0 {
-            // Session not configured, try to set it up
-            if isAuthorized {
-                setupScanner()
-            } else {
-                checkAuthorizationStatus()
-            }
-            return
-        }
-        
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        // Check if session is configured on the session queue
+        sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
-            // Start session
+            let isConfigured = !self.session.inputs.isEmpty && !self.session.outputs.isEmpty
+            
+            if !isConfigured {
+                // Session not configured, try to set it up
+                DispatchQueue.main.async {
+                    // Double-check authorization status
+                    let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+                    if authStatus == .authorized {
+                        // Update isAuthorized to match actual status
+                        self.isAuthorized = true
+                        
+                        print("🔧 BarcodeScanner: Starting setup (attempt \(self.startRetryCount + 1)/\(self.maxStartRetries))")
+                        
+                        if self.startRetryCount >= self.maxStartRetries {
+                            self.error = .unknown
+                            print("❌ BarcodeScanner: Failed to start after \(self.maxStartRetries) attempts")
+                            self.startRetryCount = 0
+                            return
+                        }
+                        
+                        self.startRetryCount += 1
+                        
+                        self.setupScanner { [weak self] success in
+                            guard let self = self else { return }
+                            if success {
+                                print("✅ BarcodeScanner: Setup successful, starting session")
+                                self.startRetryCount = 0
+                                self.startScanning() // Retry starting now that setup is complete
+                            } else {
+                                print("❌ BarcodeScanner: Setup failed, retrying...")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    self.startScanning()
+                                }
+                            }
+                        }
+                    } else if authStatus == .notDetermined {
+                        // Request authorization
+                        self.checkAuthorizationStatus()
+                    } else {
+                        // Denied or restricted
+                        self.isAuthorized = false
+                        self.error = .notAuthorized
+                        print("❌ BarcodeScanner: Camera access denied or restricted")
+                    }
+                }
+                return
+            }
+            
+            // Session is configured, reset retry count and start
+            DispatchQueue.main.async {
+                self.startRetryCount = 0
+            }
+            
+            print("🚀 BarcodeScanner: Starting session")
             self.session.startRunning()
             
             DispatchQueue.main.async {
@@ -172,8 +304,10 @@ class BarcodeScannerService: NSObject, ObservableObject {
                 self.scannedCode = nil
                 self.scannedCodeType = nil
                 
-                if !self.session.isRunning {
-                    print("Warning: Camera session failed to start")
+                if self.session.isRunning {
+                    print("✅ BarcodeScanner: Session started successfully")
+                } else {
+                    print("❌ BarcodeScanner: Session failed to start")
                     self.error = .unknown
                 }
             }
