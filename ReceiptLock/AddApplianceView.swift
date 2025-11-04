@@ -32,6 +32,7 @@ struct AddApplianceView: View {
     @State private var warrantySummary = ""
     @State private var notes = ""
     @State private var isSaving = false
+    @State private var saveButtonState: SaveButtonState = .idle
     @State private var showingBarcodeScanner = false
     @State private var scannedBarcode: String?
     @State private var scannedBarcodeType: String?
@@ -159,25 +160,18 @@ struct AddApplianceView: View {
                 // Only show Cancel and Save buttons when user has started entering data
                 if hasStartedEnteringData {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            dismiss()
-                        }
-                        .foregroundColor(AppTheme.primary)
+                        CancelButton(action: { dismiss() }, hasUnsavedChanges: hasStartedEnteringData)
                     }
                     
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
                             saveAppliance()
                         } label: {
-                            if isSaving {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.primary))
-                            } else {
-                                Text("Save")
-                                    .foregroundColor(AppTheme.primary)
-                            }
+                            Text("Save")
                         }
-                        .disabled(title.isEmpty || store.isEmpty || isSaving)
+                        .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
+                        .disabled(title.isEmpty || store.isEmpty || saveButtonState == .loading)
+                        .opacity((title.isEmpty || store.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
                     }
                 }
             }
@@ -607,7 +601,7 @@ struct AddApplianceView: View {
     
     private func saveAppliance() {
         // Prevent multiple saves
-        guard !isSaving else {
+        guard saveButtonState != .loading else {
             print("⚠️ Save already in progress")
             return
         }
@@ -631,10 +625,12 @@ struct AddApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             impactFeedback.impactOccurred()
             
+            saveButtonState = .idle
             return
         }
         
         print("✅ Validation passed")
+        saveButtonState = .loading
         isSaving = true
         
         let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext)
@@ -668,6 +664,7 @@ struct AddApplianceView: View {
             if let savedID = appliance.value(forKey: "id") as? UUID {
                 DispatchQueue.main.async {
                     self.isSaving = false
+                    self.saveButtonState = .success
                     self.savedApplianceID = savedID
                     self.navigateToDetail = true
                 }
@@ -675,13 +672,18 @@ struct AddApplianceView: View {
                 // Fallback: dismiss if we can't get the ID
                 DispatchQueue.main.async {
                     self.isSaving = false
-                    dismiss()
+                    self.saveButtonState = .success
+                    // Auto-revert handled by button style, but dismiss immediately
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        dismiss()
+                    }
                 }
             }
         } catch {
             print("❌ Error saving appliance: \(error)")
             print("Error details: \(error.localizedDescription)")
             isSaving = false
+            saveButtonState = .idle
             
             // Haptic feedback for error
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)

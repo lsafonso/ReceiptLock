@@ -634,9 +634,7 @@ struct CustomMessageEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: tempMessage != message)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -645,7 +643,7 @@ struct CustomMessageEditorView: View {
                         onSave(tempMessage)
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
                 }
             }
         }

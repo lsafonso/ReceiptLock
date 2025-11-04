@@ -275,9 +275,7 @@ struct AddEditMessageView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: !title.isEmpty || !message.isEmpty)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -292,7 +290,9 @@ struct AddEditMessageView: View {
                         onSave(newMessage)
                         dismiss()
                     }
+                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
                     .disabled(title.isEmpty || message.isEmpty)
+                    .opacity((title.isEmpty || message.isEmpty) ? 0.4 : 1.0)
                 }
             }
         }

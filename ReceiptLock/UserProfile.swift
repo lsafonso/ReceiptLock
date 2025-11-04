@@ -199,12 +199,10 @@ struct ProfileEditView: View {
                 .padding(AppTheme.spacing)
             }
             .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: name != profileManager.currentProfile.name || email != profileManager.currentProfile.email || selectedImage != nil)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -212,7 +210,7 @@ struct ProfileEditView: View {
                         saveProfile()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
                 }
             }
         }

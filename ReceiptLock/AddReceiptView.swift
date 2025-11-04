@@ -38,6 +38,11 @@ struct AddReceiptView: View {
     @State private var editedImage: UIImage?
     @State private var selectedPDFURL: URL?
     @State private var pdfMetadata: PDFMetadata?
+    @State private var saveButtonState: SaveButtonState = .idle
+    
+    private var hasUnsavedChanges: Bool {
+        !title.isEmpty || !store.isEmpty || selectedImageData != nil || selectedPDFURL != nil
+    }
     
     // Initialize with a pre-selected image (from camera)
     init(selectedImage: UIImage? = nil) {
@@ -59,16 +64,16 @@ struct AddReceiptView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: hasUnsavedChanges)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveReceipt()
                     }
-                    .disabled(title.isEmpty || store.isEmpty)
+                    .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
+                    .disabled(title.isEmpty || store.isEmpty || saveButtonState == .loading)
+                    .opacity((title.isEmpty || store.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
                 }
             }
             .sheet(isPresented: $showingImageEditor) {
@@ -386,8 +391,13 @@ struct AddReceiptView: View {
         guard !title.isEmpty && !store.isEmpty else {
             errorMessage = "Please fill in all required fields"
             showingError = true
+            saveButtonState = .idle
             return
         }
+        
+        guard saveButtonState != .loading else { return }
+        
+        saveButtonState = .loading
         
         let receipt = Receipt(context: viewContext)
         receipt.id = UUID()
@@ -405,10 +415,15 @@ struct AddReceiptView: View {
         
         do {
             try viewContext.save()
-            dismiss()
+            saveButtonState = .success
+            // Dismiss after success animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                dismiss()
+            }
         } catch {
             errorMessage = "Failed to save receipt: \(error.localizedDescription)"
             showingError = true
+            saveButtonState = .idle
         }
     }
     
@@ -513,9 +528,7 @@ struct ImageEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: false)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
@@ -523,6 +536,7 @@ struct ImageEditorView: View {
                         onSave(editedImage)
                         dismiss()
                     }
+                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
                 }
             }
         }

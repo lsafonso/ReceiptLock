@@ -40,6 +40,7 @@ struct EditReceiptView: View {
     @State private var hasChanges = false
     @State private var selectedPDFURL: URL?
     @State private var pdfMetadata: PDFMetadata?
+    @State private var saveButtonState: SaveButtonState = .idle
     
     // Initialize with existing receipt data
     init(receipt: Receipt) {
@@ -90,16 +91,16 @@ struct EditReceiptView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: hasChanges)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveChanges()
                     }
-                    .disabled(!hasChanges)
+                    .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
+                    .disabled(!hasChanges || saveButtonState == .loading)
+                    .opacity((!hasChanges || saveButtonState == .loading) ? 0.4 : 1.0)
                 }
             }
             .sheet(isPresented: $showingImageEditor) {
@@ -558,10 +559,15 @@ struct EditReceiptView: View {
         
         do {
             try viewContext.save()
-            dismiss()
+            saveButtonState = .success
+            // Dismiss after success animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                dismiss()
+            }
         } catch {
             errorMessage = "Failed to update receipt: \(error.localizedDescription)"
             showingError = true
+            saveButtonState = .idle
         }
     }
     
@@ -579,8 +585,13 @@ struct EditReceiptView: View {
     }
     
     private func saveChanges() {
+        guard saveButtonState != .loading else { return }
+        
         if validateForm() {
+            saveButtonState = .loading
             updateReceipt()
+        } else {
+            saveButtonState = .idle
         }
     }
     

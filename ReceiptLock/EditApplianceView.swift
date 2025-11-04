@@ -23,6 +23,19 @@ struct EditApplianceView: View {
     @State private var warrantySummary: String
     @State private var showingSaveSuccessAlert = false
     @State private var isSaving = false
+    @State private var saveButtonState: SaveButtonState = .idle
+    
+    private var hasUnsavedChanges: Bool {
+        title != (appliance.name ?? "") ||
+        brand != (appliance.brand ?? "") ||
+        model != (appliance.model ?? "") ||
+        serialNumber != (appliance.serialNumber ?? "") ||
+        price != appliance.price ||
+        warrantyMonths != Int(appliance.warrantyMonths) ||
+        notes != (appliance.notes ?? "") ||
+        warrantySummary != (appliance.warrantySummary ?? "") ||
+        !Calendar.current.isDate(purchaseDate, inSameDayAs: appliance.purchaseDate ?? Date())
+    }
     
     init(appliance: Appliance) {
         self.appliance = appliance
@@ -80,24 +93,18 @@ struct EditApplianceView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                    CancelButton(action: { dismiss() }, hasUnsavedChanges: hasUnsavedChanges)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         saveChanges()
                     } label: {
-                        if isSaving {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.primary))
-                        } else {
-                            Text("Save")
-                                .foregroundColor(AppTheme.primary)
-                        }
+                        Text("Save")
                     }
-                    .disabled(title.isEmpty || brand.isEmpty || isSaving)
+                    .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
+                    .disabled(title.isEmpty || brand.isEmpty || saveButtonState == .loading)
+                    .opacity((title.isEmpty || brand.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
                 }
             }
         }
@@ -111,8 +118,9 @@ struct EditApplianceView: View {
     }
     
     private func saveChanges() {
-        guard !isSaving else { return }
+        guard saveButtonState != .loading else { return }
         
+        saveButtonState = .loading
         isSaving = true
         
         appliance.name = title
@@ -140,14 +148,19 @@ struct EditApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
             
-            // Show success alert
+            // Show success state then alert
             DispatchQueue.main.async {
                 self.isSaving = false
-                self.showingSaveSuccessAlert = true
+                self.saveButtonState = .success
+                // Auto-revert will happen after 0.8s, then show alert
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    self.showingSaveSuccessAlert = true
+                }
             }
         } catch {
             print("Error saving changes: \(error)")
             isSaving = false
+            saveButtonState = .idle
             
             // Haptic feedback for error
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
