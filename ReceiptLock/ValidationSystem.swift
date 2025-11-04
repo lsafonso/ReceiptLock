@@ -182,6 +182,7 @@ struct ValidatedTextField: View {
     let fieldKey: String
     @ObservedObject var validationManager: ValidationManager
     let validationRule: (String, String) -> Bool
+    var skipValidation: Bool = false
     
     init(
         title: String,
@@ -189,6 +190,7 @@ struct ValidatedTextField: View {
         text: Binding<String>,
         fieldKey: String,
         validationManager: ValidationManager,
+        skipValidation: Bool = false,
         validationRule: @escaping (String, String) -> Bool
     ) {
         self.title = title
@@ -196,6 +198,7 @@ struct ValidatedTextField: View {
         self._text = text
         self.fieldKey = fieldKey
         self.validationManager = validationManager
+        self.skipValidation = skipValidation
         self.validationRule = validationRule
     }
     
@@ -232,7 +235,12 @@ struct ValidatedTextField: View {
                         )
                 )
                 .onChange(of: text) { _, newValue in
-                    _ = validationRule(newValue, fieldKey)
+                    if !skipValidation {
+                        _ = validationRule(newValue, fieldKey)
+                    } else {
+                        // Clear error for this field when skipping validation (during reset)
+                        validationManager.errors.removeValue(forKey: fieldKey)
+                    }
                 }
             
             if let error = validationManager.getError(for: fieldKey) {
@@ -253,6 +261,7 @@ struct ValidatedPriceField: View {
     let fieldKey: String
     @ObservedObject var validationManager: ValidationManager
     @State private var priceText: String = ""
+    @State private var isUpdatingFromBinding = false
     
     init(
         title: String,
@@ -264,7 +273,7 @@ struct ValidatedPriceField: View {
         self._price = price
         self.fieldKey = fieldKey
         self.validationManager = validationManager
-        self._priceText = State(initialValue: String(format: "%.2f", price.wrappedValue))
+        self._priceText = State(initialValue: price.wrappedValue == 0.0 ? "" : String(format: "%.2f", price.wrappedValue))
     }
     
     var body: some View {
@@ -290,10 +299,70 @@ struct ValidatedPriceField: View {
                 
                 TextField("0.00", text: $priceText)
                     .keyboardType(.decimalPad)
-                    .onChange(of: priceText) { _, newValue in
-                        if let doubleValue = Double(newValue) {
+                    .onChange(of: priceText) { oldValue, newValue in
+                        // Skip processing if we're updating from the binding (to avoid infinite loop)
+                        guard !isUpdatingFromBinding else { return }
+                        
+                        // Filter out non-numeric characters (except decimal point and comma)
+                        let filtered = newValue.filter { $0.isNumber || $0 == "." || $0 == "," }
+                        
+                        // Replace comma with period for decimal separator
+                        let withPeriod = filtered.replacingOccurrences(of: ",", with: ".")
+                        
+                        // Ensure only one decimal point
+                        let components = withPeriod.components(separatedBy: ".")
+                        let cleaned: String
+                        if components.count > 2 {
+                            // More than one decimal point - keep only the first
+                            cleaned = components[0] + "." + components.dropFirst().joined().replacingOccurrences(of: ".", with: "")
+                        } else {
+                            cleaned = withPeriod
+                        }
+                        
+                        // Limit to 2 decimal places
+                        let finalValue: String
+                        if let dotIndex = cleaned.firstIndex(of: ".") {
+                            let integerPart = String(cleaned[..<dotIndex])
+                            let decimalPart = String(cleaned[cleaned.index(after: dotIndex)...])
+                            let limitedDecimal = String(decimalPart.prefix(2))
+                            finalValue = integerPart + "." + limitedDecimal
+                        } else {
+                            finalValue = cleaned
+                        }
+                        
+                        // Update the text if it changed (filtered invalid characters)
+                        if priceText != finalValue {
+                            isUpdatingFromBinding = true
+                            priceText = finalValue
+                            isUpdatingFromBinding = false
+                        }
+                        
+                        // Parse and update price
+                        if finalValue.isEmpty {
+                            // Allow empty string (will be treated as 0)
+                            price = 0.0
+                            validationManager.errors.removeValue(forKey: fieldKey)
+                        } else if let doubleValue = Double(finalValue) {
                             price = doubleValue
                             _ = validationManager.validatePrice(doubleValue, fieldKey: fieldKey)
+                        }
+                    }
+                    .onChange(of: price) { oldValue, newValue in
+                        // Skip if we're updating from text field (to avoid infinite loop)
+                        guard !isUpdatingFromBinding else { return }
+                        
+                        // Sync priceText when price changes externally (e.g., form reset)
+                        // Calculate what the priceText should be for this price value
+                        let expectedText = newValue == 0.0 ? "" : String(format: "%.2f", newValue)
+                        // Only update if different to avoid infinite loops
+                        if priceText != expectedText {
+                            isUpdatingFromBinding = true
+                            priceText = expectedText
+                            isUpdatingFromBinding = false
+                            // Clear price error when resetting to 0
+                            if newValue == 0.0 {
+                                validationManager.errors.removeValue(forKey: fieldKey)
+                            }
                         }
                     }
             }

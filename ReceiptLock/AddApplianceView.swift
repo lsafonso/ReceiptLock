@@ -39,6 +39,7 @@ struct AddApplianceView: View {
     @State private var savedApplianceID: UUID?
     @State private var navigateToDetail = false
     @State private var navigationPath = NavigationPath()
+    @State private var isResetting = false
     
     enum DeviceType: String, CaseIterable {
         case airConditioner = "Air Conditioner"
@@ -160,7 +161,10 @@ struct AddApplianceView: View {
                 // Only show Cancel and Save buttons when user has started entering data
                 if hasStartedEnteringData {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        CancelButton(action: { dismiss() }, hasUnsavedChanges: hasStartedEnteringData)
+                        CancelButton(action: { 
+                            resetForm()
+                            dismiss() 
+                        }, hasUnsavedChanges: hasStartedEnteringData)
                     }
                     
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -367,10 +371,6 @@ struct AddApplianceView: View {
     // MARK: - Form Fields
     private var formFields: some View {
         VStack(spacing: AppTheme.spacing) {
-            // Validation Error Banner
-            ValidationErrorBanner(validationManager: validationManager)
-                .animation(.easeInOut, value: validationManager.hasErrors())
-            
             // Basic Information Section
             VStack(alignment: .leading, spacing: AppTheme.spacing) {
                 Text("Basic Information")
@@ -382,9 +382,11 @@ struct AddApplianceView: View {
                     placeholder: "Enter appliance name",
                     text: $title,
                     fieldKey: "title",
-                    validationManager: validationManager
+                    validationManager: validationManager,
+                    skipValidation: isResetting
                 ) { value, fieldKey in
-                    validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
+                    if isResetting { return true }
+                    return validationManager.validateRequired(value, fieldName: "Appliance name", fieldKey: fieldKey) &&
                     validationManager.validateApplianceName(value, fieldKey: fieldKey)
                 }
                 
@@ -394,9 +396,11 @@ struct AddApplianceView: View {
                     placeholder: "e.g., Amazon, IKEA, Currys",
                     text: $store,
                     fieldKey: "store",
-                    validationManager: validationManager
+                    validationManager: validationManager,
+                    skipValidation: isResetting
                 ) { value, fieldKey in
-                    validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
+                    if isResetting { return true }
+                    return validationManager.validateRequired(value, fieldName: "Store name", fieldKey: fieldKey) &&
                     validationManager.validateStoreName(value, fieldKey: fieldKey)
                 }
                 
@@ -762,7 +766,13 @@ struct AddApplianceView: View {
     }
     
     private func resetForm() {
-        // Reset all form fields first
+        // Set flag to prevent validation during reset
+        isResetting = true
+        
+        // Clear validation errors first (synchronously)
+        validationManager.clearErrors()
+        
+        // Reset all form fields
         title = ""
         store = ""
         purchaseDate = Date()
@@ -777,11 +787,15 @@ struct AddApplianceView: View {
         notes = ""
         scannedBarcode = nil
         scannedBarcodeType = nil
+        saveButtonState = .idle
         
-        // Clear validation errors after resetting fields
-        // Use async to ensure it happens after all field updates are processed
+        // Clear errors again after field changes have propagated
+        // Then reset the flag to allow normal validation
         DispatchQueue.main.async {
             self.validationManager.clearErrors()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.isResetting = false
+            }
         }
     }
     
