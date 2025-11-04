@@ -74,7 +74,7 @@ struct DashboardView: View {
                 
                 Spacer()
                 
-                HStack(spacing: AppTheme.smallSpacing) {
+                HStack(spacing: 4) {
                     Button(action: {}) {
                         Image(systemName: "bell.fill")
                             .font(.title2)
@@ -86,11 +86,27 @@ struct DashboardView: View {
                     Button(action: {
                         showingProfileEdit = true
                     }) {
-                        AvatarView(
-                            image: profileManager.getAvatarImage(),
-                            size: 40,
-                            showBorder: false
-                        )
+                        ZStack {
+                            AvatarView(
+                                image: profileManager.getAvatarImage(),
+                                size: 28,
+                                showBorder: true
+                            )
+                            
+                            // Plus icon overlay when no photo is selected
+                            if profileManager.getAvatarImage() == nil {
+                                Circle()
+                                    .fill(AppTheme.primary.opacity(0.9))
+                                    .frame(width: 16, height: 16)
+                                    .overlay(
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    )
+                                    .offset(x: 10, y: 10) // Bottom right corner
+                                    .shadow(color: AppTheme.primary.opacity(0.3), radius: 4, x: 0, y: 1)
+                            }
+                        }
                     }
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())

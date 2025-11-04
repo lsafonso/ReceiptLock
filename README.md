@@ -70,7 +70,9 @@ The app features a comprehensive, logically organized settings hierarchy:
 
 #### **1. Profile & Personalization**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
-- **Email Address**: Add and manage your email address
+- **Interactive Avatar Selection**: Visual "+" icon indicator when no photo is selected
+- **Email Address**: Required email field with format validation
+- **Required Fields**: Name and email are mandatory during onboarding
 - **Currency Preferences**: Select from 3 supported currencies (USD, GBP, EUR)
 
 #### **2. Receipt & Appliance Settings**
@@ -226,6 +228,19 @@ ReceiptLock/
 ```
 
 ## Usage Guide
+
+### First-Time Setup (Onboarding)
+1. **Welcome Tutorial**: Interactive introduction to app features
+2. **Profile Setup**: Create your profile with required information:
+   - **Profile Photo**: Tap the avatar to select a photo (optional)
+     - "+" icon badge indicates the avatar is clickable
+     - Pulsing animation during onboarding draws attention
+   - **Name**: Enter your name (required field, indicated by *)
+   - **Email**: Enter your email address (required field, indicated by *)
+     - Real-time email format validation
+     - Visual feedback for invalid email formats
+3. **Form Validation**: "Get started" button is disabled until all required fields are valid
+4. **Complete Onboarding**: Tap "Get started" to finish setup
 
 ### Adding an Appliance
 1. Tap the "+" floating action button on Dashboard or Appliances tab

@@ -45,11 +45,27 @@ struct ProfileView: View {
     
     private var profileHeader: some View {
         VStack(spacing: AppTheme.spacing) {
-            AvatarView(
-                image: profileManager.getAvatarImage(),
-                size: 80,
-                showBorder: true
-            )
+            ZStack {
+                AvatarView(
+                    image: profileManager.getAvatarImage(),
+                    size: 80,
+                    showBorder: true
+                )
+                
+                // Plus icon overlay when no photo is selected
+                if profileManager.getAvatarImage() == nil {
+                    Circle()
+                        .fill(AppTheme.primary.opacity(0.9))
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                        )
+                        .offset(x: 28, y: 28) // Bottom right corner
+                        .shadow(color: AppTheme.primary.opacity(0.3), radius: 6, x: 0, y: 2)
+                }
+            }
             
             VStack(spacing: AppTheme.smallSpacing) {
                 Text(profileManager.currentProfile.name.isEmpty ? "User" : profileManager.currentProfile.name)

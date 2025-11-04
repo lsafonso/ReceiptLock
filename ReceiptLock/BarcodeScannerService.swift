@@ -51,6 +51,13 @@ class BarcodeScannerService: NSObject, ObservableObject {
     // MARK: - Authorization
     
     private func checkAuthorizationStatus() {
+        // Check if running on simulator first
+        if isRunningOnSimulator {
+            isAuthorized = false
+            error = .simulatorNotSupported
+            return
+        }
+        
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             isAuthorized = true
@@ -73,12 +80,33 @@ class BarcodeScannerService: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Simulator Detection
+    
+    private var isRunningOnSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+    
     // MARK: - Scanner Setup
     
     private func setupScanner(completion: ((Bool) -> Void)? = nil) {
         // Prevent multiple setups
         guard !isSetupInProgress else {
             completion?(false)
+            return
+        }
+        
+        // Check if running on simulator
+        if isRunningOnSimulator {
+            print("⚠️ BarcodeScanner: Running on simulator - camera not available")
+            DispatchQueue.main.async {
+                self.error = .simulatorNotSupported
+                self.isSetupInProgress = false
+                completion?(false)
+            }
             return
         }
         
@@ -229,6 +257,16 @@ class BarcodeScannerService: NSObject, ObservableObject {
     // MARK: - Session Control
     
     func startScanning() {
+        // Check if running on simulator first
+        if isRunningOnSimulator {
+            DispatchQueue.main.async { [weak self] in
+                self?.error = .simulatorNotSupported
+                self?.isSessionRunning = false
+                self?.isScanning = false
+            }
+            return
+        }
+        
         guard !session.isRunning else { 
             // Already running, but update state
             DispatchQueue.main.async { [weak self] in
@@ -574,6 +612,7 @@ enum BarcodeScannerError: Error, LocalizedError, Equatable {
     case deviceNotFound
     case inputError(Error)
     case outputError
+    case simulatorNotSupported
     case unknown
     
     static func == (lhs: BarcodeScannerError, rhs: BarcodeScannerError) -> Bool {
@@ -581,6 +620,7 @@ enum BarcodeScannerError: Error, LocalizedError, Equatable {
         case (.notAuthorized, .notAuthorized),
              (.deviceNotFound, .deviceNotFound),
              (.outputError, .outputError),
+             (.simulatorNotSupported, .simulatorNotSupported),
              (.unknown, .unknown):
             return true
         case (.inputError(let lhsError), .inputError(let rhsError)):
@@ -600,6 +640,8 @@ enum BarcodeScannerError: Error, LocalizedError, Equatable {
             return "Camera input error: \(error.localizedDescription)"
         case .outputError:
             return "Metadata output error"
+        case .simulatorNotSupported:
+            return "Camera is not available in the iOS Simulator. Please use a physical device to scan barcodes."
         case .unknown:
             return "Unknown scanner error"
         }

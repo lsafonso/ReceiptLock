@@ -20,7 +20,17 @@ The app features a comprehensive, logically organized settings hierarchy:
 
 #### **1. Profile & Personalization** ✅ **ENHANCED**
 - **Profile Photo & Name**: Update avatar and display name with integrated profile management
-- **Email Address**: Add and manage email address in Edit Profile
+- **Interactive Avatar Selection**: Visual "+" icon indicator when no photo is selected
+  - **Onboarding**: Pulsing animation and "+" badge during profile setup
+  - **Dashboard**: "+" icon overlay on avatar in header
+  - **Profile View**: "+" icon overlay on avatar in profile section
+  - **Edit Profile**: "+" icon overlay when no photo is selected
+- **Email Address**: Required email field with format validation
+  - **Onboarding**: Real-time email validation with visual feedback
+  - **Edit Profile**: Email management with validation
+- **Required Fields**: Name and email are mandatory during onboarding
+  - **Form Validation**: Complete validation before allowing progression
+  - **Visual Indicators**: Clear indication of required fields
 - **Country/Region**: Select country with automatic currency detection
 - **Currency Preferences**: Full currency selection with 20+ supported currencies (auto-set based on country)
 - **Language/Locale**: Comprehensive language selection (10+ languages)
@@ -130,6 +140,22 @@ The app features a comprehensive, logically organized settings hierarchy:
 
 ### 🎨 **User Experience & Onboarding** ✅ **COMPLETE**
 - **Onboarding Flow**: Comprehensive introduction to app features and functionality
+- **Profile Setup**: Required profile creation with name and email validation
+- **Profile Photo Selection**: Interactive avatar selection with visual indicators
+  - **"+ Icon Badge**: Clear visual indicator when no photo is selected
+  - **Pulsing Animation**: Animated ring around avatar during onboarding to indicate interactivity
+  - **Photo Persistence**: Selected photos are properly saved and displayed across all views
+- **Email Validation**: Real-time email format validation during onboarding
+  - **Format Validation**: Regex-based email format checking
+  - **Visual Feedback**: Red border and error message for invalid emails
+  - **Real-time Validation**: Validates as user types
+- **Required Fields**: Name and email are mandatory before completing onboarding
+  - **Form Validation**: "Get started" button disabled until both fields are valid
+  - **Visual Indicators**: Asterisk (*) in field placeholders indicate required fields
+- **Avatar Display**: Consistent avatar display across all views
+  - **Dashboard Header**: Shows "+" icon when no photo is selected
+  - **Profile View**: Shows "+" icon when no photo is selected
+  - **Edit Profile**: Shows "+" icon when no photo is selected
 - **Tutorial System**: Interactive guides for key features and workflows
 - **Accessibility**: Full VoiceOver support and accessibility features
 - **Dark Mode**: Complete dark mode support with system integration

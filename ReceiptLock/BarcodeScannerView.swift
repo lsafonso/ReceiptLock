@@ -8,11 +8,20 @@ struct BarcodeScannerView: View {
     @State private var showingFlashMenu = false
     @State private var scannedCodeDisplay: String?
     @State private var scannedTypeDisplay: String?
+    @State private var manualBarcodeEntry: String = ""
+    @State private var showingManualEntry = false
     
     var onCodeScanned: ((String, AVMetadataObject.ObjectType) -> Void)?
     
     init(onCodeScanned: ((String, AVMetadataObject.ObjectType) -> Void)? = nil) {
         self.onCodeScanned = onCodeScanned
+    }
+    
+    private var isSimulatorError: Bool {
+        if case .simulatorNotSupported = scannerService.error {
+            return true
+        }
+        return false
     }
     
     var body: some View {
@@ -21,8 +30,11 @@ struct BarcodeScannerView: View {
             Color.black
                 .ignoresSafeArea()
             
-            // Scanner preview
-            if scannerService.isAuthorized && scannerService.isSessionRunning {
+            // Check for simulator error
+            if isSimulatorError {
+                simulatorErrorView
+            } else if scannerService.isAuthorized && scannerService.isSessionRunning {
+                // Scanner preview
                 BarcodeScannerPreviewView(scannerService: scannerService)
                     .ignoresSafeArea()
             } else if scannerService.isAuthorized {
@@ -37,8 +49,8 @@ struct BarcodeScannerView: View {
                 }
             }
             
-            // Scanning overlay - only show when authorized
-            if scannerService.isAuthorized {
+            // Scanning overlay - only show when authorized and not simulator
+            if scannerService.isAuthorized && !isSimulatorError {
                 scanningOverlay
                 
                 // Top controls
@@ -120,7 +132,7 @@ struct BarcodeScannerView: View {
                     }
                     .padding(.bottom, 50)
                 }
-            } else {
+            } else if !isSimulatorError {
                 CameraPermissionView()
             }
         }
@@ -133,19 +145,123 @@ struct BarcodeScannerView: View {
                 onCodeScanned?(code, type)
             }
             
-            // Ensure session is set up and start scanning
-            if scannerService.isAuthorized {
+            // Ensure session is set up and start scanning (only if not simulator)
+            if scannerService.isAuthorized && !isSimulatorError {
                 scannerService.startScanning()
             }
         }
         .onChange(of: scannerService.isAuthorized) { oldValue, newValue in
-            if newValue {
+            if newValue && !isSimulatorError {
                 scannerService.startScanning()
             }
         }
         .onDisappear {
             scannerService.stopScanning()
             scannerService.resetScan()
+        }
+    }
+    
+    // MARK: - Simulator Error View
+    private var simulatorErrorView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                Text("Camera Not Available")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Text("The camera is not available in the iOS Simulator. Please use a physical device to scan barcodes, or enter the barcode manually.")
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            VStack(spacing: 12) {
+                Button(action: {
+                    showingManualEntry = true
+                }) {
+                    HStack {
+                        Image(systemName: "keyboard")
+                        Text("Enter Barcode Manually")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppTheme.primary)
+                    .cornerRadius(12)
+                }
+                
+                Button("Cancel") {
+                    dismiss()
+                }
+                .font(.headline)
+                .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(.horizontal, 32)
+            
+            Spacer()
+        }
+        .sheet(isPresented: $showingManualEntry) {
+            manualBarcodeEntryView
+        }
+    }
+    
+    // MARK: - Manual Barcode Entry View
+    private var manualBarcodeEntryView: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Enter Barcode or QR Code")
+                        .font(.headline)
+                        .foregroundColor(AppTheme.text)
+                    
+                    TextField("Barcode or QR code", text: $manualBarcodeEntry)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.default)
+                        .autocapitalization(.none)
+                        .autocorrectionDisabled()
+                }
+                .padding()
+                
+                Button(action: {
+                    if !manualBarcodeEntry.isEmpty {
+                        // Use a default barcode type (Code128 is common)
+                        onCodeScanned?(manualBarcodeEntry, .code128)
+                        dismiss()
+                    }
+                }) {
+                    Text("Use This Barcode")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(manualBarcodeEntry.isEmpty ? Color.gray : AppTheme.primary)
+                        .cornerRadius(12)
+                }
+                .disabled(manualBarcodeEntry.isEmpty)
+                .padding(.horizontal)
+                
+                Spacer()
+            }
+            .padding()
+            .background(AppTheme.background)
+            .navigationTitle("Manual Entry")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        showingManualEntry = false
+                    }
+                }
+            }
         }
     }
     

@@ -125,8 +125,12 @@ class UserProfileManager: ObservableObject {
     
     // MARK: - Profile Image Helpers
     func getAvatarImage() -> UIImage? {
-        guard let avatarData = currentProfile.avatarData else { return nil }
-        return UIImage(data: avatarData)
+        guard let avatarData = currentProfile.avatarData,
+              !avatarData.isEmpty,
+              let image = UIImage(data: avatarData) else {
+            return nil
+        }
+        return image
     }
     
     func setAvatarImage(_ image: UIImage) {
@@ -221,16 +225,34 @@ struct ProfileEditView: View {
     
     private var avatarSection: some View {
         VStack(spacing: AppTheme.spacing) {
-            AvatarView(
-                image: selectedImage ?? profileManager.getAvatarImage(),
-                size: 100,
-                showBorder: true
-            )
-            .onTapGesture {
+            Button(action: {
                 showingImagePicker = true
+            }) {
+                ZStack {
+                    AvatarView(
+                        image: selectedImage ?? profileManager.getAvatarImage(),
+                        size: 100,
+                        showBorder: true
+                    )
+                    
+                    // Plus icon overlay when no photo is selected
+                    if selectedImage == nil && profileManager.getAvatarImage() == nil {
+                        Circle()
+                            .fill(AppTheme.primary.opacity(0.9))
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Image(systemName: "plus")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundColor(.white)
+                            )
+                            .offset(x: 35, y: 35) // Bottom right corner
+                            .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, x: 0, y: 2)
+                    }
+                }
             }
+            .buttonStyle(PlainButtonStyle())
             
-            Text("Tap to change photo")
+            Text(selectedImage == nil && profileManager.getAvatarImage() == nil ? "Tap to add photo" : "Tap to change photo")
                 .font(.caption)
                 .foregroundColor(AppTheme.secondaryText)
         }
@@ -272,8 +294,11 @@ struct ProfileEditView: View {
         updatedProfile.name = name
         updatedProfile.email = email
         
+        // Update avatar data in the profile before saving
         if let selectedImage = selectedImage {
-            profileManager.setAvatarImage(selectedImage)
+            if let imageData = selectedImage.jpegData(compressionQuality: 0.8) {
+                updatedProfile.avatarData = imageData
+            }
         }
         
         profileManager.updateProfile(updatedProfile)

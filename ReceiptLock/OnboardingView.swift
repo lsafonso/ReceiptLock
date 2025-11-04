@@ -11,8 +11,11 @@ struct OnboardingView: View {
     @ObservedObject private var profileManager = UserProfileManager.shared
     @State private var currentPage = 0
     @State private var userName = ""
+    @State private var userEmail = ""
     @State private var showingImagePicker = false
     @State private var selectedAvatar: UIImage?
+    @State private var avatarPulseAnimation = false
+    @State private var emailError: String? = nil
     
     private let onboardingPages = [
         OnboardingPage(
@@ -67,34 +70,99 @@ struct OnboardingView: View {
         VStack(spacing: AppTheme.largeSpacing) {
             Spacer()
             
-            // Avatar Section
+            // Avatar Section with Interactive Enhancement
             VStack(spacing: AppTheme.spacing) {
-                AvatarView(
-                    image: selectedAvatar,
-                    size: 120,
-                    showBorder: true
-                )
-                .onTapGesture {
+                Button(action: {
                     showingImagePicker = true
+                }) {
+                    ZStack {
+                        AvatarView(
+                            image: selectedAvatar,
+                            size: 120,
+                            showBorder: true
+                        )
+                        
+                        // Plus icon overlay when no photo is selected
+                        if selectedAvatar == nil {
+                            Circle()
+                                .fill(AppTheme.primary.opacity(0.9))
+                                .frame(width: 40, height: 40)
+                                .overlay(
+                                    Image(systemName: "plus")
+                                        .font(.title2.weight(.semibold))
+                                        .foregroundColor(.white)
+                                )
+                                .offset(x: 40, y: 40) // Bottom right corner
+                                .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, x: 0, y: 2)
+                        }
+                        
+                        // Pulsing ring animation to indicate interactivity
+                        if selectedAvatar == nil {
+                            Circle()
+                                .stroke(AppTheme.primary, lineWidth: 3)
+                                .frame(width: 120, height: 120)
+                                .scaleEffect(avatarPulseAnimation ? 1.15 : 1.0)
+                                .opacity(avatarPulseAnimation ? 0.0 : 0.6)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                .onAppear {
+                    // Start pulsing animation when no photo is selected
+                    if selectedAvatar == nil {
+                        withAnimation(
+                            Animation.easeInOut(duration: 1.5)
+                                .repeatForever(autoreverses: false)
+                        ) {
+                            avatarPulseAnimation = true
+                        }
+                    }
+                }
+                .onChange(of: selectedAvatar) { _, _ in
+                    // Stop animation when photo is selected
+                    if selectedAvatar != nil {
+                        avatarPulseAnimation = false
+                    }
                 }
                 
-                Text("Tap to add photo")
+                Text(selectedAvatar == nil ? "Tap to add photo" : "Tap to change photo")
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
             }
             
             // Name Input
+            TextField("Name *", text: $userName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.vertical, AppTheme.smallSpacing)
+                .background(AppTheme.cardBackground)
+                .cornerRadius(AppTheme.cornerRadius)
+                .padding(.horizontal, AppTheme.largeSpacing)
+            
+            // Email Input
             VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                Text("What's your name?")
-                    .font(.title2.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
-                
-                TextField("Enter your name", text: $userName)
+                TextField("Email *", text: $userEmail)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
                     .padding(.horizontal, AppTheme.spacing)
                     .padding(.vertical, AppTheme.smallSpacing)
                     .background(AppTheme.cardBackground)
                     .cornerRadius(AppTheme.cornerRadius)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                            .stroke(emailError != nil ? AppTheme.error : Color.clear, lineWidth: 1)
+                    )
+                    .onChange(of: userEmail) { _, newValue in
+                        validateEmail(newValue)
+                    }
+                
+                if let error = emailError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(AppTheme.error)
+                        .padding(.horizontal, AppTheme.spacing)
+                }
             }
             .padding(.horizontal, AppTheme.largeSpacing)
             
@@ -149,6 +217,8 @@ struct OnboardingView: View {
                         completeOnboarding()
                     }
                     .primaryButton()
+                    .disabled(!isFormValid)
+                    .opacity(isFormValid ? 1.0 : 0.4)
                     .accessibilityLabel("Get started")
                     .accessibilityHint("Complete onboarding and start using the app")
                 }
@@ -158,13 +228,55 @@ struct OnboardingView: View {
         }
     }
     
+    // MARK: - Validation
+    
+    private var isFormValid: Bool {
+        let trimmedName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedName.isEmpty && !trimmedEmail.isEmpty && emailError == nil
+    }
+    
+    private func validateEmail(_ email: String) {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if trimmedEmail.isEmpty {
+            emailError = nil // Don't show error while typing
+            return
+        }
+        
+        // Email validation regex
+        let emailRegex = #"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        
+        if emailPredicate.evaluate(with: trimmedEmail) {
+            emailError = nil
+        } else {
+            emailError = "Please enter a valid email address"
+        }
+    }
+    
     private func completeOnboarding() {
+        // Validate required fields
+        let trimmedName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedName.isEmpty && !trimmedEmail.isEmpty && emailError == nil else {
+            return // Button should be disabled, but guard just in case
+        }
+        
         // Save user profile
         var profile = profileManager.currentProfile
-        profile.name = userName.isEmpty ? "User" : userName
+        profile.name = trimmedName
+        profile.email = trimmedEmail
         
+        // Update avatar data in the profile before saving
         if let selectedAvatar = selectedAvatar {
-            profileManager.setAvatarImage(selectedAvatar)
+            if let imageData = selectedAvatar.jpegData(compressionQuality: 0.8) {
+                profile.avatarData = imageData
+            }
+        } else {
+            // Explicitly clear avatar data if no image was selected
+            profile.avatarData = nil
         }
         
         profileManager.updateProfile(profile)
