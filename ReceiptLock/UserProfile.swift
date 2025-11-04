@@ -246,7 +246,6 @@ struct ProfileEditView: View {
             
             TextField("Enter your name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal, AppTheme.spacing)
                 .padding(.vertical, AppTheme.smallSpacing)
                 .background(AppTheme.cardBackground)
                 .cornerRadius(AppTheme.cornerRadius)
@@ -263,7 +262,6 @@ struct ProfileEditView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.emailAddress)
                 .autocapitalization(.none)
-                .padding(.horizontal, AppTheme.spacing)
                 .padding(.vertical, AppTheme.smallSpacing)
                 .background(AppTheme.cardBackground)
                 .cornerRadius(AppTheme.cornerRadius)

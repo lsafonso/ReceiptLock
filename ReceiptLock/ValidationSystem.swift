@@ -370,6 +370,9 @@ struct ValidatedStepperField: View {
             // Only the stepper control area has green background
             Stepper("", value: $value, in: range)
                 .labelsHidden()
+                .accentColor(.white)
+                .colorScheme(.dark)
+                .symbolRenderingMode(.monochrome)
                 .padding(.horizontal, AppTheme.smallSpacing)
                 .padding(.vertical, AppTheme.smallSpacing / 2)
                 .background(
@@ -383,7 +386,6 @@ struct ValidatedStepperField: View {
                                 )
                         )
                 )
-                .tint(AppTheme.onPrimary)
                 .onChange(of: value) { _, newValue in
                     _ = validationRule(newValue, fieldKey)
                 }
@@ -442,6 +444,8 @@ struct ValidatedDateField: View {
             )
             .datePickerStyle(.compact)
             .labelsHidden()
+            .accentColor(.white)
+            .colorScheme(.dark)
             .padding(.horizontal, AppTheme.smallSpacing)
             .padding(.vertical, AppTheme.smallSpacing / 2)
             .background(
