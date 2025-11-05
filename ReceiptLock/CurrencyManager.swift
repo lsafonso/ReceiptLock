@@ -30,28 +30,34 @@ class CurrencyManager: ObservableObject {
     ]
     
     private init() {
-        // Load saved currency or default to USD
-        let savedCurrency = userDefaults.string(forKey: currencyKey) ?? "USD"
+        // Load saved currency or default to GBP
+        var savedCurrency = userDefaults.string(forKey: currencyKey) ?? "GBP"
+        
+        // Migration: Update existing USD users to GBP (new default)
+        if savedCurrency == "USD" {
+            savedCurrency = "GBP"
+            userDefaults.set("GBP", forKey: currencyKey)
+        }
         
         // Validate that the saved currency is still in supportedCurrencies
-        // If not, reset to USD to prevent invalid currency codes
+        // If not, reset to GBP to prevent invalid currency codes
         if CurrencyManager.supportedCurrencies[savedCurrency] != nil {
             self.currentCurrency = savedCurrency
         } else {
-            // Currency is no longer supported, reset to USD
-            self.currentCurrency = "USD"
-            userDefaults.set("USD", forKey: currencyKey)
+            // Currency is no longer supported, reset to GBP
+            self.currentCurrency = "GBP"
+            userDefaults.set("GBP", forKey: currencyKey)
         }
     }
     
     // MARK: - Currency Properties
     
     var currencySymbol: String {
-        return CurrencyManager.supportedCurrencies[currentCurrency]?.symbol ?? "$"
+        return CurrencyManager.supportedCurrencies[currentCurrency]?.symbol ?? "£"
     }
     
     var currencyName: String {
-        return CurrencyManager.supportedCurrencies[currentCurrency]?.name ?? "US Dollar"
+        return CurrencyManager.supportedCurrencies[currentCurrency]?.name ?? "British Pound"
     }
     
     var currencyCode: String {

@@ -35,7 +35,7 @@ struct UserPreferences: Codable {
         theme: ThemeMode = .light,
         notificationsEnabled: Bool = true,
         showWelcomeMessage: Bool = true,
-        preferredCurrency: String = "USD"
+        preferredCurrency: String = "GBP"
     ) {
         self.theme = theme
         self.notificationsEnabled = notificationsEnabled
@@ -68,7 +68,18 @@ class UserProfileManager: ObservableObject {
         // Load existing profile or create default
         if let data = userDefaults.data(forKey: profileKey),
            let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
-            self.currentProfile = profile
+            var updatedProfile = profile
+            
+            // Migration: Update existing USD users to GBP (new default)
+            if updatedProfile.preferences.preferredCurrency == "USD" {
+                updatedProfile.preferences.preferredCurrency = "GBP"
+                // Save the updated profile
+                if let updatedData = try? JSONEncoder().encode(updatedProfile) {
+                    userDefaults.set(updatedData, forKey: profileKey)
+                }
+            }
+            
+            self.currentProfile = updatedProfile
         } else {
             self.currentProfile = UserProfile()
         }
