@@ -8,6 +8,7 @@ struct CameraView: View {
     @State private var showingCameraGuide = false
     @State private var zoomLevel: CGFloat = 1.0
     @State private var showingFlashMenu = false
+    var onCaptured: ((UIImage) -> Void)?
     
     var body: some View {
         ZStack {
@@ -173,8 +174,15 @@ struct CameraView: View {
             cameraService.stopSession()
         }
         .onChange(of: cameraService.capturedImage) { oldValue, newValue in
-            if newValue != nil {
-                showingImagePreview = true
+            if let capturedImage = newValue {
+                // If onCaptured callback is provided, use it and dismiss
+                if let onCaptured = onCaptured {
+                    onCaptured(capturedImage)
+                    dismiss()
+                } else {
+                    // Otherwise, show the preview sheet (existing behavior)
+                    showingImagePreview = true
+                }
             }
         }
         .onChange(of: cameraService.error) { oldValue, newValue in
@@ -386,5 +394,5 @@ struct ImagePreviewView: View {
 }
 
 #Preview {
-    CameraView()
+    CameraView(onCaptured: nil)
 }

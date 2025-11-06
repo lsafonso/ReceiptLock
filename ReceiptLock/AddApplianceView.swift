@@ -43,6 +43,9 @@ struct AddApplianceView: View {
     @State private var showScanMenu = false
     @State private var showingReceiptCamera = false
     @State private var showingPhotoPicker = false
+    @State private var showingCameraPermissionDenied = false
+    @State private var ocrError: String?
+    @State private var showingOCRError = false
     
     enum DeviceType: String, CaseIterable {
         case airConditioner = "Air Conditioner"
@@ -177,8 +180,8 @@ struct AddApplianceView: View {
                             Text("Save")
                         }
                         .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
-                        .disabled(title.isEmpty || store.isEmpty || saveButtonState == .loading)
-                        .opacity((title.isEmpty || store.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
+                        .disabled(title.isEmpty || store.isEmpty || saveButtonState == .loading || isProcessingOCR)
+                        .opacity((title.isEmpty || store.isEmpty || saveButtonState == .loading || isProcessingOCR) ? 0.4 : 1.0)
                     }
                 }
             }
@@ -316,15 +319,58 @@ struct AddApplianceView: View {
             })
         }
         .fullScreenCover(isPresented: $showingReceiptCamera) {
-            CameraView()
+            CameraView(onCaptured: { image in
+                print("[Scan] captured image")
+                handleCapturedImage(image)
+            })
         }
         .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedImage, matching: .images)
+        .alert("Camera access needed", isPresented: $showingCameraPermissionDenied) {
+            Button("Open Settings") {
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("Import from Photos") {
+                presentPhotoPicker()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Allow camera to scan receipts, or import a photo instead.")
+        }
+        .alert("Couldn't read this receipt", isPresented: $showingOCRError) {
+            Button("OK") {
+                ocrError = nil
+            }
+        } message: {
+            Text("Couldn't read this receipt. You can fill details manually or try another photo.")
+        }
     }
     
     // MARK: - Scan Menu Actions
     
     private func presentReceiptCamera() {
-        showingReceiptCamera = true
+        print("[Scan] camera presented")
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        
+        switch status {
+        case .authorized:
+            showingReceiptCamera = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.showingReceiptCamera = true
+                    } else {
+                        self.showingCameraPermissionDenied = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showingCameraPermissionDenied = true
+        @unknown default:
+            showingCameraPermissionDenied = true
+        }
     }
     
     private func presentCodeScanner() {
@@ -333,6 +379,80 @@ struct AddApplianceView: View {
     
     private func presentPhotoPicker() {
         showingPhotoPicker = true
+    }
+    
+    // MARK: - Image Processing
+    
+    private func handleCapturedImage(_ image: UIImage) {
+        // Convert UIImage to Data
+        guard let imageData = image.jpegData(compressionQuality: 0.9) else {
+            print("❌ [Scan] Failed to convert image to data")
+            ocrError = "Failed to process image"
+            showingOCRError = true
+            return
+        }
+        
+        // Store image data
+        self.imageData = imageData
+        
+        // Process OCR
+        print("[OCR] start")
+        isProcessingOCR = true
+        
+        processImageWithOCR(image)
+    }
+    
+    private func processImageWithOCR(_ image: UIImage) {
+        guard let cgImage = image.cgImage else {
+            isProcessingOCR = false
+            ocrError = "Invalid image"
+            showingOCRError = true
+            return
+        }
+        
+        let request = VNRecognizeTextRequest { request, error in
+            if let error = error {
+                print("❌ [OCR] error: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self.isProcessingOCR = false
+                    self.ocrError = "OCR processing failed"
+                    self.showingOCRError = true
+                }
+                return
+            }
+            
+            guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                print("❌ [OCR] no text observations")
+                DispatchQueue.main.async {
+                    self.isProcessingOCR = false
+                    self.ocrError = "No text found in image"
+                    self.showingOCRError = true
+                }
+                return
+            }
+            
+            let recognizedStrings = observations.compactMap { observation in
+                observation.topCandidates(1).first?.string
+            }
+            
+            // Process OCR results
+            DispatchQueue.main.async {
+                self.processOCRResults(recognizedStrings)
+                self.isProcessingOCR = false
+                print("[OCR] done")
+            }
+        }
+        
+        request.recognitionLevel = .accurate
+        
+        do {
+            try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
+        } catch {
+            print("❌ [OCR] processing error: \(error.localizedDescription)")
+            isProcessingOCR = false
+            ocrError = "Couldn't read this receipt"
+            showingOCRError = true
+        }
     }
     
     // MARK: - Manual Entry Section
