@@ -11,6 +11,9 @@ import PhotosUI
 import Vision
 import AVFoundation
 import UIKit
+import PDFKit
+import UniformTypeIdentifiers
+import CryptoKit
 
 struct AddApplianceView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -33,9 +36,9 @@ struct AddApplianceView: View {
     @State private var notes = ""
     @State private var isSaving = false
     @State private var saveButtonState: SaveButtonState = .idle
-    @State private var showingBarcodeScanner = false
-    @State private var scannedBarcode: String?
-    @State private var scannedBarcodeType: String?
+    @State private var showingCodeScanner = false
+    @State private var scannedCode: String?
+    @State private var showingScannedCodeAlert = false
     @State private var savedApplianceID: UUID?
     @State private var navigateToDetail = false
     @State private var navigationPath = NavigationPath()
@@ -46,6 +49,21 @@ struct AddApplianceView: View {
     @State private var showingCameraPermissionDenied = false
     @State private var ocrError: String?
     @State private var showingOCRError = false
+    @State private var selectedPDFURL: URL?
+    @State private var showingFileImporter = false
+    @State private var detectedLines: [DetectedLine] = []
+    @State private var showingDetectedItems = false
+    @State private var showingBatchEdit = false
+    @State private var editableItems: [EditableItem] = []
+    @State private var showingBatchCreationSuccess = false
+    @State private var batchCreationCount = 0
+    
+    struct DetectedLine: Identifiable {
+        let id = UUID()
+        var text: String
+        var amount: Decimal?
+        var quantity: Int = 1
+    }
     
     enum DeviceType: String, CaseIterable {
         case airConditioner = "Air Conditioner"
@@ -130,7 +148,7 @@ struct AddApplianceView: View {
         price > 0 ||
         selectedDeviceType != nil ||
         selectedImage != nil ||
-        scannedBarcode != nil
+        scannedCode != nil
     }
     
     var body: some View {
@@ -200,9 +218,10 @@ struct AddApplianceView: View {
                 }
             }
         }
-        .onChange(of: selectedImage) { _, _ in
+        .onChange(of: selectedImage) { oldValue, newValue in
+            guard let newValue = newValue else { return }
             Task {
-                await loadImage()
+                await handlePhotoPickerSelection(item: newValue)
             }
         }
         .alert("Validation Errors", isPresented: $showingValidationAlert) {
@@ -269,27 +288,30 @@ struct AddApplianceView: View {
                     print("[ScanMenu] action: code")
                     presentCodeScanner()
                 }
-                Button("Import from Photos/PDF") {
+                Button("Import from Photos") {
                     print("[ScanMenu] action: import")
                     presentPhotoPicker()
+                }
+                Button("Import PDF") {
+                    print("[ScanMenu] action: import-pdf")
+                    showingFileImporter = true
                 }
                 Button("Cancel", role: .cancel) {
                     print("[ScanMenu] cancelled")
                 }
             }
             
-            // Show scanned barcode info if available
-            if let barcode = scannedBarcode, let type = scannedBarcodeType {
+            // Show scanned code info if available
+            if let code = scannedCode {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
-                    Text("Scanned \(type): \(barcode)")
+                    Text("Scanned code: \(code)")
                         .font(.caption)
                         .foregroundColor(AppTheme.secondaryText)
                     Spacer()
                     Button("Clear") {
-                        scannedBarcode = nil
-                        scannedBarcodeType = nil
+                        scannedCode = nil
                     }
                     .font(.caption)
                     .foregroundColor(AppTheme.primary)
@@ -313,10 +335,36 @@ struct AddApplianceView: View {
             }
         }
         .card() // Apply standard card styling
-        .sheet(isPresented: $showingBarcodeScanner) {
-            BarcodeScannerView(onCodeScanned: { code, type in
-                handleScannedBarcode(code: code, type: type)
-            })
+        .fullScreenCover(isPresented: $showingCodeScanner) {
+            CodeScannerView(
+                onScanned: { code in
+                    handleScannedCode(code)
+                },
+                onCancel: {
+                    // User cancelled - just dismiss
+                }
+            )
+        }
+        .alert("Code Scanned", isPresented: $showingScannedCodeAlert) {
+            Button("Use as Serial Number") {
+                if let code = scannedCode {
+                    serialNumber = code
+                }
+                scannedCode = nil
+            }
+            Button("Use as Model") {
+                if let code = scannedCode {
+                    model = code
+                }
+                scannedCode = nil
+            }
+            Button("Cancel") {
+                scannedCode = nil
+            }
+        } message: {
+            if let code = scannedCode {
+                Text("Scanned code: \(code)\n\nHow would you like to use this code?")
+            }
         }
         .fullScreenCover(isPresented: $showingReceiptCamera) {
             CameraView(onCaptured: { image in
@@ -324,7 +372,18 @@ struct AddApplianceView: View {
                 handleCapturedImage(image)
             })
         }
-        .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedImage, matching: .images)
+        .photosPicker(
+            isPresented: $showingPhotoPicker,
+            selection: $selectedImage,
+            matching: .images // Allow screenshots (e-receipts are often screenshots)
+        )
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: [.pdf],
+            allowsMultipleSelection: false
+        ) { result in
+            handlePDFSelection(result: result)
+        }
         .alert("Camera access needed", isPresented: $showingCameraPermissionDenied) {
             Button("Open Settings") {
                 if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
@@ -344,6 +403,29 @@ struct AddApplianceView: View {
             }
         } message: {
             Text("Couldn't read this receipt. You can fill details manually or try another photo.")
+        }
+        .sheet(isPresented: $showingDetectedItems) {
+            DetectedReceiptItemsView(
+                lines: detectedLines,
+                onContinue: { selectedLines in
+                    handleBatchCreation(selectedLines: selectedLines)
+                }
+            )
+        }
+        .sheet(isPresented: $showingBatchEdit) {
+            BatchEditItemsSheet(
+                items: editableItems,
+                onCreate: { items in
+                    createAppliancesFromEditableItems(items)
+                }
+            )
+        }
+        .alert("Items Created", isPresented: $showingBatchCreationSuccess) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Created \(batchCreationCount) items from the receipt")
         }
     }
     
@@ -374,11 +456,155 @@ struct AddApplianceView: View {
     }
     
     private func presentCodeScanner() {
-        showingBarcodeScanner = true
+        // Check camera permission first
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        
+        switch status {
+        case .authorized:
+            showingCodeScanner = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self.showingCodeScanner = true
+                    } else {
+                        self.showingCameraPermissionDenied = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showingCameraPermissionDenied = true
+        @unknown default:
+            showingCameraPermissionDenied = true
+        }
+    }
+    
+    private func handleScannedCode(_ code: String) {
+        print("[Code] scanned: \(code)")
+        scannedCode = code
+        showingScannedCodeAlert = true
     }
     
     private func presentPhotoPicker() {
+        // Try PhotosPicker first (for images), and also show file importer option
         showingPhotoPicker = true
+        // Note: User can also access PDFs via fileImporter if needed
+        // For now, we'll handle PDFs through a separate flow if PhotosPicker doesn't support them
+    }
+    
+    private func handlePDFSelection(result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            selectedPDFURL = url
+            Task {
+                await handlePDFFile(url: url)
+            }
+        case .failure(let error):
+            print("❌ [Import] PDF selection failed: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.isProcessingOCR = false
+                self.ocrError = "Failed to load PDF"
+                self.showingOCRError = true
+            }
+        }
+    }
+    
+    private func handlePhotoPickerSelection(item: PhotosPickerItem) async {
+        print("[Import] picked image/pdf")
+        await MainActor.run {
+            isProcessingOCR = true
+        }
+        
+        // Try to load as image first (most common case)
+        if let data = try? await item.loadTransferable(type: Data.self) {
+            // Check if it's a PDF by checking the data header
+            let pdfHeader = "%PDF"
+            if data.count >= 4,
+               let headerString = String(data: data.prefix(4), encoding: .ascii),
+               headerString.hasPrefix(pdfHeader) {
+                // It's a PDF - save to temp file and process
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+                do {
+                    try data.write(to: tempURL)
+                    await handlePDFFile(url: tempURL)
+                } catch {
+                    print("❌ [Import] Failed to save PDF: \(error.localizedDescription)")
+                    await MainActor.run {
+                        self.isProcessingOCR = false
+                        self.ocrError = "Failed to process PDF"
+                        self.showingOCRError = true
+                    }
+                }
+                return
+            }
+            
+            // Try to load as UIImage
+            if let uiImage = UIImage(data: data) {
+                await MainActor.run {
+                    if let imageData = uiImage.jpegData(compressionQuality: 0.9) {
+                        self.imageData = imageData
+                    }
+                }
+                print("[OCR] start")
+                processImageWithOCR(uiImage)
+            } else {
+                // Failed to load as image
+                await MainActor.run {
+                    self.isProcessingOCR = false
+                    self.ocrError = "Failed to load file"
+                    self.showingOCRError = true
+                }
+            }
+        } else {
+            // Failed to load data
+            await MainActor.run {
+                self.isProcessingOCR = false
+                self.ocrError = "Failed to load file"
+                self.showingOCRError = true
+            }
+        }
+    }
+    
+    private func handlePDFFile(url: URL) async {
+        print("[Import] processing PDF")
+        await MainActor.run {
+            isProcessingOCR = true
+        }
+        
+        do {
+            // Convert first page of PDF to image
+            let images = try await PDFService.shared.convertPDFToImages(at: url, maxPages: 1)
+            
+            guard let firstPageImage = images.first else {
+                await MainActor.run {
+                    self.isProcessingOCR = false
+                    self.ocrError = "PDF has no pages"
+                    self.showingOCRError = true
+                }
+                return
+            }
+            
+            // Store the PDF URL for reference
+            await MainActor.run {
+                self.selectedPDFURL = url
+                if let imageData = firstPageImage.jpegData(compressionQuality: 0.9) {
+                    self.imageData = imageData
+                }
+            }
+            
+            // Process the first page with OCR
+            print("[OCR] start")
+            processImageWithOCR(firstPageImage)
+            
+        } catch {
+            print("❌ [Import] PDF processing error: \(error.localizedDescription)")
+            await MainActor.run {
+                self.isProcessingOCR = false
+                self.ocrError = "Failed to process PDF"
+                self.showingOCRError = true
+            }
+        }
     }
     
     // MARK: - Image Processing
@@ -410,7 +636,7 @@ struct AddApplianceView: View {
             return
         }
         
-        let request = VNRecognizeTextRequest { request, error in
+        let request = VNRecognizeTextRequest { (request: VNRequest, error: Error?) -> Void in
             if let error = error {
                 print("❌ [OCR] error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
@@ -443,7 +669,7 @@ struct AddApplianceView: View {
             }
         }
         
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
         
         do {
             try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
@@ -662,7 +888,7 @@ struct AddApplianceView: View {
         guard let imageData = imageData,
               let uiImage = UIImage(data: imageData) else { return }
         
-        let request = VNRecognizeTextRequest { request, error in
+        let request = VNRecognizeTextRequest { (request: VNRequest, error: Error?) -> Void in
             if let error = error {
                 print("OCR error: \(error)")
                 return
@@ -680,7 +906,7 @@ struct AddApplianceView: View {
             }
         }
         
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = VNRequestTextRecognitionLevel.accurate
         
         do {
             try VNImageRequestHandler(cgImage: uiImage.cgImage!, options: [:]).perform([request])
@@ -690,6 +916,22 @@ struct AddApplianceView: View {
     }
     
     private func processOCRResults(_ strings: [String]) {
+        // Combine all strings into raw OCR text
+        let rawOCR = strings.joined(separator: "\n")
+        
+        // Parse into candidate lines
+        let candidateLines = parseDetectedLines(from: rawOCR)
+        
+        print("[MultiItem] candidates: \(candidateLines.count)")
+        
+        // If we detected multiple lines, show the selection UI
+        if candidateLines.count > 1 {
+            detectedLines = candidateLines
+            showingDetectedItems = true
+            return
+        }
+        
+        // Otherwise, fall back to single-item processing
         // Simple OCR processing - in a real app, you'd use more sophisticated parsing
         for string in strings {
             if string.lowercased().contains("air") && string.lowercased().contains("conditioner") {
@@ -727,6 +969,294 @@ struct AddApplianceView: View {
                 break
             }
         }
+    }
+    
+    private func parseDetectedLines(from rawOCR: String) -> [DetectedLine] {
+        // Split by line breaks
+        let lines = rawOCR.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        var detectedLines: [DetectedLine] = []
+        
+        // Brand/model tokens to look for (common appliance/product keywords)
+        let brandTokens = ["samsung", "apple", "iphone", "ipad", "sony", "lg", "panasonic", "bosch", "whirlpool", "hotpoint", "beko", "indesit", "miele", "dyson", "dyson", "philips", "kenwood", "kitchenaid", "breville", "ninja", "instant", "air fryer", "microwave", "oven", "fridge", "refrigerator", "washing machine", "dishwasher", "laptop", "tablet", "tv", "television", "monitor", "speaker", "headphone", "camera", "printer", "desktop", "mobile", "phone"]
+        
+        // Price pattern: £?\d+(\.\d{2})?
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        let pricePattern = #"\#(escapedSymbol)?\d+(\.\d{2})?"#
+        
+        for line in lines {
+            let lowercasedLine = line.lowercased()
+            
+            // Check if line contains brand tokens or price pattern
+            let hasBrandToken = brandTokens.contains { lowercasedLine.contains($0) }
+            let hasPrice = (try? NSRegularExpression(pattern: pricePattern)).flatMap { regex in
+                let range = NSRange(location: 0, length: line.utf16.count)
+                return regex.firstMatch(in: line, range: range) != nil
+            } ?? false
+            
+            if hasBrandToken || hasPrice {
+                // Extract amount if present
+                var amount: Decimal? = nil
+                if let priceValue = extractPrice(from: line) {
+                    amount = Decimal(priceValue)
+                }
+                
+                // Extract quantity if present (x2, 2×, etc.)
+                var quantity = 1
+                if let qtyMatch = line.range(of: #"x\d+|×\d+|\d+x|\d+×"#, options: .regularExpression) {
+                    let qtyString = String(line[qtyMatch])
+                        .replacingOccurrences(of: "x", with: "", options: .caseInsensitive)
+                        .replacingOccurrences(of: "×", with: "")
+                    if let qty = Int(qtyString) {
+                        quantity = qty
+                    }
+                }
+                
+                detectedLines.append(DetectedLine(
+                    text: line,
+                    amount: amount,
+                    quantity: quantity
+                ))
+            }
+        }
+        
+        return detectedLines
+    }
+    
+    private func handleBatchCreation(selectedLines: [DetectedLine]) {
+        print("[MultiItem] selected: \(selectedLines.count)")
+        
+        guard !selectedLines.isEmpty else { return }
+        
+        // Convert DetectedLines to EditableItems for batch editing
+        editableItems = selectedLines.map { line in
+            EditableItem(
+                id: line.id,
+                title: line.text,
+                price: line.amount,
+                warrantyMonths: 12,
+                category: "",
+                originalLineText: line.text,
+                quantity: line.quantity
+            )
+        }
+        
+        // Show batch edit sheet
+        showingBatchEdit = true
+    }
+    
+    private func createAppliancesFromEditableItems(_ items: [EditableItem]) {
+        guard !items.isEmpty else { return }
+        
+        var createdCount = 0
+        var createdReceiptItemIds = Set<UUID>() // Guard against double-creation
+        
+        // Calculate total price for receipt
+        var totalPrice: Double = 0.0
+        for item in items {
+            if let amount = item.price {
+                totalPrice += NSDecimalNumber(decimal: amount).doubleValue * Double(item.quantity)
+            }
+        }
+        
+        // Create or reuse receipt (ONE receipt for all appliances)
+        var receipt: Receipt?
+        if let imageData = imageData {
+            receipt = findOrCreateReceipt(
+                imageData: imageData,
+                store: store,
+                purchaseDate: purchaseDate,
+                totalPrice: totalPrice
+            )
+        }
+        
+        // Create all appliances and receipt items
+        for item in items {
+            // Skip if title is empty
+            guard !item.title.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty else { continue }
+            
+            // Create appliance for each quantity
+            for qtyIndex in 0..<item.quantity {
+                let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext) as! Appliance
+                appliance.id = UUID()
+                
+                // Use item title
+                appliance.name = item.title.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                
+                // Copy store, purchaseDate from current state
+                appliance.brand = store.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                appliance.purchaseDate = purchaseDate
+                
+                // Set price if available
+                if let amount = item.price {
+                    appliance.price = NSDecimalNumber(decimal: amount).doubleValue
+                } else {
+                    appliance.price = 0.0
+                }
+                
+                // Set warranty months
+                appliance.warrantyMonths = Int16(item.warrantyMonths)
+                
+                // Set category/device type if selected
+                if !item.category.isEmpty,
+                   let deviceType = DeviceType.allCases.first(where: { $0.rawValue == item.category }) {
+                    // Store device type info in model field if model is empty
+                    if model.isEmpty {
+                        appliance.model = deviceType.rawValue
+                    }
+                }
+                
+                appliance.createdAt = Date()
+                
+                // Calculate expiry date
+                if let expiryDate = Calendar.current.date(byAdding: .month, value: item.warrantyMonths, to: purchaseDate) {
+                    appliance.warrantyExpiryDate = expiryDate
+                }
+                
+                // Create ReceiptItem to link receipt and appliance
+                if let receipt = receipt {
+                    let receiptItem = ReceiptItem(context: viewContext)
+                    receiptItem.id = UUID()
+                    receiptItem.receipt = receipt
+                    receiptItem.appliance = appliance
+                    receiptItem.originalLineText = item.originalLineText
+                    receiptItem.quantity = Int16(item.quantity)
+                    
+                    if let amount = item.price {
+                        receiptItem.lineAmount = NSDecimalNumber(decimal: amount)
+                    }
+                    
+                    // Safety check: prevent double-creation
+                    if let itemId = receiptItem.id, !createdReceiptItemIds.contains(itemId) {
+                        createdReceiptItemIds.insert(itemId)
+                    }
+                }
+                
+                createdCount += 1
+            }
+        }
+        
+        // Save context
+        do {
+            try viewContext.save()
+            batchCreationCount = createdCount
+            showingBatchEdit = false
+            showingBatchCreationSuccess = true
+        } catch {
+            print("❌ Error creating batch appliances: \(error)")
+            ocrError = "Failed to create items"
+            showingOCRError = true
+        }
+    }
+    
+    private func findOrCreateReceipt(imageData: Data, store: String, purchaseDate: Date, totalPrice: Double) -> Receipt? {
+        // Compute SHA-256 hash of image
+        let imageHash = SHA256.hash(data: imageData)
+        let imageHashString = imageHash.compactMap { String(format: "%02x", $0) }.joined()
+        
+        // Check for existing receipt with same image hash (using imageHash attribute)
+        let fetchRequest = NSFetchRequest<Receipt>(entityName: "Receipt")
+        fetchRequest.predicate = NSPredicate(format: "imageHash == %@", imageHashString)
+        fetchRequest.fetchLimit = 1
+        
+        do {
+            if let existingReceipt = try viewContext.fetch(fetchRequest).first {
+                print("[MultiItem] using receiptId: \(existingReceipt.id?.uuidString ?? "unknown") (reused)")
+                return existingReceipt
+            }
+        } catch {
+            print("❌ Error fetching existing receipts: \(error)")
+        }
+        
+        // Also check by date and price as fallback (for receipts without imageHash set)
+        let calendar = Calendar.current
+        let dayBefore = calendar.date(byAdding: .day, value: -1, to: purchaseDate)!
+        let dayAfter = calendar.date(byAdding: .day, value: 1, to: purchaseDate)!
+        let priceTolerance = 0.01
+        
+        let fallbackFetch = NSFetchRequest<Receipt>(entityName: "Receipt")
+        fallbackFetch.predicate = NSPredicate(format: "purchaseDate >= %@ AND purchaseDate <= %@ AND price >= %f AND price <= %f AND (imageHash == nil OR imageHash == '')", 
+                                             dayBefore as NSDate, dayAfter as NSDate, 
+                                             totalPrice - priceTolerance, totalPrice + priceTolerance)
+        
+        do {
+            let existingReceipts = try viewContext.fetch(fallbackFetch)
+            
+            // Check image hash for each candidate
+            for existingReceipt in existingReceipts {
+                if let existingImageData = existingReceipt.imageData {
+                    let existingHash = SHA256.hash(data: existingImageData)
+                    let existingHashString = existingHash.compactMap { String(format: "%02x", $0) }.joined()
+                    
+                    if existingHashString == imageHashString {
+                        // Update existing receipt with imageHash (if attribute exists)
+                        existingReceipt.setValue(imageHashString, forKey: "imageHash")
+                        print("[MultiItem] using receiptId: \(existingReceipt.id?.uuidString ?? "unknown") (reused)")
+                        return existingReceipt
+                    }
+                }
+            }
+        } catch {
+            print("❌ Error fetching existing receipts (fallback): \(error)")
+        }
+        
+        // Create new receipt
+        let receipt = Receipt(context: viewContext)
+        receipt.id = UUID()
+        receipt.title = "Receipt" // Generic title for multi-item receipt
+        receipt.store = store
+        receipt.purchaseDate = purchaseDate
+        receipt.price = totalPrice
+        receipt.imageData = imageData
+        receipt.setValue(imageHashString, forKey: "imageHash") // Store hash for future deduplication
+        receipt.createdAt = Date()
+        
+        if let receiptId = receipt.id {
+            print("[MultiItem] using receiptId: \(receiptId.uuidString) (new)")
+        }
+        
+        return receipt
+    }
+    
+    private func createAppliancesFromLines(_ lines: [DetectedLine]) {
+        guard !lines.isEmpty else { return }
+        
+        // This function is kept for backward compatibility but should use createAppliancesFromEditableItems
+        // Convert lines to editable items and use the main creation function
+        let editableItems = lines.map { line in
+            EditableItem(
+                id: line.id,
+                title: extractApplianceName(from: line.text) ?? line.text,
+                price: line.amount,
+                warrantyMonths: 12,
+                category: "",
+                originalLineText: line.text,
+                quantity: line.quantity
+            )
+        }
+        createAppliancesFromEditableItems(editableItems)
+    }
+    
+    private func extractApplianceName(from text: String) -> String? {
+        // Try to extract a meaningful name from the line
+        // Remove common prefixes/suffixes and price info
+        var cleaned = text
+        
+        // Remove price patterns
+        let currencySymbol = CurrencyManager.shared.currencySymbol
+        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+        let pricePattern = #"\#(escapedSymbol)?\d+(\.\d{2})?\s*"#
+        cleaned = cleaned.replacingOccurrences(of: pricePattern, with: "", options: .regularExpression)
+        
+        // Remove quantity indicators
+        cleaned = cleaned.replacingOccurrences(of: #"x\d+|×\d+|\d+x|\d+×"#, with: "", options: .regularExpression)
+        
+        // Trim and return
+        cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? nil : cleaned
     }
     
     private func extractPrice(from string: String) -> Double? {
@@ -836,75 +1366,10 @@ struct AddApplianceView: View {
         }
     }
     
-    // MARK: - Barcode Handling
+    // MARK: - Code Scanning Handling
     
-    private func handleScannedBarcode(code: String, type: AVMetadataObject.ObjectType) {
-        scannedBarcode = code
-        scannedBarcodeType = barcodeTypeDisplayName(type)
-        
-        // Auto-fill fields based on barcode type
-        if type == .qr {
-            // QR codes might contain JSON or URL data
-            handleQRCode(code)
-        } else {
-            // Standard barcodes (EAN, UPC, etc.) - typically product identifiers
-            handleProductBarcode(code)
-        }
-        
-        // Dismiss scanner
-        showingBarcodeScanner = false
-    }
-    
-    private func handleQRCode(_ code: String) {
-        // Check if QR code is a URL
-        if let url = URL(string: code), url.scheme != nil {
-            // URL-based QR code - could be product page
-            notes = "Product URL: \(code)"
-            return
-        }
-        
-        // Check if QR code is JSON
-        if let data = code.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            // Extract data from JSON QR code
-            if let productName = json["name"] as? String {
-                title = productName
-            }
-            if let productModel = json["model"] as? String {
-                model = productModel
-            }
-            if let productStore = json["store"] as? String {
-                store = productStore
-            }
-            return
-        }
-        
-        // Plain text QR code - use as model or serial number
-        if model.isEmpty {
-            model = code
-        } else if serialNumber.isEmpty {
-            serialNumber = code
-        } else {
-            notes = "QR Code: \(code)"
-        }
-    }
-    
-    private func handleProductBarcode(_ code: String) {
-        // Standard product barcodes (EAN-13, UPC, etc.)
-        // Use the barcode as a product identifier
-        // In a real app, you might look this up in a product database
-        
-        // For now, store it in notes or use as model identifier
-        if model.isEmpty {
-            // Try to infer product type from barcode if possible
-            model = "Product ID: \(code)"
-        } else {
-            notes = "Barcode: \(code)"
-        }
-        
-        // You could also use the barcode to look up product information
-        // from an external API or database here
-    }
+    // Note: handleScannedCode is already defined above and shows an alert
+    // The old barcode handling functions have been removed in favor of the new CodeScannerView
     
     private func resetForm() {
         // Set flag to prevent validation during reset
@@ -926,8 +1391,7 @@ struct AddApplianceView: View {
         serialNumber = ""
         warrantySummary = ""
         notes = ""
-        scannedBarcode = nil
-        scannedBarcodeType = nil
+        scannedCode = nil
         saveButtonState = .idle
         
         // Clear errors again after field changes have propagated
@@ -947,32 +1411,6 @@ struct AddApplianceView: View {
         return try? viewContext.fetch(fetchRequest).first
     }
     
-    private func barcodeTypeDisplayName(_ type: AVMetadataObject.ObjectType) -> String {
-        switch type {
-        case .qr:
-            return "QR Code"
-        case .ean13:
-            return "EAN-13"
-        case .ean8:
-            return "EAN-8"
-        case .code128:
-            return "Code 128"
-        case .code39:
-            return "Code 39"
-        case .code93:
-            return "Code 93"
-        case .upce:
-            return "UPC-E"
-        case .pdf417:
-            return "PDF417"
-        case .aztec:
-            return "Aztec"
-        case .dataMatrix:
-            return "Data Matrix"
-        default:
-            return "Barcode"
-        }
-    }
 }
 
 // MARK: - Corner Radius Extension
@@ -991,3 +1429,4 @@ struct RoundedCorner: Shape {
         return Path(path.cgPath)
     }
 }
+

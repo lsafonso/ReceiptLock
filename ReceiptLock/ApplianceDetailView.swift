@@ -6,12 +6,19 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct ApplianceDetailView: View {
     let appliance: Appliance
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingReceipt = false
+    
+    private var receiptItem: ReceiptItem? {
+        appliance.receiptItems?.firstObject as? ReceiptItem
+    }
     
     var body: some View {
         ScrollView {
@@ -62,6 +69,11 @@ struct ApplianceDetailView: View {
             }
         } message: {
             Text("Are you sure you want to delete this appliance? This action cannot be undone.")
+        }
+        .sheet(isPresented: $showingReceipt) {
+            if let receiptItem = receiptItem, let receipt = receiptItem.receipt {
+                ReceiptDetailView(receipt: receipt)
+            }
         }
     }
     
@@ -176,6 +188,22 @@ struct ApplianceDetailView: View {
     // MARK: - Actions Section
     private var actionsSection: some View {
         VStack(spacing: AppTheme.spacing) {
+            // View Receipt button (if receipt exists)
+            if let receiptItem = receiptItem, let receipt = receiptItem.receipt {
+                Button(action: { showingReceipt = true }) {
+                    HStack {
+                        Image(systemName: "doc.text")
+                            .symbolRenderingMode(.monochrome)
+                        Text("View Receipt")
+                    }
+                    .foregroundColor(AppTheme.onPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(AppTheme.spacing)
+                    .background(AppTheme.primary)
+                    .cornerRadius(AppTheme.cornerRadius)
+                }
+            }
+            
             Button(action: shareAppliance) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")

@@ -42,14 +42,104 @@ struct PersistenceController {
             }
         }
         
-        container.loadPersistentStores { _, error in
+        container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+            
+            // Run migration if needed
+            if !inMemory {
+                migrateToReceiptItemModel(context: container.viewContext)
             }
         }
         
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+    }
+    
+    // MARK: - Migration
+    
+    private func migrateToReceiptItemModel(context: NSManagedObjectContext) {
+        // Check if migration has already been run
+        let migrationKey = "ReceiptItemMigrationCompleted"
+        if UserDefaults.standard.bool(forKey: migrationKey) {
+            return
+        }
+        
+        print("[Migration] Starting ReceiptItem migration...")
+        
+        context.performAndWait {
+            // Try to find receipts with old appliance relationship using KVC (for backward compatibility)
+            let receiptFetch = NSFetchRequest<NSManagedObject>(entityName: "Receipt")
+            
+            do {
+                let receipts = try context.fetch(receiptFetch)
+                print("[Migration] Found \(receipts.count) receipts to check")
+                
+                var migratedCount = 0
+                for receipt in receipts {
+                    // Check if old appliance relationship exists (using KVC)
+                    if let appliance = receipt.value(forKey: "appliance") as? Appliance {
+                        // Create ReceiptItem
+                        let receiptItem = ReceiptItem(context: context)
+                        receiptItem.id = UUID()
+                        receiptItem.receipt = receipt as? Receipt
+                        receiptItem.appliance = appliance
+                        
+                        // Extract originalLineText from appliance notes if present
+                        if let notes = appliance.notes, notes.contains("From receipt:") {
+                            // Extract the line text after "From receipt: "
+                            if let range = notes.range(of: "From receipt: ") {
+                                let lineText = String(notes[range.upperBound...])
+                                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                                // Remove receipt ID if present
+                                if let receiptIdRange = lineText.range(of: "\nReceipt ID:") {
+                                    receiptItem.originalLineText = String(lineText[..<receiptIdRange.lowerBound])
+                                } else {
+                                    receiptItem.originalLineText = lineText
+                                }
+                            }
+                        } else {
+                            // Fallback: use appliance name
+                            receiptItem.originalLineText = appliance.name ?? "Unknown item"
+                        }
+                        
+                        // Set lineAmount from appliance price if available
+                        if appliance.price > 0 {
+                            receiptItem.lineAmount = NSDecimalNumber(value: appliance.price)
+                        }
+                        
+                        receiptItem.quantity = 1
+                        
+                        // Clean up notes: remove "From receipt:" and receipt ID lines
+                        if var notes = appliance.notes {
+                            // Remove "From receipt:" line
+                            notes = notes.replacingOccurrences(of: #"From receipt:.*"#, with: "", options: .regularExpression)
+                            // Remove receipt ID line
+                            notes = notes.replacingOccurrences(of: #"\nReceipt ID:.*"#, with: "", options: .regularExpression)
+                            notes = notes.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                            appliance.notes = notes.isEmpty ? nil : notes
+                        }
+                        
+                        // Remove old appliance relationship (set to nil)
+                        receipt.setValue(nil, forKey: "appliance")
+                        migratedCount += 1
+                    }
+                }
+                
+                if migratedCount > 0 {
+                    // Save migration
+                    try context.save()
+                    print("[Migration] Migrated \(migratedCount) receipts successfully")
+                }
+                
+                UserDefaults.standard.set(true, forKey: migrationKey)
+                print("[Migration] Migration completed successfully")
+            } catch {
+                print("❌ [Migration] Error during migration: \(error)")
+                // Don't fatal error - allow app to continue
+            }
+        }
     }
     
     // MARK: - Preview Helper

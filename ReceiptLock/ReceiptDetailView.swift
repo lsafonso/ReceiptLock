@@ -76,6 +76,22 @@ struct ReceiptDetailView: View {
                     .cornerRadius(12)
                 }
                 
+                // Receipt Items Section (if available)
+                if let items = receipt.items as? Set<ReceiptItem>, !items.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "Items on Receipt")
+                        
+                        VStack(spacing: 12) {
+                            ForEach(Array(items), id: \.objectID) { item in
+                                ReceiptItemRow(item: item)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                }
+                
                 // OCR Data Section (if available)
                 if let ocrText = receipt.ocrText, !ocrText.isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
@@ -316,6 +332,47 @@ struct ImageFullScreenView: View {
                 }
             }
         }
+    }
+}
+
+struct ReceiptItemRow: View {
+    let item: ReceiptItem
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                if let appliance = item.appliance {
+                    Text(appliance.name ?? "Unknown Appliance")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.primary)
+                    
+                    if let lineText = item.originalLineText, !lineText.isEmpty {
+                        Text(lineText)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    Text(item.originalLineText ?? "Unknown Item")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.primary)
+                }
+                
+                if item.quantity > 1 {
+                    Text("Quantity: \(item.quantity)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            if let amount = item.lineAmount {
+                Text(CurrencyManager.shared.formatPrice(amount.doubleValue))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
