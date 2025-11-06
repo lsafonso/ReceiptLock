@@ -40,6 +40,9 @@ struct AddApplianceView: View {
     @State private var navigateToDetail = false
     @State private var navigationPath = NavigationPath()
     @State private var isResetting = false
+    @State private var showScanMenu = false
+    @State private var showingReceiptCamera = false
+    @State private var showingPhotoPicker = false
     
     enum DeviceType: String, CaseIterable {
         case airConditioner = "Air Conditioner"
@@ -224,51 +227,51 @@ struct AddApplianceView: View {
     // MARK: - Scan Invoice Section
     private var scanInvoiceSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            Text("Scan receipt or barcode")
+            Text("Scan or import")
                 .rlHeadline()
             
-            Text("Use a photo, PDF, or scan a barcode/QR code—store, model and purchase date auto-fill.")
+            Text("Use your camera to scan a receipt or barcode, or import a photo or PDF. We'll auto-fill what we can.")
                 .rlSubheadlineMuted()
             
-            VStack(spacing: 12) { // Buttons stack vertical gap 12pt
-                // Receipt scanning button
-                PhotosPicker(selection: $selectedImage, matching: .images) {
-                    HStack(spacing: AppTheme.smallSpacing) {
-                        Image(systemName: "doc.text.viewfinder")
-                            .font(.title2)
-                            .symbolRenderingMode(.monochrome)
-                            .foregroundColor(.white)
-                        
-                        Text("Scan Receipt")
-                            .font(.headline.weight(.semibold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppTheme.spacing)
-                    .background(AppTheme.primary)
-                    .cornerRadius(AppTheme.cornerRadius)
-                    .opacity(isProcessingOCR ? 0.6 : 1.0)
+            // Single primary button
+            Button(action: {
+                print("[ScanMenu] open")
+                showScanMenu = true
+            }) {
+                HStack(spacing: AppTheme.smallSpacing) {
+                    Image(systemName: "camera.fill")
+                        .font(.title2)
+                        .symbolRenderingMode(.monochrome)
+                        .foregroundColor(.white)
+                    
+                    Text("Scan or Import")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(.white)
                 }
-                .disabled(isProcessingOCR)
-                
-                // Barcode scanning button
-                Button(action: {
-                    showingBarcodeScanner = true
-                }) {
-                    HStack(spacing: AppTheme.smallSpacing) {
-                        Image(systemName: "qrcode.viewfinder")
-                            .font(.title2)
-                            .symbolRenderingMode(.monochrome)
-                            .foregroundColor(.white)
-                        
-                        Text("Scan Barcode/QR Code")
-                            .font(.headline.weight(.semibold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppTheme.spacing)
-                    .background(AppTheme.primary)
-                    .cornerRadius(AppTheme.cornerRadius)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppTheme.spacing)
+                .background(AppTheme.primary)
+                .cornerRadius(AppTheme.cornerRadius)
+                .opacity(isProcessingOCR ? 0.6 : 1.0)
+            }
+            .disabled(isProcessingOCR)
+            .accessibilityLabel("Scan or import a receipt or barcode")
+            .accessibilityHint("Opens options to scan with the camera or import from your library.")
+            .confirmationDialog("Scan or Import", isPresented: $showScanMenu, titleVisibility: .visible) {
+                Button("Scan receipt (camera)") {
+                    print("[ScanMenu] action: receipt")
+                    presentReceiptCamera()
+                }
+                Button("Scan QR/Barcode") {
+                    print("[ScanMenu] action: code")
+                    presentCodeScanner()
+                }
+                Button("Import from Photos/PDF") {
+                    print("[ScanMenu] action: import")
+                    presentPhotoPicker()
+                }
+                Button("Cancel", role: .cancel) {
+                    print("[ScanMenu] cancelled")
                 }
             }
             
@@ -312,6 +315,24 @@ struct AddApplianceView: View {
                 handleScannedBarcode(code: code, type: type)
             })
         }
+        .fullScreenCover(isPresented: $showingReceiptCamera) {
+            CameraView()
+        }
+        .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedImage, matching: .images)
+    }
+    
+    // MARK: - Scan Menu Actions
+    
+    private func presentReceiptCamera() {
+        showingReceiptCamera = true
+    }
+    
+    private func presentCodeScanner() {
+        showingBarcodeScanner = true
+    }
+    
+    private func presentPhotoPicker() {
+        showingPhotoPicker = true
     }
     
     // MARK: - Manual Entry Section
