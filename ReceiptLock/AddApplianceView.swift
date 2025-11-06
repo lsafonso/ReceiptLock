@@ -1079,7 +1079,7 @@ struct AddApplianceView: View {
             guard !item.title.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty else { continue }
             
             // Create appliance for each quantity
-            for qtyIndex in 0..<item.quantity {
+            for _ in 0..<item.quantity {
                 let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext) as! Appliance
                 appliance.id = UUID()
                 

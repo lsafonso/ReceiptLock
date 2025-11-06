@@ -88,7 +88,23 @@ struct ReceiptBackup: Codable {
         self.pdfProcessed = receipt.pdfProcessed
         self.createdAt = receipt.createdAt
         self.updatedAt = receipt.updatedAt
-        self.applianceId = receipt.appliance?.id
+        // Get appliance from receipt items (new model) or old appliance relationship (migration)
+        // Use KVC to avoid code generation dependency
+        var foundApplianceId: UUID? = nil
+        
+        // Try new model: receipt.items -> ReceiptItem -> appliance
+        if let items = receipt.value(forKey: "items") as? NSSet, items.count > 0,
+           let firstItem = items.allObjects.first as? NSManagedObject,
+           let appliance = firstItem.value(forKey: "appliance") as? Appliance {
+            foundApplianceId = appliance.id
+        }
+        
+        // Fallback: try old relationship via KVC (for migration compatibility)
+        if foundApplianceId == nil {
+            foundApplianceId = (receipt.value(forKey: "appliance") as? Appliance)?.id
+        }
+        
+        self.applianceId = foundApplianceId
     }
 }
 
@@ -368,8 +384,18 @@ class DataBackupManager: ObservableObject {
             receipt.fileName = receiptBackup.fileName
             receipt.createdAt = receiptBackup.createdAt
             receipt.updatedAt = receiptBackup.updatedAt
+            // Create ReceiptItem to link receipt and appliance (new model)
             if let applianceId = receiptBackup.applianceId, let appliance = applianceMap[applianceId] {
-                receipt.appliance = appliance
+                // Use NSEntityDescription to avoid code generation dependency
+                let receiptItem = NSEntityDescription.insertNewObject(forEntityName: "ReceiptItem", into: context)
+                receiptItem.setValue(UUID(), forKey: "id")
+                receiptItem.setValue(receipt, forKey: "receipt")
+                receiptItem.setValue(appliance, forKey: "appliance")
+                receiptItem.setValue(appliance.name ?? "Unknown item", forKey: "originalLineText")
+                if appliance.price > 0 {
+                    receiptItem.setValue(NSDecimalNumber(value: appliance.price), forKey: "lineAmount")
+                }
+                receiptItem.setValue(Int16(1), forKey: "quantity")
             }
             // Restore image data to Core Data and disk
             if let imageBase64 = receiptBackup.imageDataBase64,

@@ -17,7 +17,13 @@ struct ApplianceDetailView: View {
     @State private var showingReceipt = false
     
     private var receiptItem: ReceiptItem? {
-        appliance.receiptItems?.firstObject as? ReceiptItem
+        // Handle both NSSet (before code generation) and Set<ReceiptItem> (after code generation)
+        if let receiptItems = appliance.receiptItems as? NSSet, receiptItems.count > 0 {
+            return receiptItems.allObjects.first as? ReceiptItem
+        } else if let receiptItems = appliance.receiptItems as? Set<ReceiptItem>, !receiptItems.isEmpty {
+            return receiptItems.first
+        }
+        return nil
     }
     
     var body: some View {
@@ -189,7 +195,7 @@ struct ApplianceDetailView: View {
     private var actionsSection: some View {
         VStack(spacing: AppTheme.spacing) {
             // View Receipt button (if receipt exists)
-            if let receiptItem = receiptItem, let receipt = receiptItem.receipt {
+            if let receiptItem = receiptItem, receiptItem.receipt != nil {
                 Button(action: { showingReceipt = true }) {
                     HStack {
                         Image(systemName: "doc.text")
