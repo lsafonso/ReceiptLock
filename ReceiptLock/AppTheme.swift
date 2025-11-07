@@ -59,14 +59,26 @@ struct AppTheme {
     static let extraLargeSpacing: CGFloat = 32
     
     // MARK: - Corner Radius
-    static let cornerRadius: CGFloat = 14 // Increased from 12 to match iOS 17 feel
-    static let smallCornerRadius: CGFloat = 8
-    static let largeCornerRadius: CGFloat = 16
+    // Centralized corner radius tokens for consistent design scale
+    // Reduced from previous values for a cleaner, tighter look
+    enum CornerRadius {
+        static let card: CGFloat = 14      // Cards/containers (white panels)
+        static let tile: CGFloat = 12      // Home/scan grid buttons, device tiles
+        static let field: CGFloat = 10     // Text fields, pickers, date button
+        static let button: CGFloat = 12     // Primary/secondary CTA buttons
+        static let chip: CGFloat = 10      // Pills/chips (fallback when Capsule not used)
+        static let badge: CGFloat = 8       // Small tags/badges
+    }
+    
+    // Legacy constants (deprecated - use CornerRadius enum instead)
+    static let cornerRadius: CGFloat = CornerRadius.card
+    static let smallCornerRadius: CGFloat = CornerRadius.badge
+    static let largeCornerRadius: CGFloat = CornerRadius.card
     static let extraLargeCornerRadius: CGFloat = 20
     
     // MARK: - Card Tokens
     static let card = Color.white // #FFFFFF
-    static let cardRadius: CGFloat = 16
+    static let cardRadius: CGFloat = CornerRadius.card
     static let cardPadding: CGFloat = 16
     
     // MARK: - Tab Bar Constants
@@ -92,7 +104,7 @@ struct CardBackgroundModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(AppTheme.cardBackground)
-            .cornerRadius(AppTheme.cornerRadius)
+            .cornerRadius(AppTheme.CornerRadius.card)
             .shadow(
                 color: .black.opacity(AppTheme.shadowOpacity),
                 radius: isPressed ? AppTheme.shadowRadius * 0.7 : AppTheme.shadowRadius,
@@ -127,7 +139,7 @@ struct PrimaryButtonStyle: ButtonStyle {
                 AppTheme.primaryGradient
                     .opacity(configuration.isPressed ? 0.8 : 1.0)
             )
-            .cornerRadius(AppTheme.cornerRadius)
+            .cornerRadius(AppTheme.CornerRadius.button)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .shadow(
                 color: AppTheme.primary.opacity(0.2),
@@ -151,7 +163,7 @@ struct SecondaryButtonStyle: ButtonStyle {
             .background(
                 AppTheme.primary.opacity(0.1)
             )
-            .cornerRadius(AppTheme.cornerRadius)
+            .cornerRadius(AppTheme.CornerRadius.button)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .animation(AppTheme.springAnimation, value: configuration.isPressed)
     }
@@ -192,7 +204,7 @@ struct CardModifier: ViewModifier {
         content
             .padding(AppTheme.cardPadding)
             .background(AppTheme.card)
-            .cornerRadius(AppTheme.cardRadius)
+            .cornerRadius(AppTheme.CornerRadius.card)
             .shadow(
                 color: .black.opacity(AppTheme.shadowOpacity),
                 radius: AppTheme.shadowRadius,

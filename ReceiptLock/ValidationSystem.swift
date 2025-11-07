@@ -600,10 +600,10 @@ struct ValidatedDateField: View {
             .padding(.horizontal, AppTheme.smallSpacing)
             .padding(.vertical, AppTheme.smallSpacing / 2)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field)
                     .fill(AppTheme.primary)
                     .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.smallCornerRadius)
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field)
                             .stroke(
                                 validationManager.getError(for: fieldKey) != nil ? AppTheme.error : Color.clear,
                                 lineWidth: 1

@@ -986,9 +986,9 @@ struct AddApplianceView: View {
                         .frame(maxWidth: .infinity)
                         .padding(12) // Mini card padding 12pt
                         .background(AppTheme.card) // White card fill
-                        .cornerRadius(12) // Mini card radius 12
+                        .cornerRadius(AppTheme.CornerRadius.tile) // Mini card radius
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.tile)
                                 .stroke(selectedDeviceType == deviceType ? deviceType.color : AppTheme.separator, lineWidth: 1)
                         )
                         .shadow(

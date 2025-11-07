@@ -170,7 +170,7 @@ struct AddReceiptView: View {
                         .frame(maxHeight: 200)
                         .accessibilityLabel("Selected receipt image")
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field)
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                         )
                         .onTapGesture {
@@ -262,7 +262,7 @@ struct AddReceiptView: View {
                             .font(.body)
                             .padding()
                             .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
+                            .cornerRadius(AppTheme.CornerRadius.badge)
                     }
                 }
             }

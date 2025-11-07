@@ -29,7 +29,7 @@ struct ReceiptDetailView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxHeight: 300)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card))
                             .shadow(radius: 4)
                             .onTapGesture {
                                 showingImageFullScreen = true
@@ -73,7 +73,7 @@ struct ReceiptDetailView: View {
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(AppTheme.CornerRadius.card)
                 }
                 
                 // Receipt Items Section (if available)
@@ -93,7 +93,7 @@ struct ReceiptDetailView: View {
                             }
                             .padding()
                             .background(Color(AppTheme.error).opacity(0.1))
-                            .cornerRadius(8)
+                            .cornerRadius(AppTheme.CornerRadius.badge)
                             .onAppear {
                                 print("[Receipt] discrepancy: \(CurrencyManager.shared.formatPrice(abs(discrepancy)))")
                             }
@@ -106,7 +106,7 @@ struct ReceiptDetailView: View {
                         }
                         .padding()
                         .background(Color(.systemGray6))
-                        .cornerRadius(12)
+                        .cornerRadius(AppTheme.CornerRadius.card)
                     }
                 }
                 
@@ -125,7 +125,7 @@ struct ReceiptDetailView: View {
                                 .foregroundColor(.primary)
                                 .padding()
                                 .background(Color(.systemGray6))
-                                .cornerRadius(8)
+                                .cornerRadius(AppTheme.CornerRadius.badge)
                         }
                     }
                 }
@@ -145,7 +145,7 @@ struct ReceiptDetailView: View {
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(12)
+                    .cornerRadius(AppTheme.CornerRadius.card)
                 }
                 
                 // Action Buttons

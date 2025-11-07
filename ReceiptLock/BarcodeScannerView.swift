@@ -63,7 +63,7 @@ struct BarcodeScannerView: View {
                         .foregroundColor(.white)
                         .padding()
                         .background(.black.opacity(0.6))
-                        .cornerRadius(12)
+                        .cornerRadius(AppTheme.CornerRadius.button)
                         
                         Spacer()
                         
@@ -75,7 +75,7 @@ struct BarcodeScannerView: View {
                                 .foregroundColor(.white)
                                 .padding()
                                 .background(.black.opacity(0.6))
-                                .cornerRadius(12)
+                                .cornerRadius(AppTheme.CornerRadius.button)
                         }
                     }
                     .padding()
@@ -105,13 +105,13 @@ struct BarcodeScannerView: View {
                                     .padding(.horizontal)
                                     .padding(.vertical, 8)
                                     .background(.black.opacity(0.5))
-                                    .cornerRadius(8)
+                                    .cornerRadius(AppTheme.CornerRadius.badge)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
                             }
                             .padding()
                             .background(.black.opacity(0.7))
-                            .cornerRadius(16)
+                            .cornerRadius(AppTheme.CornerRadius.card)
                         } else {
                             // Scanning instructions
                             VStack(spacing: 8) {
@@ -127,7 +127,7 @@ struct BarcodeScannerView: View {
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
                             .background(.black.opacity(0.6))
-                            .cornerRadius(20)
+                            .cornerRadius(AppTheme.CornerRadius.card)
                         }
                     }
                     .padding(.bottom, 50)
@@ -196,7 +196,7 @@ struct BarcodeScannerView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppTheme.primary)
-                    .cornerRadius(12)
+                    .cornerRadius(AppTheme.CornerRadius.button)
                 }
                 
                 Button("Cancel") {
@@ -244,7 +244,7 @@ struct BarcodeScannerView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(manualBarcodeEntry.isEmpty ? Color.gray : AppTheme.primary)
-                        .cornerRadius(12)
+                        .cornerRadius(AppTheme.CornerRadius.button)
                 }
                 .disabled(manualBarcodeEntry.isEmpty)
                 .padding(.horizontal)

@@ -306,7 +306,7 @@ struct SecurityAuditView: View {
                         }
                         .padding()
                         .background(Color(.systemGray6))
-                        .cornerRadius(10)
+                        .cornerRadius(AppTheme.CornerRadius.field)
                     }
                 }
                 

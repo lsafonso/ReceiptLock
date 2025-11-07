@@ -212,7 +212,7 @@ struct AVFoundationBarcodeScannerView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
                     .background(.black.opacity(0.6))
-                    .cornerRadius(20)
+                    .cornerRadius(AppTheme.CornerRadius.card)
                     .padding(.bottom, 50)
                 }
             } else if scannerService.isAuthorized {
@@ -238,7 +238,7 @@ struct AVFoundationBarcodeScannerView: View {
                     .foregroundColor(.white)
                     .padding()
                     .background(.black.opacity(0.6))
-                    .cornerRadius(12)
+                    .cornerRadius(AppTheme.CornerRadius.button)
                     
                     Spacer()
                 }

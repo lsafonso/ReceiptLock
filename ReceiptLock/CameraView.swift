@@ -68,7 +68,7 @@ struct CameraView: View {
                     .foregroundColor(.white)
                     .padding()
                     .background(.black.opacity(0.6))
-                    .cornerRadius(12)
+                    .cornerRadius(AppTheme.CornerRadius.button)
                     
                     Spacer()
                     
@@ -81,7 +81,7 @@ struct CameraView: View {
                             .foregroundColor(.white)
                             .padding()
                             .background(.black.opacity(0.6))
-                            .cornerRadius(12)
+                            .cornerRadius(AppTheme.CornerRadius.button)
                     }
                     
                     Button(action: {
@@ -92,7 +92,7 @@ struct CameraView: View {
                             .foregroundColor(.white)
                             .padding()
                             .background(.black.opacity(0.6))
-                            .cornerRadius(12)
+                            .cornerRadius(AppTheme.CornerRadius.button)
                     }
                     
                     Button(action: {
@@ -103,7 +103,7 @@ struct CameraView: View {
                             .foregroundColor(.white)
                             .padding()
                             .background(.black.opacity(0.6))
-                            .cornerRadius(12)
+                            .cornerRadius(AppTheme.CornerRadius.button)
                     }
                 }
                 .padding()
@@ -121,7 +121,7 @@ struct CameraView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
                                 .background(.black.opacity(0.6))
-                                .cornerRadius(20)
+                                .cornerRadius(AppTheme.CornerRadius.card)
                             
                             Text("Pinch to zoom • Tap to focus")
                                 .font(.caption2)
@@ -129,7 +129,7 @@ struct CameraView: View {
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 4)
                                 .background(.black.opacity(0.4))
-                                .cornerRadius(16)
+                                .cornerRadius(AppTheme.CornerRadius.card)
                         }
                     }
                     
@@ -287,11 +287,11 @@ struct CameraGuideOverlay: View {
                 }
                 .padding()
                 .background(.black.opacity(0.7))
-                .cornerRadius(12)
+                .cornerRadius(AppTheme.CornerRadius.card)
             }
             .padding()
             .background(.black.opacity(0.8))
-            .cornerRadius(16)
+            .cornerRadius(AppTheme.CornerRadius.card)
             .padding(.horizontal)
             
             Spacer()
@@ -358,7 +358,7 @@ struct ImagePreviewView: View {
                     .scaledToFit()
                     .padding()
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.tile)
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
                 

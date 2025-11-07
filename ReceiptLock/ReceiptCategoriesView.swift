@@ -193,7 +193,7 @@ struct AddCategoryView: View {
                                     .foregroundColor(selectedIcon == icon ? selectedColor : .secondary)
                                     .padding(8)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 8)
+                                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.badge)
                                             .fill(selectedIcon == icon ? selectedColor.opacity(0.2) : Color.clear)
                                     )
                                     .onTapGesture {

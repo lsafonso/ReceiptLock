@@ -195,7 +195,7 @@ struct MessageRow: View {
                     .padding(.vertical, 2)
                     .background(message.type.color.opacity(0.2))
                     .foregroundColor(message.type.color)
-                    .cornerRadius(4)
+                    .cornerRadius(AppTheme.CornerRadius.badge)
                 
                 Spacer()
                 
@@ -267,7 +267,7 @@ struct AddEditMessageView: View {
                             .font(.body)
                             .padding()
                             .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                            .cornerRadius(AppTheme.CornerRadius.badge)
                     }
                 }
             }

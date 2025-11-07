@@ -20,13 +20,13 @@ struct ReceiptRowView: View {
                     .resizable()
                     .scaledToFill()
                     .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.badge))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.badge)
                             .stroke(AppTheme.border, lineWidth: 1)
                     )
             } else {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.badge)
                     .fill(AppTheme.secondaryBackground)
                     .frame(width: 50, height: 50)
                     .overlay(

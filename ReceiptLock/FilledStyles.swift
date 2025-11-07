@@ -23,7 +23,7 @@ struct PrimaryFilledButtonStyle: ButtonStyle {
                 AppTheme.primaryGradient
                     .opacity(configuration.isPressed ? 0.8 : 1.0)
             )
-            .cornerRadius(AppTheme.cornerRadius)
+            .cornerRadius(AppTheme.CornerRadius.button)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .shadow(
                 color: AppTheme.primary.opacity(0.2),
@@ -54,7 +54,7 @@ struct FilledButtonStyle: ButtonStyle {
                 backgroundColor
                     .opacity(configuration.isPressed ? 0.8 : 1.0)
             )
-            .cornerRadius(AppTheme.cornerRadius)
+            .cornerRadius(AppTheme.CornerRadius.button)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .shadow(
                 color: backgroundColor.opacity(0.2),
