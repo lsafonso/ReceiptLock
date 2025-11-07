@@ -198,7 +198,7 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Receipt Storage Preferences",
+                title: "Storage Preferences",
                 subtitle: "Manage storage and compression",
                 icon: "externaldrive.fill"
             ) {
@@ -251,7 +251,7 @@ struct SettingsView: View {
             
             SettingsRow(
                 title: "Custom Reminder Messages",
-                subtitle: "Personalize your reminder notifications",
+                subtitle: "Personalise your reminder notifications",
                 icon: "text.bubble.fill"
             ) {
                 Button("Configure") {
@@ -567,7 +567,7 @@ struct SettingsRow<Content: View>: View {
                 Image(systemName: icon)
                     .foregroundColor(AppTheme.secondaryText)
                     .font(.title3)
-                    .frame(width: 36, height: 36) // Icon 36pt
+                    .frame(width: 24, height: 24) // Icon 24pt
                 
                 Text(title)
                     .font(.body)
@@ -582,7 +582,7 @@ struct SettingsRow<Content: View>: View {
             HStack(alignment: .top, spacing: 12) {
                 // Spacer to align with icon width
                 Spacer()
-                    .frame(width: 36)
+                    .frame(width: 24) // Match icon width
                 
                 Text(subtitle)
                     .font(.caption)
