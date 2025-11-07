@@ -187,17 +187,6 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Warranty Reminder",
-                subtitle: "Set default reminder periods",
-                icon: "bell.badge.fill"
-            ) {
-                Button("Configure") {
-                    showingReminderManagement = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
                 title: "Storage Preferences",
                 subtitle: "Manage storage and compression",
                 icon: "externaldrive.fill"
