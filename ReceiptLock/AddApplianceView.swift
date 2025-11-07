@@ -50,8 +50,11 @@ struct AddApplianceView: View {
     @State private var ocrError: String?
     @State private var showingOCRError = false
     @State private var selectedPDFURL: URL?
+    @State private var pdfPageCount: Int = 0
+    @State private var currentPDFPageIndex: Int = 0
     @State private var showingFileImporter = false
     @State private var detectedLines: [DetectedLine] = []
+    @State private var processedPageHashes: Set<String> = []
     @State private var showingDetectedItems = false
     @State private var showingBatchEdit = false
     @State private var editableItems: [EditableItem] = []
@@ -405,12 +408,48 @@ struct AddApplianceView: View {
             Text("Couldn't read this receipt. You can fill details manually or try another photo.")
         }
         .sheet(isPresented: $showingDetectedItems) {
-            DetectedReceiptItemsView(
-                lines: detectedLines,
-                onContinue: { selectedLines in
-                    handleBatchCreation(selectedLines: selectedLines)
+            VStack(spacing: 0) {
+                // Multipage PDF banner
+                if pdfPageCount > 1 {
+                    HStack {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.blue)
+                        Text("Didn't find all items? Try page \(currentPDFPageIndex + 2)")
+                            .font(.caption)
+                        Spacer()
+                        if currentPDFPageIndex > 0 {
+                            Button("Prev") {
+                                Task {
+                                    await processPreviousPDFPage()
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        if currentPDFPageIndex < pdfPageCount - 1 {
+                            Button("Next") {
+                                Task {
+                                    await processNextPDFPage()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .onAppear {
+                        print("[PDF] showing page navigation banner, page \(currentPDFPageIndex + 1)/\(pdfPageCount)")
+                    }
                 }
-            )
+                
+                DetectedReceiptItemsView(
+                    lines: detectedLines,
+                    onContinue: { selectedLines in
+                        handleBatchCreation(selectedLines: selectedLines)
+                    }
+                )
+            }
         }
         .sheet(isPresented: $showingBatchEdit) {
             BatchEditItemsSheet(
@@ -573,6 +612,27 @@ struct AddApplianceView: View {
         }
         
         do {
+            // Get PDF page count
+            guard let pdfDocument = PDFDocument(url: url) else {
+                await MainActor.run {
+                    self.isProcessingOCR = false
+                    self.ocrError = "Invalid PDF document"
+                    self.showingOCRError = true
+                }
+                return
+            }
+            
+            let pageCount = pdfDocument.pageCount
+            print("[PDF] page count: \(pageCount)")
+            
+            // Store the PDF URL and page info for reference
+            await MainActor.run {
+                self.selectedPDFURL = url
+                self.pdfPageCount = pageCount
+                self.currentPDFPageIndex = 0
+                self.processedPageHashes = []
+            }
+            
             // Convert first page of PDF to image
             let images = try await PDFService.shared.convertPDFToImages(at: url, maxPages: 1)
             
@@ -585,17 +645,15 @@ struct AddApplianceView: View {
                 return
             }
             
-            // Store the PDF URL for reference
             await MainActor.run {
-                self.selectedPDFURL = url
                 if let imageData = firstPageImage.jpegData(compressionQuality: 0.9) {
                     self.imageData = imageData
                 }
             }
             
             // Process the first page with OCR
-            print("[OCR] start")
-            processImageWithOCR(firstPageImage)
+            print("[OCR] start page 0")
+            await processPDFPage(image: firstPageImage, pageIndex: 0)
             
         } catch {
             print("❌ [Import] PDF processing error: \(error.localizedDescription)")
@@ -605,6 +663,114 @@ struct AddApplianceView: View {
                 self.showingOCRError = true
             }
         }
+    }
+    
+    private func processPDFPage(image: UIImage, pageIndex: Int) async {
+        print("[PDF] processing page \(pageIndex)")
+        
+        // Create hash of page text for deduplication
+        let pageHash = image.pngData()?.base64EncodedString() ?? UUID().uuidString
+        
+        // Check if we've already processed this page
+        if processedPageHashes.contains(pageHash) {
+            print("[PDF] page \(pageIndex) already processed, skipping")
+            return
+        }
+        
+        await MainActor.run {
+            processedPageHashes.insert(pageHash)
+            currentPDFPageIndex = pageIndex
+        }
+        
+        processImageWithOCR(image)
+    }
+    
+    private func processNextPDFPage() async {
+        guard let pdfURL = selectedPDFURL,
+              currentPDFPageIndex < pdfPageCount - 1 else {
+            return
+        }
+        
+        let nextPageIndex = currentPDFPageIndex + 1
+        
+        await MainActor.run {
+            isProcessingOCR = true
+        }
+        
+        // Convert specific page to image
+        guard let pdfDocument = PDFDocument(url: pdfURL),
+              let page = pdfDocument.page(at: nextPageIndex) else {
+            await MainActor.run {
+                isProcessingOCR = false
+            }
+            return
+        }
+        
+        let pageRect = page.bounds(for: .mediaBox)
+        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+        
+        let pageImage = renderer.image { context in
+            UIColor.white.setFill()
+            context.fill(pageRect)
+            
+            context.cgContext.translateBy(x: 0, y: pageRect.size.height)
+            context.cgContext.scaleBy(x: 1.0, y: -1.0)
+            
+            page.draw(with: .mediaBox, to: context.cgContext)
+        }
+        
+        await MainActor.run {
+            if let imageData = pageImage.jpegData(compressionQuality: 0.9) {
+                self.imageData = imageData
+            }
+        }
+        
+        print("[PDF] processing page \(nextPageIndex)")
+        await processPDFPage(image: pageImage, pageIndex: nextPageIndex)
+    }
+    
+    private func processPreviousPDFPage() async {
+        guard let pdfURL = selectedPDFURL,
+              currentPDFPageIndex > 0 else {
+            return
+        }
+        
+        let prevPageIndex = currentPDFPageIndex - 1
+        
+        await MainActor.run {
+            isProcessingOCR = true
+        }
+        
+        // Convert specific page to image
+        guard let pdfDocument = PDFDocument(url: pdfURL),
+              let page = pdfDocument.page(at: prevPageIndex) else {
+            await MainActor.run {
+                isProcessingOCR = false
+            }
+            return
+        }
+        
+        let pageRect = page.bounds(for: .mediaBox)
+        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+        
+        let pageImage = renderer.image { context in
+            UIColor.white.setFill()
+            context.fill(pageRect)
+            
+            context.cgContext.translateBy(x: 0, y: pageRect.size.height)
+            context.cgContext.scaleBy(x: 1.0, y: -1.0)
+            
+            page.draw(with: .mediaBox, to: context.cgContext)
+        }
+        
+        await MainActor.run {
+            if let imageData = pageImage.jpegData(compressionQuality: 0.9) {
+                self.imageData = imageData
+            }
+        }
+        
+        print("[PDF] processing page \(prevPageIndex)")
+        await processPDFPage(image: pageImage, pageIndex: prevPageIndex)
     }
     
     // MARK: - Image Processing
@@ -924,9 +1090,26 @@ struct AddApplianceView: View {
         
         print("[MultiItem] candidates: \(candidateLines.count)")
         
+        // Deduplicate by text hash
+        var existingTextHashes = Set(detectedLines.map { $0.text.hashValue })
+        let newLines = candidateLines.filter { line in
+            let hash = line.text.hashValue
+            if existingTextHashes.contains(hash) {
+                print("[PDF] dedupe: skipping duplicate line '\(line.text.prefix(50))'")
+                return false
+            }
+            existingTextHashes.insert(hash)
+            return true
+        }
+        
+        // Append new lines (for multi-page PDFs)
+        if !newLines.isEmpty {
+            detectedLines.append(contentsOf: newLines)
+            print("[PDF] appended \(newLines.count) new lines, total: \(detectedLines.count)")
+        }
+        
         // If we detected multiple lines, show the selection UI
-        if candidateLines.count > 1 {
-            detectedLines = candidateLines
+        if detectedLines.count > 1 {
             showingDetectedItems = true
             return
         }
@@ -1004,14 +1187,35 @@ struct AddApplianceView: View {
                     amount = Decimal(priceValue)
                 }
                 
-                // Extract quantity if present (x2, 2×, etc.)
+                // Extract quantity if present (x2, 2×, 2 pcs, Qty: 2, (2), etc.)
                 var quantity = 1
-                if let qtyMatch = line.range(of: #"x\d+|×\d+|\d+x|\d+×"#, options: .regularExpression) {
-                    let qtyString = String(line[qtyMatch])
-                        .replacingOccurrences(of: "x", with: "", options: .caseInsensitive)
-                        .replacingOccurrences(of: "×", with: "")
-                    if let qty = Int(qtyString) {
-                        quantity = qty
+                // Try various quantity patterns
+                let qtyPatterns = [
+                    #"x\d+|×\d+|\d+x|\d+×"#,  // x2, 2×, etc.
+                    #"qty[\s:]*(\d+)"#,        // Qty: 2, qty 2
+                    #"(\d+)\s*pcs?"#,         // 2 pcs, 2 pc
+                    #"\((\d+)\)"#,            // (2)
+                    #"quantity[\s:]*(\d+)"#   // Quantity: 2
+                ]
+                
+                for pattern in qtyPatterns {
+                    if let qtyMatch = line.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                        let qtyString = String(line[qtyMatch])
+                            .replacingOccurrences(of: "x", with: "", options: .caseInsensitive)
+                            .replacingOccurrences(of: "×", with: "")
+                            .replacingOccurrences(of: "qty", with: "", options: .caseInsensitive)
+                            .replacingOccurrences(of: "quantity", with: "", options: .caseInsensitive)
+                            .replacingOccurrences(of: "pcs", with: "", options: .caseInsensitive)
+                            .replacingOccurrences(of: "pc", with: "", options: .caseInsensitive)
+                            .replacingOccurrences(of: "(", with: "")
+                            .replacingOccurrences(of: ")", with: "")
+                            .replacingOccurrences(of: ":", with: "")
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        if let qty = Int(qtyString), qty > 0 {
+                            quantity = qty
+                            break
+                        }
                     }
                 }
                 

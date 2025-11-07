@@ -9,7 +9,7 @@ import CoreData
 import CloudKit
 import Foundation
 
-struct PersistenceController {
+class PersistenceController {
     static let shared = PersistenceController()
     
     let container: NSPersistentContainer
@@ -20,15 +20,19 @@ struct PersistenceController {
         container = cloudContainer
         
         if inMemory {
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+            cloudContainer.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         } else {
             // Enable CloudKit sync and encryption
-            container.persistentStoreDescriptions.forEach { storeDescription in
+            cloudContainer.persistentStoreDescriptions.forEach { storeDescription in
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
                 
                 // Enable encryption for Core Data
                 storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreFileProtectionKey)
+                
+                // Enable automatic migration options (safety nets)
+                storeDescription.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
+                storeDescription.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
                 
                 // Configure CloudKit container options based on user setting
                 if enableCloud {
@@ -42,24 +46,26 @@ struct PersistenceController {
             }
         }
         
-        container.loadPersistentStores { storeDescription, error in
+        let shouldRunMigration = !inMemory
+        
+        cloudContainer.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
             
             // Run migration if needed
-            if !inMemory {
-                migrateToReceiptItemModel(context: container.viewContext)
+            if shouldRunMigration {
+                PersistenceController.migrateToReceiptItemModel(context: cloudContainer.viewContext)
             }
         }
         
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        cloudContainer.viewContext.automaticallyMergesChangesFromParent = true
+        cloudContainer.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
     
     // MARK: - Migration
     
-    private func migrateToReceiptItemModel(context: NSManagedObjectContext) {
+    private static func migrateToReceiptItemModel(context: NSManagedObjectContext) {
         // Check if migration has already been run
         let migrationKey = "ReceiptItemMigrationCompleted"
         if UserDefaults.standard.bool(forKey: migrationKey) {
@@ -130,7 +136,25 @@ struct PersistenceController {
                 if migratedCount > 0 {
                     // Save migration
                     try context.save()
+                    print("[Migration] created \(migratedCount) ReceiptItems")
                     print("[Migration] Migrated \(migratedCount) receipts successfully")
+                }
+                
+                // Verify receipt ID removal from notes
+                let applianceFetch = NSFetchRequest<NSManagedObject>(entityName: "Appliance")
+                let appliances = try context.fetch(applianceFetch)
+                var foundReceiptIdInNotes = 0
+                for appliance in appliances {
+                    if let notes = appliance.value(forKey: "notes") as? String,
+                       notes.contains("Receipt ID:") {
+                        foundReceiptIdInNotes += 1
+                        print("[Migration] WARNING: Found receipt ID in notes for appliance: \(appliance.value(forKey: "name") ?? "unknown")")
+                    }
+                }
+                if foundReceiptIdInNotes > 0 {
+                    print("[Migration] WARNING: Found \(foundReceiptIdInNotes) appliances with receipt ID still in notes")
+                } else {
+                    print("[Migration] Verified: All receipt ID artifacts removed from notes")
                 }
                 
                 UserDefaults.standard.set(true, forKey: migrationKey)

@@ -81,6 +81,24 @@ struct ReceiptDetailView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         SectionHeader(title: "Items on Receipt")
                         
+                        // Discrepancy warning if items total doesn't match receipt total
+                        if let discrepancy = calculateDiscrepancy(items: items, receiptTotal: receipt.price), abs(discrepancy) >= 0.05 {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(AppTheme.error)
+                                Text("Items total differs from receipt by \(CurrencyManager.shared.formatPrice(abs(discrepancy))). Check amounts/qty.")
+                                    .font(.caption)
+                                    .foregroundColor(AppTheme.error)
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color(AppTheme.error).opacity(0.1))
+                            .cornerRadius(8)
+                            .onAppear {
+                                print("[Receipt] discrepancy: \(CurrencyManager.shared.formatPrice(abs(discrepancy)))")
+                            }
+                        }
+                        
                         VStack(spacing: 12) {
                             ForEach(Array(items), id: \.objectID) { item in
                                 ReceiptItemRow(item: item)
@@ -182,6 +200,19 @@ struct ReceiptDetailView: View {
     }
     
     // MARK: - Helper Methods
+    
+    private func calculateDiscrepancy(items: Set<ReceiptItem>, receiptTotal: Double) -> Double? {
+        guard receiptTotal > 0 else { return nil }
+        
+        let linesSum = items.reduce(0.0) { sum, item in
+            let amount = item.lineAmount?.doubleValue ?? 0.0
+            let qty = Double(item.quantity)
+            return sum + (amount * qty)
+        }
+        
+        let difference = receiptTotal - linesSum
+        return abs(difference) >= 0.05 ? difference : nil
+    }
     
     private func formatPrice(_ price: Double) -> String {
         return CurrencyManager.shared.formatPrice(price)
