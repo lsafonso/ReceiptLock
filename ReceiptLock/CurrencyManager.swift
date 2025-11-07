@@ -122,6 +122,25 @@ class CurrencyManager: ObservableObject {
     func isValidCurrency(_ currencyCode: String) -> Bool {
         return CurrencyManager.supportedCurrencies[currencyCode] != nil
     }
+    
+    // MARK: - Short Code Helper
+    
+    /// Returns the 3-letter ISO currency code for a given currency code
+    /// - Parameter currencyCode: The currency code (e.g., "GBP", "USD", "EUR")
+    /// - Returns: The 3-letter ISO code (e.g., "GBP", "USD", "EUR")
+    func shortCode(for currencyCode: String) -> String {
+        // The currency code is already the ISO code, but we validate it exists
+        if let info = CurrencyManager.supportedCurrencies[currencyCode] {
+            return info.code
+        }
+        // Fallback: return the code as-is if not found
+        return currencyCode
+    }
+    
+    /// Returns the 3-letter ISO currency code for the current currency
+    var shortCode: String {
+        return shortCode(for: currentCurrency)
+    }
 }
 
 // MARK: - Currency Info Structure

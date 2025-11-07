@@ -138,12 +138,31 @@ struct SettingsView: View {
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
                 icon: "creditcard.fill"
             ) {
-                Picker("Currency", selection: $currencyManager.currentCurrency) {
+                Menu {
                     ForEach(currencyManager.getCurrencyList(), id: \.0) { currency in
-                        Text(currency.1).tag(currency.0)
+                        Button(action: {
+                            currencyManager.currentCurrency = currency.0
+                        }) {
+                            HStack {
+                                Text(currency.1)
+                                if currencyManager.currentCurrency == currency.0 {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(currencyManager.shortCode)
+                            .foregroundColor(AppTheme.primary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(AppTheme.primary)
+                            .font(.caption2)
                     }
                 }
-                .pickerStyle(.menu)
+                .accessibilityLabel(currencyManager.currencyName)
             }
         }
     }
