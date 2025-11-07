@@ -261,7 +261,15 @@ struct ValidatedPriceField: View {
     let fieldKey: String
     @ObservedObject var validationManager: ValidationManager
     @State private var priceText: String = ""
-    @State private var isUpdatingFromBinding = false
+    @FocusState private var isFocused: Bool
+    
+    // UK locale for currency formatting
+    private static let ukLocale = Locale(identifier: "en_GB")
+    
+    // Get locale decimal separator
+    private var decimalSeparator: String {
+        Self.ukLocale.decimalSeparator ?? "."
+    }
     
     init(
         title: String,
@@ -273,7 +281,63 @@ struct ValidatedPriceField: View {
         self._price = price
         self.fieldKey = fieldKey
         self.validationManager = validationManager
-        self._priceText = State(initialValue: price.wrappedValue == 0.0 ? "" : String(format: "%.2f", price.wrappedValue))
+        // Initialize with raw string (no formatting)
+        let rawValue = price.wrappedValue == 0.0 ? "" : formatRawPrice(price.wrappedValue)
+        self._priceText = State(initialValue: rawValue)
+    }
+    
+    // Convert formatted price to raw editable string (strip currency symbols, formatting)
+    private func formatRawPrice(_ value: Double) -> String {
+        if value == 0.0 { return "" }
+        // Remove trailing zeros and unnecessary decimal point
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Self.ukLocale
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+    
+    // Strip currency symbols and formatting from text to get raw editable string
+    private func stripToRaw(_ text: String) -> String {
+        // Remove currency symbols, spaces, and non-numeric characters except decimal separator
+        var cleaned = text
+        // Remove common currency symbols
+        cleaned = cleaned.replacingOccurrences(of: CurrencyManager.shared.currencySymbol, with: "")
+        cleaned = cleaned.replacingOccurrences(of: "£", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "$", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "€", with: "")
+        cleaned = cleaned.replacingOccurrences(of: " ", with: "")
+        // Keep only digits and decimal separators
+        cleaned = cleaned.filter { $0.isNumber || $0 == "." || $0 == "," }
+        // Normalize decimal separator
+        cleaned = cleaned.replacingOccurrences(of: ",", with: ".")
+        // Ensure only one decimal point
+        let components = cleaned.components(separatedBy: ".")
+        if components.count > 2 {
+            cleaned = components[0] + "." + components.dropFirst().joined()
+        }
+        return cleaned
+    }
+    
+    // Convert raw string to Decimal, normalizing decimal separator
+    private func parseRawPrice(_ text: String) -> Decimal? {
+        let normalized = text.replacingOccurrences(of: ",", with: ".")
+        // Remove any non-numeric characters except decimal point
+        let cleaned = normalized.filter { $0.isNumber || $0 == "." }
+        guard !cleaned.isEmpty else { return nil }
+        return Decimal(string: cleaned, locale: Self.ukLocale)
+    }
+    
+    // Format price for display using currency formatter (on blur)
+    private func formatPriceForDisplay(_ value: Decimal) -> String? {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Self.ukLocale
+        formatter.currencyCode = CurrencyManager.shared.currencyCode
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 2
+        return formatter.string(from: value as NSDecimalNumber)
     }
     
     var body: some View {
@@ -299,69 +363,87 @@ struct ValidatedPriceField: View {
                 
                 TextField("0.00", text: $priceText)
                     .keyboardType(.decimalPad)
+                    .autocorrectionDisabled()
+                    .focused($isFocused)
                     .onChange(of: priceText) { oldValue, newValue in
-                        // Skip processing if we're updating from the binding (to avoid infinite loop)
-                        guard !isUpdatingFromBinding else { return }
+                        // While focused: NO formatting, only normalize pasted invalid input
+                        // Allow free typing - don't mutate text during normal typing
                         
-                        // Filter out non-numeric characters (except decimal point and comma)
-                        let filtered = newValue.filter { $0.isNumber || $0 == "." || $0 == "," }
+                        // Check if input is valid (only digits and one decimal separator)
+                        let isValidInput = newValue.allSatisfy { $0.isNumber || $0 == "." || $0 == "," }
+                        let hasOnlyOneDecimal = newValue.filter { $0 == "." || $0 == "," }.count <= 1
                         
-                        // Replace comma with period for decimal separator
-                        let withPeriod = filtered.replacingOccurrences(of: ",", with: ".")
-                        
-                        // Ensure only one decimal point
-                        let components = withPeriod.components(separatedBy: ".")
-                        let cleaned: String
-                        if components.count > 2 {
-                            // More than one decimal point - keep only the first
-                            cleaned = components[0] + "." + components.dropFirst().joined().replacingOccurrences(of: ".", with: "")
-                        } else {
-                            cleaned = withPeriod
+                        if isValidInput && hasOnlyOneDecimal {
+                            // Valid input - just parse and update model silently, don't modify text
+                            if newValue.isEmpty {
+                                // Empty state: keep empty, don't set price to 0
+                                // Price model stays as-is (will be validated on blur/submit)
+                                validationManager.errors.removeValue(forKey: fieldKey)
+                            } else if let decimalValue = parseRawPrice(newValue) {
+                                // Parse to Decimal, convert to Double for model
+                                price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                                _ = validationManager.validatePrice(price, fieldKey: fieldKey)
+                            }
+                            return
                         }
                         
-                        // Limit to 2 decimal places
-                        let finalValue: String
-                        if let dotIndex = cleaned.firstIndex(of: ".") {
-                            let integerPart = String(cleaned[..<dotIndex])
-                            let decimalPart = String(cleaned[cleaned.index(after: dotIndex)...])
-                            let limitedDecimal = String(decimalPart.prefix(2))
-                            finalValue = integerPart + "." + limitedDecimal
-                        } else {
-                            finalValue = cleaned
+                        // Invalid input (likely pasted) - normalize but avoid cursor jump
+                        // Only normalize commas/periods, filter invalid chars
+                        let cleaned = stripToRaw(newValue)
+                        
+                        // Update text only if we actually changed something
+                        if priceText != cleaned {
+                            priceText = cleaned
                         }
                         
-                        // Update the text if it changed (filtered invalid characters)
-                        if priceText != finalValue {
-                            isUpdatingFromBinding = true
-                            priceText = finalValue
-                            isUpdatingFromBinding = false
-                        }
-                        
-                        // Parse and update price
-                        if finalValue.isEmpty {
-                            // Allow empty string (will be treated as 0)
-                            price = 0.0
+                        // Parse and update price model
+                        if cleaned.isEmpty {
                             validationManager.errors.removeValue(forKey: fieldKey)
-                        } else if let doubleValue = Double(finalValue) {
-                            price = doubleValue
-                            _ = validationManager.validatePrice(doubleValue, fieldKey: fieldKey)
+                        } else if let decimalValue = parseRawPrice(cleaned) {
+                            price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                            _ = validationManager.validatePrice(price, fieldKey: fieldKey)
+                        }
+                    }
+                    .onChange(of: isFocused) { oldValue, newValue in
+                        if newValue {
+                            // On focus: strip currency/symbols back to raw editable string
+                            let raw = stripToRaw(priceText)
+                            if priceText != raw {
+                                priceText = raw
+                            }
+                        } else {
+                            // On blur: parse to Decimal and format once with currency formatter
+                            if priceText.isEmpty {
+                                // Empty stays empty - don't auto-fill 0 or "£ 0.00"
+                                price = 0.0
+                                validationManager.errors.removeValue(forKey: fieldKey)
+                            } else if let decimalValue = parseRawPrice(priceText) {
+                                // Parse succeeded - format with currency formatter
+                                if let formatted = formatPriceForDisplay(decimalValue) {
+                                    priceText = formatted
+                                    price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                                    _ = validationManager.validatePrice(price, fieldKey: fieldKey)
+                                } else {
+                                    // Format failed but parse succeeded - update price, leave text as-is
+                                    price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                                    _ = validationManager.validatePrice(price, fieldKey: fieldKey)
+                                }
+                            } else {
+                                // Parse failed - leave text as-is, don't update price
+                                // User can fix it on next focus
+                            }
                         }
                     }
                     .onChange(of: price) { oldValue, newValue in
-                        // Skip if we're updating from text field (to avoid infinite loop)
-                        guard !isUpdatingFromBinding else { return }
-                        
-                        // Sync priceText when price changes externally (e.g., form reset)
-                        // Calculate what the priceText should be for this price value
-                        let expectedText = newValue == 0.0 ? "" : String(format: "%.2f", newValue)
-                        // Only update if different to avoid infinite loops
-                        if priceText != expectedText {
-                            isUpdatingFromBinding = true
-                            priceText = expectedText
-                            isUpdatingFromBinding = false
-                            // Clear price error when resetting to 0
+                        // When price changes externally (e.g., form reset), update text
+                        // Only update if not focused to avoid interfering with typing
+                        if !isFocused {
                             if newValue == 0.0 {
+                                priceText = ""
                                 validationManager.errors.removeValue(forKey: fieldKey)
+                            } else if let decimalValue = Decimal(string: String(newValue), locale: Self.ukLocale),
+                                      let formatted = formatPriceForDisplay(decimalValue) {
+                                priceText = formatted
                             }
                         }
                     }

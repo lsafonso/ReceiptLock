@@ -70,8 +70,7 @@ struct EditApplianceView: View {
                 Section("Purchase Details") {
                     DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
                     
-                    TextField("Price", value: $price, format: .currency(code: CurrencyManager.shared.currencyCode))
-                        .keyboardType(.decimalPad)
+                    PriceTextField(price: $price)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
                 
@@ -166,6 +165,164 @@ struct EditApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
         }
+    }
+}
+
+// MARK: - Price Text Field (Format on Blur)
+struct PriceTextField: View {
+    @Binding var price: Double
+    @State private var priceText: String = ""
+    @FocusState private var isFocused: Bool
+    
+    // UK locale for currency formatting
+    private static let ukLocale = Locale(identifier: "en_GB")
+    
+    // Get locale decimal separator
+    private var decimalSeparator: String {
+        Self.ukLocale.decimalSeparator ?? "."
+    }
+    
+    init(price: Binding<Double>) {
+        self._price = price
+        // Initialize with raw string (no formatting)
+        let rawValue = price.wrappedValue == 0.0 ? "" : formatRawPrice(price.wrappedValue)
+        self._priceText = State(initialValue: rawValue)
+    }
+    
+    // Convert formatted price to raw editable string (strip currency symbols, formatting)
+    private func formatRawPrice(_ value: Double) -> String {
+        if value == 0.0 { return "" }
+        // Remove trailing zeros and unnecessary decimal point
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Self.ukLocale
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+    
+    // Strip currency symbols and formatting from text to get raw editable string
+    private func stripToRaw(_ text: String) -> String {
+        // Remove currency symbols, spaces, and non-numeric characters except decimal separator
+        var cleaned = text
+        // Remove common currency symbols
+        cleaned = cleaned.replacingOccurrences(of: CurrencyManager.shared.currencySymbol, with: "")
+        cleaned = cleaned.replacingOccurrences(of: "£", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "$", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "€", with: "")
+        cleaned = cleaned.replacingOccurrences(of: " ", with: "")
+        // Keep only digits and decimal separators
+        cleaned = cleaned.filter { $0.isNumber || $0 == "." || $0 == "," }
+        // Normalize decimal separator
+        cleaned = cleaned.replacingOccurrences(of: ",", with: ".")
+        // Ensure only one decimal point
+        let components = cleaned.components(separatedBy: ".")
+        if components.count > 2 {
+            cleaned = components[0] + "." + components.dropFirst().joined()
+        }
+        return cleaned
+    }
+    
+    // Convert raw string to Decimal, normalizing decimal separator
+    private func parseRawPrice(_ text: String) -> Decimal? {
+        let normalized = text.replacingOccurrences(of: ",", with: ".")
+        // Remove any non-numeric characters except decimal point
+        let cleaned = normalized.filter { $0.isNumber || $0 == "." }
+        guard !cleaned.isEmpty else { return nil }
+        return Decimal(string: cleaned, locale: Self.ukLocale)
+    }
+    
+    // Format price for display using currency formatter (on blur)
+    private func formatPriceForDisplay(_ value: Decimal) -> String? {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Self.ukLocale
+        formatter.currencyCode = CurrencyManager.shared.currencyCode
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 2
+        return formatter.string(from: value as NSDecimalNumber)
+    }
+    
+    var body: some View {
+        TextField("Price", text: $priceText)
+            .keyboardType(.decimalPad)
+            .autocorrectionDisabled()
+            .focused($isFocused)
+            .onChange(of: priceText) { oldValue, newValue in
+                // While focused: NO formatting, only normalize pasted invalid input
+                // Allow free typing - don't mutate text during normal typing
+                
+                // Check if input is valid (only digits and one decimal separator)
+                let isValidInput = newValue.allSatisfy { $0.isNumber || $0 == "." || $0 == "," }
+                let hasOnlyOneDecimal = newValue.filter { $0 == "." || $0 == "," }.count <= 1
+                
+                if isValidInput && hasOnlyOneDecimal {
+                    // Valid input - just parse and update model silently, don't modify text
+                    if newValue.isEmpty {
+                        // Empty state: keep empty, don't set price to 0
+                        // Price model stays as-is (will be validated on blur/submit)
+                    } else if let decimalValue = parseRawPrice(newValue) {
+                        // Parse to Decimal, convert to Double for model
+                        price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                    }
+                    return
+                }
+                
+                // Invalid input (likely pasted) - normalize but avoid cursor jump
+                // Only normalize commas/periods, filter invalid chars
+                let cleaned = stripToRaw(newValue)
+                
+                // Update text only if we actually changed something
+                if priceText != cleaned {
+                    priceText = cleaned
+                }
+                
+                // Parse and update price model
+                if cleaned.isEmpty {
+                    // Empty - price stays as-is
+                } else if let decimalValue = parseRawPrice(cleaned) {
+                    price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                }
+            }
+            .onChange(of: isFocused) { oldValue, newValue in
+                if newValue {
+                    // On focus: strip currency/symbols back to raw editable string
+                    let raw = stripToRaw(priceText)
+                    if priceText != raw {
+                        priceText = raw
+                    }
+                } else {
+                    // On blur: parse to Decimal and format once with currency formatter
+                    if priceText.isEmpty {
+                        // Empty stays empty - don't auto-fill 0 or "£ 0.00"
+                        price = 0.0
+                    } else if let decimalValue = parseRawPrice(priceText) {
+                        // Parse succeeded - format with currency formatter
+                        if let formatted = formatPriceForDisplay(decimalValue) {
+                            priceText = formatted
+                            price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                        } else {
+                            // Format failed but parse succeeded - update price, leave text as-is
+                            price = NSDecimalNumber(decimal: decimalValue).doubleValue
+                        }
+                    } else {
+                        // Parse failed - leave text as-is, don't update price
+                        // User can fix it on next focus
+                    }
+                }
+            }
+            .onChange(of: price) { oldValue, newValue in
+                // When price changes externally (e.g., form reset), update text
+                // Only update if not focused to avoid interfering with typing
+                if !isFocused {
+                    if newValue == 0.0 {
+                        priceText = ""
+                    } else if let decimalValue = Decimal(string: String(newValue), locale: Self.ukLocale),
+                              let formatted = formatPriceForDisplay(decimalValue) {
+                        priceText = formatted
+                    }
+                }
+            }
     }
 }
 
