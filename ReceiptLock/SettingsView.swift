@@ -171,13 +171,13 @@ struct SettingsView: View {
     
     private var receiptApplianceSection: some View {
         ExpandableSettingsSection(
-            title: "Receipt & Appliance Settings", 
+            title: "Receipt & Appliance", 
             icon: "doc.text.fill", 
             isExpanded: $isReceiptApplianceExpanded
         ) {
             SettingsRow(
-                title: "Receipt Categories",
-                subtitle: "Manage receipt organization",
+                title: "Categories",
+                subtitle: "Manage organisation",
                 icon: "folder.fill"
             ) {
                 Button("Manage") {
@@ -187,7 +187,7 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Warranty Reminder Defaults",
+                title: "Warranty Reminder",
                 subtitle: "Set default reminder periods",
                 icon: "bell.badge.fill"
             ) {
@@ -354,22 +354,29 @@ struct SettingsView: View {
                 subtitle: "Backup and restore data as ZIP",
                 icon: "arrow.triangle.2.circlepath"
             ) {
-                HStack(spacing: AppTheme.smallSpacing) {
-                    Button("Export ZIP") {
+                Menu {
+                    Button(action: {
                         Task {
                             if let url = await DataBackupManager.shared.exportData() {
                                 exportAlertMessage = "Exported to \(url.lastPathComponent)"
                                 showingExportAlert = true
                             }
                         }
+                    }) {
+                        Label("Export ZIP", systemImage: "square.and.arrow.up")
                     }
-                    .foregroundColor(AppTheme.primary)
                     
-                    Button("Import ZIP") {
+                    Button(action: {
                         showingImportPicker = true
+                    }) {
+                        Label("Import ZIP", systemImage: "square.and.arrow.down")
                     }
-                    .foregroundColor(AppTheme.primary)
+                } label: {
+                    Text("Manage")
+                        .font(.headline)
                 }
+                .tint(AppTheme.primary)
+                .accessibilityLabel("Manage import and export")
             }
         }
     }
@@ -554,26 +561,36 @@ struct SettingsRow<Content: View>: View {
     }
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) { // Icon to text gap 12pt
-            Image(systemName: icon)
-                .foregroundColor(AppTheme.secondaryText)
-                .font(.title3)
-                .frame(width: 36, height: 36) // Icon 36pt
-            
-            VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            // First row: icon + title + trailing content
+            HStack(alignment: .top, spacing: 12) { // Icon to text gap 12pt
+                Image(systemName: icon)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .font(.title3)
+                    .frame(width: 36, height: 36) // Icon 36pt
+                
                 Text(title)
                     .font(.body)
                     .foregroundColor(AppTheme.text)
-                    .padding(.bottom, 2)
+                
+                Spacer()
+                
+                content
+            }
+            
+            // Second row: subtitle spanning full width
+            HStack(alignment: .top, spacing: 12) {
+                // Spacer to align with icon width
+                Spacer()
+                    .frame(width: 36)
                 
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
             }
-            
-            Spacer()
-            
-            content
         }
         .padding(.horizontal, AppTheme.cardPadding)
         .padding(.vertical, AppTheme.cardPadding)
