@@ -68,6 +68,19 @@ struct AddApplianceView: View {
         var text: String
         var amount: Decimal?
         var quantity: Int = 1
+        var score: Double = 0.0 // Hidden score for filtering
+    }
+    
+    // MARK: - Smart Line Detection
+    
+    struct DetectedCandidate: Identifiable {
+        let id = UUID()
+        var text: String
+        var amount: Decimal?
+        var quantity: Int?
+        var bbox: CGRect? // Optional bounding box
+        var score: Double
+        var reasons: [String]
     }
     
     enum DeviceType: String, CaseIterable {
@@ -884,9 +897,15 @@ struct AddApplianceView: View {
                 observation.topCandidates(1).first?.string
             }
             
-            // Process OCR results
+            // Get image size for bounding box normalization
+            var imageSize: CGSize? = nil
+            if let cgImage = CameraService.shared.capturedImage?.cgImage {
+                imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+            }
+            
+            // Process OCR results with bounding boxes
             DispatchQueue.main.async {
-                self.processOCRResults(recognizedStrings)
+                self.processOCRResults(recognizedStrings, observations: observations, imageSize: imageSize)
                 self.isProcessingOCR = false
                 print("[OCR] done")
                 // Clear captured image/preview buffers after successful OCR
@@ -1125,9 +1144,15 @@ struct AddApplianceView: View {
                 observation.topCandidates(1).first?.string
             }
             
+            // Get image size for bounding box normalization
+            var imageSize: CGSize? = nil
+            if let cgImage = uiImage.cgImage {
+                imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+            }
+            
             // Process OCR results to extract appliance details
             DispatchQueue.main.async {
-                self.processOCRResults(recognizedStrings)
+                self.processOCRResults(recognizedStrings, observations: observations, imageSize: imageSize)
             }
         }
         
@@ -1140,12 +1165,12 @@ struct AddApplianceView: View {
         }
     }
     
-    private func processOCRResults(_ strings: [String]) {
+    private func processOCRResults(_ strings: [String], observations: [VNRecognizedTextObservation]? = nil, imageSize: CGSize? = nil) {
         // Combine all strings into raw OCR text
         let rawOCR = strings.joined(separator: "\n")
         
-        // Parse into candidate lines
-        let candidateLines = parseDetectedLines(from: rawOCR)
+        // Parse into candidate lines with bounding boxes if available
+        let candidateLines = parseDetectedLines(from: rawOCR, observations: observations, imageSize: imageSize)
         
         print("[MultiItem] candidates: \(candidateLines.count)")
         
@@ -1213,53 +1238,328 @@ struct AddApplianceView: View {
         }
     }
     
-    private func parseDetectedLines(from rawOCR: String) -> [DetectedLine] {
+    private func parseDetectedLines(from rawOCR: String, observations: [VNRecognizedTextObservation]? = nil, imageSize: CGSize? = nil) -> [DetectedLine] {
+        // Build candidates with scoring and bounding boxes
+        let candidates = buildCandidatesFromOCRLines(rawOCR, observations: observations, imageSize: imageSize)
+        
+        // Apply region gating (drop header/footer)
+        let gatedCandidates = applyRegionGating(candidates, imageSize: imageSize)
+        
+        // Merge two-line items (safer merge)
+        let mergedCandidates = mergeTwoLineItems(gatedCandidates)
+        
+        // Extract receipt total from candidates (highest amount that looks like a total)
+        let receiptTotal = extractReceiptTotal(from: mergedCandidates)
+        
+        // Filter: Keep candidates with score >= 1.0 as high confidence items
+        // Also keep low confidence (0 <= score < 1.0) for "Show low confidence" toggle
+        // Items with score < 0 are filtered out completely
+        // Exclude duplicates of receipt total
+        let filteredCandidates = mergedCandidates.filter { candidate in
+            guard candidate.score >= 0.0 else { return false }
+            
+            // Exclude if amount equals receipt total within ±0.01
+            if let candidateAmount = candidate.amount, let total = receiptTotal {
+                let candidateDouble = NSDecimalNumber(decimal: candidateAmount).doubleValue
+                let totalDouble = NSDecimalNumber(decimal: total).doubleValue
+                if abs(candidateDouble - totalDouble) < 0.01 {
+                    print("[OCR] drop duplicate-of-total: \(candidate.text) = \(candidateDouble)")
+                    return false
+                }
+            }
+            
+            return true
+        }
+        
+        // Sort by score (highest first)
+        let sortedCandidates = filteredCandidates.sorted { $0.score > $1.score }
+        
+        // Cap to top 15 by score to avoid absurd cases
+        let topCandidates = Array(sortedCandidates.prefix(15))
+        
+        // Convert to DetectedLine, preserving score
+        let detectedLines = topCandidates.map { candidate in
+            DetectedLine(
+                text: candidate.text,
+                amount: candidate.amount,
+                quantity: candidate.quantity ?? 1,
+                score: candidate.score
+            )
+        }
+        
+        print("[OCR] Total candidates: \(candidates.count), after gating: \(gatedCandidates.count), after merge: \(mergedCandidates.count), filtered (score>=0): \(filteredCandidates.count), top 15: \(detectedLines.count)")
+        
+        return detectedLines
+    }
+    
+    // MARK: - Smart Detection Helpers
+    
+    private struct DetectionConstants {
+        // Price regex: dynamically uses currency symbol
+        static func priceRegex(currencySymbol: String) -> String {
+            let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
+            return "(?i)" + escapedSymbol + "?\\s*\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})|\\d+\\.\\d{2}"
+        }
+        
+        // Quantity regexes
+        static let qtyRegexes = [
+            #"(?i)\bx\s*\d+\b"#,
+            #"(?i)\b\d+\s*×\b"#,
+            #"(?i)\bqty[:\s]*\d+\b"#,
+            #"\(\s*\d+\s*\)"#,
+            #"(?i)\b\d+\s*(?:pcs?|pc)\b"#
+        ]
+        
+        // Stopwords (lowercased)
+        static let stopwords: Set<String> = [
+            "total", "sub total", "subtotal", "vat", "tax", "cash", "change",
+            "card", "visa", "mastercard", "auth", "approval", "ref", "order",
+            "transaction", "terminal", "merchant", "aid", "tvr", "tsi", "app",
+            "date", "time", "tel", "phone", "vat no", "vat:", "www", "@"
+        ]
+        
+        // Totals/payment regex (case-insensitive)
+        static let totalsPaymentRegex = #"(?i)SUBTOTAL|SUB\s*TOTAL|TOTAL|BALANCE|AMOUNT\s*DUE|VAT|TAX|CASH|CHANGE|CARD|VISA|MASTERCARD|AUTH|APPROVAL|REF|TRANSACTION|TERMINAL|MERCHANT|AID|TVR|TSI"#
+        
+        // Address tokens
+        static let addressTokens: Set<String> = [
+            "road", "rd", "street", "st", "avenue", "ave", "lane", "ln",
+            "belfast", "uk", "gb"
+        ]
+        
+        // UK postcode regex
+        static let ukPostcodeRegex = #"\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b"#
+    }
+    
+    // MARK: - Price Normalization
+    
+    private func normalizePriceString(_ priceString: String, currencySymbol: String) -> Decimal? {
+        // Strip currency symbols and spaces
+        var normalized = priceString
+            .replacingOccurrences(of: currencySymbol, with: "")
+            .replacingOccurrences(of: " ", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check if both '.' and ',' are present
+        let hasDot = normalized.contains(".")
+        let hasComma = normalized.contains(",")
+        
+        if hasDot && hasComma {
+            // Treat the RIGHTMOST separator as decimal, remove the other
+            let lastDotIndex = normalized.lastIndex(of: ".") ?? normalized.endIndex
+            let lastCommaIndex = normalized.lastIndex(of: ",") ?? normalized.endIndex
+            
+            if lastDotIndex > lastCommaIndex {
+                // Dot is rightmost, remove commas
+                normalized = normalized.replacingOccurrences(of: ",", with: "")
+            } else {
+                // Comma is rightmost, replace with dot and remove other commas
+                normalized = normalized.replacingOccurrences(of: ",", with: ".")
+                normalized = normalized.replacingOccurrences(of: ".", with: "", options: [], range: normalized.startIndex..<normalized.index(before: normalized.endIndex))
+                normalized = normalized + "."
+            }
+        } else if hasComma {
+            // Only comma: if exactly 2 digits after last comma, replace with dot
+            if let lastCommaIndex = normalized.lastIndex(of: ",") {
+                let afterComma = String(normalized[normalized.index(after: lastCommaIndex)...])
+                if afterComma.count == 2 && afterComma.allSatisfy({ $0.isNumber }) {
+                    normalized = normalized.replacingOccurrences(of: ",", with: ".")
+                } else {
+                    // Remove comma (thousands separator)
+                    normalized = normalized.replacingOccurrences(of: ",", with: "")
+                }
+            }
+        } else if hasDot {
+            // Only dot: if exactly 2 digits after last dot, keep it
+            if let lastDotIndex = normalized.lastIndex(of: ".") {
+                let afterDot = String(normalized[normalized.index(after: lastDotIndex)...])
+                if afterDot.count != 2 {
+                    // Not exactly 2 digits, might be thousands separator
+                    normalized = normalized.replacingOccurrences(of: ".", with: "")
+                }
+            }
+        }
+        
+        // Parse and validate range (0.30 to 5000)
+        if let priceValue = Double(normalized) {
+            if priceValue >= 0.30 && priceValue <= 5000 {
+                return Decimal(priceValue)
+            }
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Receipt Total Extraction
+    
+    private func extractReceiptTotal(from candidates: [DetectedCandidate]) -> Decimal? {
+        // Look for the highest amount that appears to be a total
+        // Typically totals appear near the end and have words like "total", "balance", etc.
+        var totalCandidates: [(amount: Decimal, score: Double, isTotal: Bool)] = []
+        
+        for candidate in candidates {
+            guard let amount = candidate.amount else { continue }
+            let lowercased = candidate.text.lowercased()
+            
+            // Check if it looks like a total line
+            let isTotal = lowercased.contains("total") || 
+                          lowercased.contains("balance") || 
+                          lowercased.contains("amount due") ||
+                          lowercased.contains("grand total")
+            
+            totalCandidates.append((amount: amount, score: candidate.score, isTotal: isTotal))
+        }
+        
+        // Prefer candidates that explicitly say "total"
+        if let explicitTotal = totalCandidates.first(where: { $0.isTotal }) {
+            return explicitTotal.amount
+        }
+        
+        // Otherwise, return the highest amount (likely the total)
+        if let highest = totalCandidates.max(by: { $0.amount < $1.amount }) {
+            return highest.amount
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Region Gating
+    
+    private func applyRegionGating(_ candidates: [DetectedCandidate], imageSize: CGSize?) -> [DetectedCandidate] {
+        guard let imageSize = imageSize, imageSize.height > 0 else {
+            // No image size available, return all candidates
+            return candidates
+        }
+        
+        let maxY = imageSize.height
+        var droppedCount = 0
+        
+        let gated = candidates.filter { candidate in
+            guard let bbox = candidate.bbox else {
+                // No bounding box, keep it (fallback to index-based if needed)
+                return true
+            }
+            
+            // Normalize Y coordinates (Vision uses bottom-left origin, so we need to flip)
+            let normalizedMinY = 1.0 - (bbox.maxY / maxY)
+            let normalizedMaxY = 1.0 - (bbox.minY / maxY)
+            
+            // Drop header (top 12%) or footer (bottom 18%)
+            if normalizedMinY < 0.12 || normalizedMaxY > 0.82 {
+                droppedCount += 1
+                return false
+            }
+            
+            return true
+        }
+        
+        if droppedCount > 0 {
+            print("[OCR] gated header/footer: dropped \(droppedCount)/\(candidates.count)")
+        }
+        
+        return gated
+    }
+    
+    private func buildCandidatesFromOCRLines(_ rawOCR: String, observations: [VNRecognizedTextObservation]? = nil, imageSize: CGSize? = nil) -> [DetectedCandidate] {
         // Split by line breaks
         let lines = rawOCR.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         
-        var detectedLines: [DetectedLine] = []
+        // Create a mapping from text to bounding box if observations are available
+        var textToBbox: [String: CGRect] = [:]
+        if let observations = observations, let imageSize = imageSize {
+            for observation in observations {
+                if let text = observation.topCandidates(1).first?.string {
+                    let bbox = observation.boundingBox
+                    // Convert normalized coordinates to image coordinates
+                    let imageBbox = CGRect(
+                        x: bbox.origin.x * imageSize.width,
+                        y: (1.0 - bbox.maxY) * imageSize.height, // Flip Y coordinate
+                        width: bbox.width * imageSize.width,
+                        height: bbox.height * imageSize.height
+                    )
+                    textToBbox[text] = imageBbox
+                }
+            }
+        }
         
-        // Brand/model tokens to look for (common appliance/product keywords)
-        let brandTokens = ["samsung", "apple", "iphone", "ipad", "sony", "lg", "panasonic", "bosch", "whirlpool", "hotpoint", "beko", "indesit", "miele", "dyson", "dyson", "philips", "kenwood", "kitchenaid", "breville", "ninja", "instant", "air fryer", "microwave", "oven", "fridge", "refrigerator", "washing machine", "dishwasher", "laptop", "tablet", "tv", "television", "monitor", "speaker", "headphone", "camera", "printer", "desktop", "mobile", "phone"]
-        
-        // Price pattern: £?\d+(\.\d{2})?
-        let currencySymbol = CurrencyManager.shared.currencySymbol
-        let escapedSymbol = NSRegularExpression.escapedPattern(for: currencySymbol)
-        let pricePattern = #"\#(escapedSymbol)?\d+(\.\d{2})?"#
+        var candidates: [DetectedCandidate] = []
         
         for line in lines {
-            let lowercasedLine = line.lowercased()
+            let lowercased = line.lowercased()
             
-            // Check if line contains brand tokens or price pattern
-            let hasBrandToken = brandTokens.contains { lowercasedLine.contains($0) }
-            let hasPrice = (try? NSRegularExpression(pattern: pricePattern)).flatMap { regex in
+            // Check for price with robust UK/EU normalization
+            var amount: Decimal? = nil
+            var hasPrice = false
+            let currencySymbol = CurrencyManager.shared.currencySymbol
+            let pricePattern = DetectionConstants.priceRegex(currencySymbol: currencySymbol)
+            if let priceRegex = try? NSRegularExpression(pattern: pricePattern) {
                 let range = NSRange(location: 0, length: line.utf16.count)
-                return regex.firstMatch(in: line, range: range) != nil
-            } ?? false
-            
-            if hasBrandToken || hasPrice {
-                // Extract amount if present
-                var amount: Decimal? = nil
-                if let priceValue = extractPrice(from: line) {
-                    amount = Decimal(priceValue)
+                let matches = priceRegex.matches(in: line, range: range)
+                if let lastMatch = matches.last {
+                    let matchString = (line as NSString).substring(with: lastMatch.range)
+                    // Robust price normalization
+                    if let normalizedPrice = normalizePriceString(matchString, currencySymbol: currencySymbol) {
+                        amount = normalizedPrice
+                        hasPrice = true
+                    }
                 }
-                
-                // Extract quantity if present (x2, 2×, 2 pcs, Qty: 2, (2), etc.)
-                var quantity = 1
-                // Try various quantity patterns
-                let qtyPatterns = [
-                    #"x\d+|×\d+|\d+x|\d+×"#,  // x2, 2×, etc.
-                    #"qty[\s:]*(\d+)"#,        // Qty: 2, qty 2
-                    #"(\d+)\s*pcs?"#,         // 2 pcs, 2 pc
-                    #"\((\d+)\)"#,            // (2)
-                    #"quantity[\s:]*(\d+)"#   // Quantity: 2
-                ]
-                
-                for pattern in qtyPatterns {
-                    if let qtyMatch = line.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
-                        let qtyString = String(line[qtyMatch])
+            }
+            
+            // Check for letters and digits
+            let hasLetters = line.rangeOfCharacter(from: .letters) != nil
+            let hasDigits = line.rangeOfCharacter(from: .decimalDigits) != nil
+            let isNumericOnly = !hasLetters && !hasPrice
+            
+            // Check for stopwords (both set-based and regex-based)
+            var isStop = false
+            
+            // Check set-based stopwords
+            for stopword in DetectionConstants.stopwords {
+                if lowercased.contains(stopword) {
+                    isStop = true
+                    print("[OCR] drop stopword '\(line)'")
+                    break
+                }
+            }
+            
+            // Check totals/payment regex
+            if !isStop, let totalsRegex = try? NSRegularExpression(pattern: DetectionConstants.totalsPaymentRegex) {
+                let range = NSRange(location: 0, length: line.utf16.count)
+                if totalsRegex.firstMatch(in: line, range: range) != nil {
+                    isStop = true
+                    print("[OCR] drop totals/payment '\(line)'")
+                }
+            }
+            
+            // Check for address tokens
+            if !isStop {
+                for token in DetectionConstants.addressTokens {
+                    if lowercased.contains(token) {
+                        isStop = true
+                        break
+                    }
+                }
+            }
+            
+            // Check for UK postcode
+            if !isStop, let postcodeRegex = try? NSRegularExpression(pattern: DetectionConstants.ukPostcodeRegex) {
+                let range = NSRange(location: 0, length: line.utf16.count)
+                if postcodeRegex.firstMatch(in: line, range: range) != nil {
+                    isStop = true
+                }
+            }
+            
+            // Extract quantity
+            var quantity: Int? = nil
+            var hasQty = false
+            for qtyPattern in DetectionConstants.qtyRegexes {
+                if let qtyRegex = try? NSRegularExpression(pattern: qtyPattern) {
+                    let range = NSRange(location: 0, length: line.utf16.count)
+                    if let match = qtyRegex.firstMatch(in: line, range: range) {
+                        let matchString = (line as NSString).substring(with: match.range)
+                        let cleanQty = matchString
                             .replacingOccurrences(of: "x", with: "", options: .caseInsensitive)
                             .replacingOccurrences(of: "×", with: "")
                             .replacingOccurrences(of: "qty", with: "", options: .caseInsensitive)
@@ -1270,23 +1570,169 @@ struct AddApplianceView: View {
                             .replacingOccurrences(of: ")", with: "")
                             .replacingOccurrences(of: ":", with: "")
                             .trimmingCharacters(in: .whitespacesAndNewlines)
-                        
-                        if let qty = Int(qtyString), qty > 0 {
+                        if let qty = Int(cleanQty), qty > 0 {
                             quantity = qty
+                            hasQty = true
                             break
                         }
                     }
                 }
-                
-                detectedLines.append(DetectedLine(
-                    text: line,
-                    amount: amount,
-                    quantity: quantity
-                ))
             }
+            
+            // Compute score
+            var score: Double = 0.0
+            var reasons: [String] = []
+            
+            if hasPrice {
+                score += 2.0
+                reasons.append("hasPrice")
+            }
+            
+            if hasLetters && hasDigits {
+                score += 0.8
+                reasons.append("hasLettersAndDigits")
+            }
+            
+            if isStop {
+                score -= 2.0
+                reasons.append("isStopword")
+            }
+            
+            if isNumericOnly {
+                score -= 2.0
+                reasons.append("isNumericOnly")
+            }
+            
+            // Check amount range (0.30 to 5000) - updated threshold
+            if let amt = amount {
+                let amtDouble = NSDecimalNumber(decimal: amt).doubleValue
+                if amtDouble < 0.30 || amtDouble > 5000 {
+                    score -= 1.0
+                    reasons.append("amountOutOfRange")
+                }
+            }
+            
+            if hasQty {
+                score += 0.5
+                reasons.append("hasQuantity")
+            }
+            
+            // Get bounding box for this line
+            let bbox = textToBbox[line]
+            
+            // Create candidate
+            let candidate = DetectedCandidate(
+                text: line,
+                amount: amount,
+                quantity: quantity,
+                bbox: bbox,
+                score: score,
+                reasons: reasons
+            )
+            
+            candidates.append(candidate)
+            
+            print("[OCR] cand score=\(String(format: "%.1f", score)) amt=\(amount != nil ? String(describing: amount!) : "nil") qty=\(quantity != nil ? String(quantity!) : "nil") text=\(line.prefix(50))")
         }
         
-        return detectedLines
+        return candidates
+    }
+    
+    private func mergeTwoLineItems(_ candidates: [DetectedCandidate]) -> [DetectedCandidate] {
+        guard candidates.count > 1 else { return candidates }
+        
+        var merged: [DetectedCandidate] = []
+        var skipIndices: Set<Int> = []
+        
+        var i = 0
+        while i < candidates.count {
+            if skipIndices.contains(i) {
+                i += 1
+                continue
+            }
+            
+            let current = candidates[i]
+            
+            // Check if we can merge with next line
+            if i + 1 < candidates.count && !skipIndices.contains(i + 1) {
+                let next = candidates[i + 1]
+                
+                // Check if next has price and score >= 1.0
+                if next.amount != nil && next.score >= 1.0 {
+                    // Safer merge conditions:
+                    // 1. Current has at least 3 letters
+                    // 2. Current has no price
+                    // 3. Current is not a stopword
+                    // 4. Current is not code-only (has letters, length >= 3)
+                    let currentLower = current.text.lowercased()
+                    let letterCount = current.text.filter { $0.isLetter }.count
+                    let hasCurrentPrice = current.amount != nil
+                    var isCurrentStop = false
+                    
+                    // Check stopwords
+                    for stopword in DetectionConstants.stopwords {
+                        if currentLower.contains(stopword) {
+                            isCurrentStop = true
+                            break
+                        }
+                    }
+                    
+                    // Check totals/payment regex
+                    if !isCurrentStop, let totalsRegex = try? NSRegularExpression(pattern: DetectionConstants.totalsPaymentRegex) {
+                        let range = NSRange(location: 0, length: current.text.utf16.count)
+                        if totalsRegex.firstMatch(in: current.text, range: range) != nil {
+                            isCurrentStop = true
+                        }
+                    }
+                    
+                    // Check gap (use index adjacency if bbox missing, or check vertical distance)
+                    var gapIsSmall = true
+                    if let currentBbox = current.bbox, let nextBbox = next.bbox {
+                        // If both have bounding boxes, check vertical gap
+                        let gap = abs(nextBbox.minY - currentBbox.maxY)
+                        let avgHeight = (currentBbox.height + nextBbox.height) / 2
+                        gapIsSmall = gap < avgHeight * 2 // Gap should be less than 2x average line height
+                    } else {
+                        // No bounding boxes, use index adjacency (adjacent indices are close)
+                        gapIsSmall = true
+                    }
+                    
+                    // Merge conditions: letterCount >= 3, no price, not stopword, gap is small
+                    if letterCount >= 3 && !hasCurrentPrice && !isCurrentStop && gapIsSmall && current.text.count >= 3 {
+                        // Merge: current + " — " + next
+                        let mergedText = current.text + " — " + next.text
+                        let mergedAmount = next.amount
+                        let mergedQty = next.quantity ?? current.quantity
+                        let mergedScore = next.score + 0.7
+                        var mergedReasons = next.reasons
+                        mergedReasons.append("merged")
+                        
+                        let mergedCandidate = DetectedCandidate(
+                            text: mergedText,
+                            amount: mergedAmount,
+                            quantity: mergedQty,
+                            bbox: next.bbox ?? current.bbox, // Use next's bbox if available
+                            score: mergedScore,
+                            reasons: mergedReasons
+                        )
+                        
+                        merged.append(mergedCandidate)
+                        skipIndices.insert(i)
+                        skipIndices.insert(i + 1)
+                        
+                        print("[OCR] merge prev+current -> '\(mergedText.prefix(80))'")
+                        i += 2
+                        continue
+                    }
+                }
+            }
+            
+            // If not merged, add current
+            merged.append(current)
+            i += 1
+        }
+        
+        return merged
     }
     
     private func handleBatchCreation(selectedLines: [DetectedLine]) {

@@ -16,6 +16,16 @@ struct DetectedReceiptItemsView: View {
     @State private var showingBatchEdit = false
     @State private var editableItems: [EditableItem] = []
     @State private var lineQuantities: [UUID: Int] = [:]
+    @State private var showLowConfidence = false
+    
+    // Separate high confidence (score >= 1.0) and low confidence (0 <= score < 1.0) items
+    private var highConfidenceLines: [AddApplianceView.DetectedLine] {
+        lines.filter { $0.score >= 1.0 }
+    }
+    
+    private var lowConfidenceLines: [AddApplianceView.DetectedLine] {
+        lines.filter { $0.score >= 0.0 && $0.score < 1.0 }
+    }
     
     private var selectedLines: [AddApplianceView.DetectedLine] {
         lines.filter { selectedLineIds.contains($0.id) }.map { line in
@@ -23,6 +33,11 @@ struct DetectedReceiptItemsView: View {
             updatedLine.quantity = lineQuantities[line.id] ?? line.quantity
             return updatedLine
         }
+    }
+    
+    // Check if we should show the "too many items" warning
+    private var shouldShowTooManyWarning: Bool {
+        lines.count > 20
     }
     
     var body: some View {
@@ -42,26 +57,89 @@ struct DetectedReceiptItemsView: View {
                                     .padding(.horizontal, AppTheme.spacing)
                                     .padding(.top, AppTheme.spacing)
                                 
-                                LazyVStack(spacing: AppTheme.smallSpacing) {
-                                    ForEach(lines) { line in
-                                        DetectedLineRow(
-                                            line: line,
-                                            isSelected: selectedLineIds.contains(line.id),
-                                            quantity: Binding(
-                                                get: { lineQuantities[line.id] ?? line.quantity },
-                                                set: { lineQuantities[line.id] = $0 }
-                                            ),
-                                            onToggle: {
-                                                if selectedLineIds.contains(line.id) {
-                                                    selectedLineIds.remove(line.id)
-                                                } else {
-                                                    selectedLineIds.insert(line.id)
+                                // Warning banner if too many items
+                                if shouldShowTooManyWarning {
+                                    HStack {
+                                        Image(systemName: "info.circle.fill")
+                                            .foregroundColor(AppTheme.primary)
+                                        Text("We found many numbers on this receipt. Select only the products you bought.")
+                                            .rlBody()
+                                            .foregroundColor(AppTheme.text)
+                                    }
+                                    .padding(AppTheme.spacing)
+                                    .background(AppTheme.card)
+                                    .cornerRadius(AppTheme.cornerRadius)
+                                    .padding(.horizontal, AppTheme.spacing)
+                                }
+                                
+                                // High confidence items (always shown)
+                                if !highConfidenceLines.isEmpty {
+                                    LazyVStack(spacing: AppTheme.smallSpacing) {
+                                        ForEach(highConfidenceLines) { line in
+                                            DetectedLineRow(
+                                                line: line,
+                                                isSelected: selectedLineIds.contains(line.id),
+                                                quantity: Binding(
+                                                    get: { lineQuantities[line.id] ?? line.quantity },
+                                                    set: { lineQuantities[line.id] = $0 }
+                                                ),
+                                                onToggle: {
+                                                    if selectedLineIds.contains(line.id) {
+                                                        selectedLineIds.remove(line.id)
+                                                    } else {
+                                                        selectedLineIds.insert(line.id)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .padding(.horizontal, AppTheme.spacing)
+                                }
+                                
+                                // Low confidence items (collapsible)
+                                if !lowConfidenceLines.isEmpty {
+                                    VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                                        Button(action: {
+                                            showLowConfidence.toggle()
+                                        }) {
+                                            HStack {
+                                                Text("Show low-confidence items (\(lowConfidenceLines.count))")
+                                                    .rlBody()
+                                                    .foregroundColor(AppTheme.primary)
+                                                Spacer()
+                                                Image(systemName: showLowConfidence ? "chevron.down" : "chevron.right")
+                                                    .foregroundColor(AppTheme.primary)
+                                                    .font(.caption)
+                                            }
+                                            .padding(.horizontal, AppTheme.spacing)
+                                            .padding(.vertical, AppTheme.smallSpacing)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        
+                                        if showLowConfidence {
+                                            LazyVStack(spacing: AppTheme.smallSpacing) {
+                                                ForEach(lowConfidenceLines) { line in
+                                                    DetectedLineRow(
+                                                        line: line,
+                                                        isSelected: selectedLineIds.contains(line.id),
+                                                        quantity: Binding(
+                                                            get: { lineQuantities[line.id] ?? line.quantity },
+                                                            set: { lineQuantities[line.id] = $0 }
+                                                        ),
+                                                        onToggle: {
+                                                            if selectedLineIds.contains(line.id) {
+                                                                selectedLineIds.remove(line.id)
+                                                            } else {
+                                                                selectedLineIds.insert(line.id)
+                                                            }
+                                                        }
+                                                    )
                                                 }
                                             }
-                                        )
+                                            .padding(.horizontal, AppTheme.spacing)
+                                        }
                                     }
                                 }
-                                .padding(.horizontal, AppTheme.spacing)
                             }
                             .padding(.bottom, AppTheme.tabBarBottomPadding)
                         }
@@ -99,22 +177,30 @@ struct DetectedReceiptItemsView: View {
                 
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     if !lines.isEmpty {
-                        Button(selectedLineIds.count == lines.count ? "Deselect All" : "Select All") {
-                            if selectedLineIds.count == lines.count {
+                        Button(selectedLineIds.count == highConfidenceLines.count ? "Deselect All" : "Select All") {
+                            if selectedLineIds.count == highConfidenceLines.count {
                                 selectedLineIds.removeAll()
                             } else {
-                                selectedLineIds = Set(lines.map { $0.id })
+                                // Select all high confidence items
+                                selectedLineIds = Set(highConfidenceLines.map { $0.id })
                             }
                         }
                     }
                 }
             }
             .onAppear {
-                // Default selection: lines that have an amount or model-like tokens
-                let defaultSelected = lines.filter { line in
-                    line.amount != nil || hasModelLikeToken(line.text)
+                // Default selection: pre-select only high confidence items (score >= 1.0)
+                // But if >20 items, auto-select none and show warning
+                if shouldShowTooManyWarning {
+                    // Don't auto-select if too many items
+                    selectedLineIds = []
+                } else {
+                    // Pre-select high confidence items (score >= 1.0)
+                    // Cap to top 15 by score (already done in parseDetectedLines, but ensure here)
+                    let sortedHighConfidence = highConfidenceLines.sorted { $0.score > $1.score }
+                    let topItems = Array(sortedHighConfidence.prefix(15))
+                    selectedLineIds = Set(topItems.map { $0.id })
                 }
-                selectedLineIds = Set(defaultSelected.map { $0.id })
                 
                 // Initialize quantities
                 for line in lines {
@@ -198,6 +284,17 @@ struct DetectedLineRow: View {
     @Binding var quantity: Int
     let onToggle: () -> Void
     
+    // Confidence indicator color based on score
+    private var confidenceColor: Color {
+        if line.score >= 1.8 {
+            return .green
+        } else if line.score >= 1.0 {
+            return .orange
+        } else {
+            return .gray
+        }
+    }
+    
     var body: some View {
         HStack(spacing: AppTheme.spacing) {
             Button(action: onToggle) {
@@ -208,9 +305,16 @@ struct DetectedLineRow: View {
             .buttonStyle(PlainButtonStyle())
             
             VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                Text(line.text)
-                    .rlBody()
-                    .foregroundColor(AppTheme.text)
+                HStack(spacing: AppTheme.smallSpacing) {
+                    // Confidence dot
+                    Circle()
+                        .fill(confidenceColor)
+                        .frame(width: 8, height: 8)
+                    
+                    Text(line.text)
+                        .rlBody()
+                        .foregroundColor(AppTheme.text)
+                }
                 
                 if let amount = line.amount {
                     Text(CurrencyManager.shared.formatPrice(NSDecimalNumber(decimal: amount).doubleValue))
@@ -244,9 +348,10 @@ struct DetectedLineRow: View {
 #Preview {
     DetectedReceiptItemsView(
         lines: [
-            AddApplianceView.DetectedLine(text: "Samsung Galaxy S24", amount: 899.99),
-            AddApplianceView.DetectedLine(text: "iPhone 15 Pro x2", amount: 1299.00),
-            AddApplianceView.DetectedLine(text: "AirPods Pro", amount: 249.99)
+            AddApplianceView.DetectedLine(text: "Samsung Galaxy S24", amount: 899.99, quantity: 1, score: 2.5),
+            AddApplianceView.DetectedLine(text: "iPhone 15 Pro x2", amount: 1299.00, quantity: 2, score: 2.8),
+            AddApplianceView.DetectedLine(text: "AirPods Pro", amount: 249.99, quantity: 1, score: 2.0),
+            AddApplianceView.DetectedLine(text: "Low confidence item", amount: nil, quantity: 1, score: 0.5)
         ],
         onContinue: { _ in }
     )
