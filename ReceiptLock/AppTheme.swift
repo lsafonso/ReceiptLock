@@ -117,6 +117,21 @@ struct AppTheme {
     static let snappyAnimation = Animation.snappy(duration: 0.2) // For micro-interactions
 }
 
+// MARK: - Settings Metrics (single source of truth from header)
+enum SettingsMetrics {
+    // Section/card horizontal padding (use the SAME as card padding on the section)
+    static let cardH: CGFloat = AppTheme.cardPadding
+    // Section header icon size (SAME as header's icon frame)
+    static let headerIcon: CGFloat = 36
+    // Spacing between header icon and title (SAME as header gap)
+    static let headerGap: CGFloat = 12
+    // X where section title starts (relative to card's left edge)
+    static var textLeading: CGFloat { cardH + headerIcon + headerGap }
+    // Row icon size and gap (current)
+    static let rowIcon: CGFloat = 24
+    static let rowGap: CGFloat = 12
+}
+
 // MARK: - Custom View Modifiers
 struct CardBackgroundModifier: ViewModifier {
     @State private var isPressed = false

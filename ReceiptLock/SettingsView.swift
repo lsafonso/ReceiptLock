@@ -561,39 +561,54 @@ struct SettingsRow<Content: View>: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // First row: icon + title + trailing content
-            HStack(alignment: .top, spacing: 12) { // Icon to text gap 12pt
-                Image(systemName: icon)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .font(.title3)
-                    .frame(width: 24, height: 24) // Icon 24pt
+        VStack(alignment: .leading, spacing: 8) {
+            // LINE 1: Title + trailing action
+            HStack(spacing: 0) {
+                // Reserve the same leading width as header icon + gap so title starts at section title x
+                Spacer()
+                    .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH)
                 
+                // Title begins exactly at section-title x
                 Text(title)
                     .font(.body)
                     .foregroundColor(AppTheme.text)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 
-                Spacer()
+                Spacer(minLength: 0)
                 
+                // Trailing action aligns with card's trailing (same as chevron)
                 content
             }
             
-            // Second row: subtitle spanning full width
-            HStack(alignment: .top, spacing: 12) {
-                // Spacer to align with icon width
+            // LINE 2: Subtitle begins at the same textLeading
+            HStack(spacing: 0) {
                 Spacer()
-                    .frame(width: 24) // Match icon width
+                    .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH)
                 
                 Text(subtitle)
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                
+                Spacer(minLength: 0)
             }
         }
-        .padding(.horizontal, AppTheme.cardPadding)
-        .padding(.vertical, AppTheme.cardPadding)
+        .padding(.vertical, 10)
+        // Draw the ROW ICON inside the reserved block so the text start doesn’t shift
+        .overlay(alignment: .leading) {
+            HStack(spacing: SettingsMetrics.rowGap) {
+                Image(systemName: icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: SettingsMetrics.rowIcon, height: SettingsMetrics.rowIcon)
+                    .foregroundColor(AppTheme.secondaryText)
+                // empty label to preserve the gap; real text starts after reserved width
+                Color.clear.frame(width: 0, height: 0)
+            }
+            .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH, alignment: .trailing)
+        }
         .background(Color.clear) // Flat inside outer card
     }
 }
