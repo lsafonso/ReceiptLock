@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import CoreVideo
 import UIKit
 import SwiftUI
 import Combine
@@ -166,22 +167,22 @@ class CameraService: NSObject, ObservableObject {
         do {
             try device.lockForConfiguration()
             
-            // Enable auto focus
+            // Enable auto focus - check support first
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
             }
             
-            // Enable auto exposure
+            // Enable auto exposure - check support first
             if device.isExposureModeSupported(.continuousAutoExposure) {
                 device.exposureMode = .continuousAutoExposure
             }
             
-            // Enable auto white balance
+            // Enable auto white balance - check support first
             if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
                 device.whiteBalanceMode = .continuousAutoWhiteBalance
             }
             
-            // Set high resolution
+            // Set high resolution - check support first
             if device.isLockingFocusWithCustomLensPositionSupported {
                 device.setFocusModeLocked(lensPosition: 0.5)
             }
@@ -193,14 +194,8 @@ class CameraService: NSObject, ObservableObject {
     }
     
     private func setupPhotoOutput() {
-        // Configure photo output for high quality
-        photoOutput.setPreparedPhotoSettingsArray([
-            AVCapturePhotoSettings(format: [
-                AVVideoCompressionPropertiesKey: [
-                    AVVideoQualityKey: photoCompressionQuality
-                ]
-            ])
-        ], completionHandler: nil)
+        // Photo output configuration is done at capture time
+        // No need to pre-configure settings
     }
     
     // MARK: - Session Control
@@ -274,13 +269,32 @@ class CameraService: NSObject, ObservableObject {
     }
     
     func stopSession() {
-        guard session.isRunning else { return }
-        
         sessionQueue.async { [weak self] in
-            self?.session.stopRunning()
-            DispatchQueue.main.async {
-                self?.isSessionRunning = false
+            guard let self = self else { return }
+            
+            if self.session.isRunning {
+                self.session.stopRunning()
             }
+            
+            // Remove all inputs and outputs
+            self.session.beginConfiguration()
+            for input in self.session.inputs {
+                self.session.removeInput(input)
+            }
+            for output in self.session.outputs {
+                self.session.removeOutput(output)
+            }
+            self.session.commitConfiguration()
+            
+            DispatchQueue.main.async {
+                self.isSessionRunning = false
+            }
+        }
+    }
+    
+    func clearCapturedImage() {
+        DispatchQueue.main.async { [weak self] in
+            self?.capturedImage = nil
         }
     }
     
@@ -330,61 +344,92 @@ class CameraService: NSObject, ObservableObject {
     func toggleFlash() {
         guard let device = currentCamera else { return }
         
-        do {
-            try device.lockForConfiguration()
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             
-            if device.hasFlash {
-                switch flashMode {
-                case .off:
-                    flashMode = .on
-                case .on:
-                    flashMode = .auto
-                case .auto:
-                    flashMode = .off
-                @unknown default:
-                    flashMode = .off
+            do {
+                try device.lockForConfiguration()
+                
+                // Check if device supports flash and what modes are available
+                if device.hasFlash {
+                    let supportedModes = self.photoOutput.supportedFlashModes
+                    var newMode: AVCaptureDevice.FlashMode = .off
+                    
+                    // Cycle through supported modes
+                    switch self.flashMode {
+                    case .off:
+                        if supportedModes.contains(.on) {
+                            newMode = .on
+                        } else if supportedModes.contains(.auto) {
+                            newMode = .auto
+                        }
+                    case .on:
+                        if supportedModes.contains(.auto) {
+                            newMode = .auto
+                        } else {
+                            newMode = .off
+                        }
+                    case .auto:
+                        newMode = .off
+                    @unknown default:
+                        newMode = .off
+                    }
+                    
+                    DispatchQueue.main.async {
+                        self.flashMode = newMode
+                    }
                 }
+                
+                device.unlockForConfiguration()
+            } catch {
+                print("Error setting flash mode: \(error)")
             }
-            
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting flash mode: \(error)")
         }
     }
     
     func focusCamera(at point: CGPoint) {
         guard let device = currentCamera else { return }
         
-        do {
-            try device.lockForConfiguration()
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             
-            if device.isFocusPointOfInterestSupported {
-                device.focusPointOfInterest = point
-                device.focusMode = .autoFocus
+            do {
+                try device.lockForConfiguration()
+                
+                // Check focus mode support before setting
+                if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(.autoFocus) {
+                    device.focusPointOfInterest = point
+                    device.focusMode = .autoFocus
+                }
+                
+                // Check exposure mode support before setting
+                if device.isExposurePointOfInterestSupported && device.isExposureModeSupported(.autoExpose) {
+                    device.exposurePointOfInterest = point
+                    device.exposureMode = .autoExpose
+                }
+                
+                device.unlockForConfiguration()
+            } catch {
+                print("Error setting camera focus: \(error)")
             }
-            
-            if device.isExposurePointOfInterestSupported {
-                device.exposurePointOfInterest = point
-                device.exposureMode = .autoExpose
-            }
-            
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting camera focus: \(error)")
         }
     }
     
     func zoomCamera(to factor: CGFloat) {
         guard let device = currentCamera else { return }
         
-        let clampedFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
-        
-        do {
-            try device.lockForConfiguration()
-            device.videoZoomFactor = clampedFactor
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting camera zoom: \(error)")
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let clampedFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
+            
+            do {
+                try device.lockForConfiguration()
+                device.videoZoomFactor = clampedFactor
+                device.unlockForConfiguration()
+            } catch {
+                print("Error setting camera zoom: \(error)")
+            }
         }
     }
     
@@ -395,17 +440,31 @@ class CameraService: NSObject, ObservableObject {
         
         isCapturing = true
         
-        let settings = AVCapturePhotoSettings()
+        // Build valid AVCapturePhotoSettings
+        var settings = AVCapturePhotoSettings()
         
-        // Configure flash
-        if let device = currentCamera, device.hasFlash {
-            settings.flashMode = flashMode
+        // Use JPEG codec if available (iOS 11+)
+        if #available(iOS 11.0, *),
+           photoOutput.availablePhotoCodecTypes.contains(.jpeg) {
+            settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
         }
         
-        // Configure quality settings
-        // Note: AVCapturePhotoSettings automatically uses the best available codec
+        // Enable high resolution if supported
+        settings.isHighResolutionPhotoEnabled = photoOutput.isHighResolutionCaptureEnabled
         
-        // Configure compression
+        // Configure flash only if device supports it
+        if photoOutput.isFlashScene, let device = currentCamera, device.hasFlash {
+            // Check if the flash mode is supported before setting
+            let supportedModes = photoOutput.supportedFlashModes
+            if supportedModes.contains(flashMode) {
+                settings.flashMode = flashMode
+            }
+        }
+        
+        // Optional preview format - use standard BGRA format for preview
+        settings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        
+        // Configure orientation
         if let photoOutputConnection = photoOutput.connection(with: .video) {
             if #available(iOS 17.0, *) {
                 photoOutputConnection.videoRotationAngle = 0.0 // 0° = portrait

@@ -14,6 +14,7 @@ import UIKit
 import PDFKit
 import UniformTypeIdentifiers
 import CryptoKit
+import VisionKit
 
 struct AddApplianceView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -47,6 +48,7 @@ struct AddApplianceView: View {
     @State private var showingReceiptCamera = false
     @State private var showingPhotoPicker = false
     @State private var showingCameraPermissionDenied = false
+    @State private var showingDocumentScanner = false
     @State private var ocrError: String?
     @State private var showingOCRError = false
     @State private var selectedPDFURL: URL?
@@ -375,6 +377,16 @@ struct AddApplianceView: View {
                 handleCapturedImage(image)
             })
         }
+        .fullScreenCover(isPresented: $showingDocumentScanner) {
+            DocumentScannerView { scan in
+                print("[Scan] DocumentScanner completed with \(scan.pageCount) pages")
+                // Use the first page of the scan
+                if scan.pageCount > 0 {
+                    let image = scan.imageOfPage(at: 0)
+                    handleCapturedImage(image)
+                }
+            }
+        }
         .photosPicker(
             isPresented: $showingPhotoPicker,
             selection: $selectedImage,
@@ -476,21 +488,45 @@ struct AddApplianceView: View {
         
         switch status {
         case .authorized:
-            showingReceiptCamera = true
+            // Try to start the camera session
+            // If it fails, fallback to document scanner
+            CameraService.shared.startSession()
+            
+            // Check if session started successfully after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if CameraService.shared.isSessionRunning {
+                    self.showingReceiptCamera = true
+                } else {
+                    print("[Scan] fallback to DocumentScanner - session failed to start")
+                    self.showingDocumentScanner = true
+                }
+            }
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
                     if granted {
-                        self.showingReceiptCamera = true
+                        CameraService.shared.startSession()
+                        // Check if session started successfully
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            if CameraService.shared.isSessionRunning {
+                                self.showingReceiptCamera = true
+                            } else {
+                                print("[Scan] fallback to DocumentScanner - session failed after permission grant")
+                                self.showingDocumentScanner = true
+                            }
+                        }
                     } else {
-                        self.showingCameraPermissionDenied = true
+                        print("[Scan] fallback to DocumentScanner - permission denied")
+                        self.showingDocumentScanner = true
                     }
                 }
             }
         case .denied, .restricted:
-            showingCameraPermissionDenied = true
+            print("[Scan] fallback to DocumentScanner - permission denied/restricted")
+            showingDocumentScanner = true
         @unknown default:
-            showingCameraPermissionDenied = true
+            print("[Scan] fallback to DocumentScanner - unknown authorization status")
+            showingDocumentScanner = true
         }
     }
     
@@ -775,9 +811,30 @@ struct AddApplianceView: View {
     
     // MARK: - Image Processing
     
+    private func downscale(_ img: UIImage, maxDimension: CGFloat = 2200) -> UIImage {
+        let size = img.size
+        let maxDim = max(size.width, size.height)
+        
+        // If image is already smaller than maxDimension, return as-is
+        guard maxDim > maxDimension else { return img }
+        
+        // Calculate scale factor
+        let scale = maxDimension / maxDim
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        
+        // Use UIGraphicsImageRenderer for efficient downscaling
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            img.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+    
     private func handleCapturedImage(_ image: UIImage) {
+        // Downscale image before OCR to reduce memory and speed up Vision
+        let downscaledImage = downscale(image, maxDimension: 2200)
+        
         // Convert UIImage to Data
-        guard let imageData = image.jpegData(compressionQuality: 0.9) else {
+        guard let imageData = downscaledImage.jpegData(compressionQuality: 0.9) else {
             print("❌ [Scan] Failed to convert image to data")
             ocrError = "Failed to process image"
             showingOCRError = true
@@ -791,7 +848,7 @@ struct AddApplianceView: View {
         print("[OCR] start")
         isProcessingOCR = true
         
-        processImageWithOCR(image)
+        processImageWithOCR(downscaledImage)
     }
     
     private func processImageWithOCR(_ image: UIImage) {
@@ -832,6 +889,8 @@ struct AddApplianceView: View {
                 self.processOCRResults(recognizedStrings)
                 self.isProcessingOCR = false
                 print("[OCR] done")
+                // Clear captured image/preview buffers after successful OCR
+                CameraService.shared.clearCapturedImage()
             }
         }
         
@@ -1631,6 +1690,51 @@ struct RoundedCorner: Shape {
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - Document Scanner View
+
+struct DocumentScannerView: UIViewControllerRepresentable {
+    let onScanComplete: (VNDocumentCameraScan) -> Void
+    
+    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
+        let scanner = VNDocumentCameraViewController()
+        scanner.delegate = context.coordinator
+        return scanner
+    }
+    
+    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onScanComplete: onScanComplete)
+    }
+    
+    class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+        let onScanComplete: (VNDocumentCameraScan) -> Void
+        
+        init(onScanComplete: @escaping (VNDocumentCameraScan) -> Void) {
+            self.onScanComplete = onScanComplete
+        }
+        
+        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
+            print("[Scan] DocumentScanner: scan completed with \(scan.pageCount) pages")
+            controller.dismiss(animated: true) {
+                self.onScanComplete(scan)
+            }
+        }
+        
+        func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
+            print("❌ [Scan] DocumentScanner error: \(error.localizedDescription)")
+            controller.dismiss(animated: true)
+        }
+        
+        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+            print("[Scan] DocumentScanner cancelled")
+            controller.dismiss(animated: true)
+        }
     }
 }
 
