@@ -184,10 +184,12 @@ struct AddApplianceView: View {
                             .padding(.horizontal, AppTheme.spacing)
                             .padding(.top, AppTheme.smallSpacing)
                         
-                        // Scan receipt Section
-                        scanInvoiceSection
-                            .padding(.horizontal, 24) // 24pt side insets for card alignment
-                            .padding(.top, 24) // H1→intro block gap 24pt
+                        // Scan receipt Section (only when enabled)
+                        if FeatureFlags.isReceiptScanEnabled {
+                            scanInvoiceSection
+                                .padding(.horizontal, 24) // 24pt side insets for card alignment
+                                .padding(.top, 24) // H1→intro block gap 24pt
+                        }
                         
                         // Manual Entry Section
                         manualEntrySection
@@ -237,7 +239,7 @@ struct AddApplianceView: View {
             }
         }
         .onChange(of: selectedImage) { oldValue, newValue in
-            guard let newValue = newValue else { return }
+            guard FeatureFlags.isReceiptScanEnabled, let newValue = newValue else { return }
             Task {
                 await handlePhotoPickerSelection(item: newValue)
             }
@@ -275,6 +277,7 @@ struct AddApplianceView: View {
             
             // Single primary button
             Button(action: {
+                guard FeatureFlags.isReceiptScanEnabled else { return }
                 print("[ScanMenu] open")
                 showScanMenu = true
             }) {
@@ -294,9 +297,9 @@ struct AddApplianceView: View {
                 .cornerRadius(AppTheme.cornerRadius)
                 .opacity(isProcessingOCR ? 0.6 : 1.0)
             }
-            .disabled(isProcessingOCR)
-            .accessibilityLabel("Scan or import a receipt or barcode")
-            .accessibilityHint("Opens options to scan with the camera or import from your library.")
+            .disabled(isProcessingOCR || !FeatureFlags.isReceiptScanEnabled)
+            .accessibilityLabel(FeatureFlags.isReceiptScanEnabled ? "Scan or import a receipt or barcode" : "Scan or Import, coming soon")
+            .accessibilityHint(FeatureFlags.isReceiptScanEnabled ? "Opens options to scan with the camera or import from your library." : "This feature will be available in a future update.")
             .confirmationDialog("Scan or Import", isPresented: $showScanMenu, titleVisibility: .visible) {
                 Button("Scan receipt (camera)") {
                     print("[ScanMenu] action: receipt")
@@ -311,6 +314,7 @@ struct AddApplianceView: View {
                     presentPhotoPicker()
                 }
                 Button("Import PDF") {
+                    guard FeatureFlags.isReceiptScanEnabled else { return }
                     print("[ScanMenu] action: import-pdf")
                     showingFileImporter = true
                 }
@@ -496,6 +500,10 @@ struct AddApplianceView: View {
     // MARK: - Scan Menu Actions
     
     private func presentReceiptCamera() {
+        guard FeatureFlags.isReceiptScanEnabled else {
+            print("[Scan] camera blocked - feature disabled")
+            return
+        }
         print("[Scan] camera presented")
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         
@@ -544,6 +552,10 @@ struct AddApplianceView: View {
     }
     
     private func presentCodeScanner() {
+        guard FeatureFlags.isReceiptScanEnabled else {
+            print("[Scan] code scanner blocked - feature disabled")
+            return
+        }
         // Check camera permission first
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         
@@ -574,6 +586,10 @@ struct AddApplianceView: View {
     }
     
     private func presentPhotoPicker() {
+        guard FeatureFlags.isReceiptScanEnabled else {
+            print("[Scan] photo picker blocked - feature disabled")
+            return
+        }
         // Try PhotosPicker first (for images), and also show file importer option
         showingPhotoPicker = true
         // Note: User can also access PDFs via fileImporter if needed
@@ -581,6 +597,10 @@ struct AddApplianceView: View {
     }
     
     private func handlePDFSelection(result: Result<[URL], Error>) {
+        guard FeatureFlags.isReceiptScanEnabled else {
+            print("[Scan] PDF selection blocked - feature disabled")
+            return
+        }
         switch result {
         case .success(let urls):
             guard let url = urls.first else { return }
@@ -930,6 +950,15 @@ struct AddApplianceView: View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             Text("Select a device type to get started")
                 .rlSubheadline()
+            
+            // Footnote when scan is disabled
+            if !FeatureFlags.isReceiptScanEnabled {
+                Text("Scanning isn't available yet.")
+                    .font(.footnote)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .multilineTextAlignment(.leading)
+                    .accessibilityLabel("Scanning isn't available yet.")
+            }
             
             // Device Type Grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) { // Card→card gap 12pt (both axes)
