@@ -71,6 +71,11 @@ struct BatchEditItemsSheet: View {
                     }
                     .padding(.vertical, AppTheme.spacing)
                     .background(AppTheme.card)
+                    .cornerRadius(AppTheme.CornerRadius.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                            .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                    )
                     .shadow(color: .black.opacity(0.05), radius: 8, y: -2)
                 }
             }

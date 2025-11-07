@@ -74,6 +74,10 @@ struct ReceiptDetailView: View {
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(AppTheme.CornerRadius.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                            .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                    )
                 }
                 
                 // Receipt Items Section (if available)
@@ -107,6 +111,10 @@ struct ReceiptDetailView: View {
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(AppTheme.CornerRadius.card)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                                .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                        )
                     }
                 }
                 
@@ -146,6 +154,10 @@ struct ReceiptDetailView: View {
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(AppTheme.CornerRadius.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                            .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                    )
                 }
                 
                 // Action Buttons

@@ -68,7 +68,11 @@ struct DetectedReceiptItemsView: View {
                                     }
                                     .padding(AppTheme.spacing)
                                     .background(AppTheme.card)
-                                    .cornerRadius(AppTheme.cornerRadius)
+                                    .cornerRadius(AppTheme.CornerRadius.card)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                                            .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                                    )
                                     .padding(.horizontal, AppTheme.spacing)
                                 }
                                 
@@ -163,6 +167,11 @@ struct DetectedReceiptItemsView: View {
                         }
                         .padding(.vertical, AppTheme.spacing)
                         .background(AppTheme.card)
+                        .cornerRadius(AppTheme.CornerRadius.card)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                                .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+                        )
                         .shadow(color: .black.opacity(0.05), radius: 8, y: -2)
                     }
                 }

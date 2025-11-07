@@ -26,6 +26,20 @@ struct AppTheme {
     static let inactiveTabColor = Color(red: 122/255, green: 132/255, blue: 140/255) // #7A848C inactive tab color
     static let paginationInactive = Color(red: 215/255, green: 219/255, blue: 223/255) // #D7DBDF pagination inactive dots
     
+    // MARK: - Card Stroke
+    // Subtle border for section cards to improve separation after radius reduction
+    // Light mode: ~12-14% opacity, Dark mode: ~22-26% opacity for better contrast
+    // Uses UIColor to properly support light/dark mode
+    static var cardStroke: Color {
+        Color(UIColor { traitCollection in
+            if traitCollection.userInterfaceStyle == .dark {
+                return UIColor.label.withAlphaComponent(0.24) // Dark mode: 24% opacity
+            } else {
+                return UIColor.label.withAlphaComponent(0.13) // Light mode: 13% opacity
+            }
+        })
+    }
+    
     // MARK: - On-Color Roles (Text on colored backgrounds for AA contrast)
     static let onPrimary = Color.white // Text on primary background
     static let onSuccess = Color.white // Text on success background
@@ -90,6 +104,12 @@ struct AppTheme {
     static let shadowOpacity: Double = 0.08
     static let shadowOffset = CGSize(width: 0, height: 2)
     
+    // MARK: - Stroke Helpers
+    // Hairline width for 1-px borders (scales with device pixel density)
+    static var hairlineWidth: CGFloat {
+        1.0 / (UIScreen.main.scale > 0 ? UIScreen.main.scale : 1.0)
+    }
+    
     // MARK: - Animations
     static let springAnimation = Animation.spring(response: 0.5, dampingFraction: 0.9, blendDuration: 0) // Less bouncy
     static let easeOutAnimation = Animation.easeOut(duration: 0.3)
@@ -105,6 +125,10 @@ struct CardBackgroundModifier: ViewModifier {
         content
             .background(AppTheme.cardBackground)
             .cornerRadius(AppTheme.CornerRadius.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                    .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+            )
             .shadow(
                 color: .black.opacity(AppTheme.shadowOpacity),
                 radius: isPressed ? AppTheme.shadowRadius * 0.7 : AppTheme.shadowRadius,
@@ -205,6 +229,10 @@ struct CardModifier: ViewModifier {
             .padding(AppTheme.cardPadding)
             .background(AppTheme.card)
             .cornerRadius(AppTheme.CornerRadius.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                    .strokeBorder(AppTheme.cardStroke, lineWidth: AppTheme.hairlineWidth)
+            )
             .shadow(
                 color: .black.opacity(AppTheme.shadowOpacity),
                 radius: AppTheme.shadowRadius,

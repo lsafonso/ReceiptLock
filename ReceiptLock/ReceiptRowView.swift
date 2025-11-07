@@ -103,14 +103,7 @@ struct ReceiptRowView: View {
                 .animation(AppTheme.springAnimation, value: isPressed)
         }
         .padding(AppTheme.spacing)
-        .background(AppTheme.cardBackground)
-        .cornerRadius(AppTheme.cornerRadius)
-        .shadow(
-            color: .black.opacity(AppTheme.shadowOpacity),
-            radius: isPressed ? AppTheme.shadowRadius * 0.7 : AppTheme.shadowRadius,
-            x: AppTheme.shadowOffset.width,
-            y: isPressed ? AppTheme.shadowOffset.height * 0.7 : AppTheme.shadowOffset.height
-        )
+        .cardBackground()
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppTheme.springAnimation, value: isPressed)
         .onTapGesture {
