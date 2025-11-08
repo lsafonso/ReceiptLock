@@ -134,7 +134,7 @@ struct SettingsView: View {
             isExpanded: $isCurrencyExpanded
         ) {
             SettingsRow(
-                title: "Currency Preferences",
+                title: "Preferences",
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
                 icon: "creditcard.fill"
             ) {
@@ -218,14 +218,7 @@ struct SettingsView: View {
                 .foregroundColor(AppTheme.primary)
             }
             
-            let enabledCount = ReminderManager.shared.preferences.enabledReminders.count
-            SettingsRow(
-                title: "Active Reminders",
-                subtitle: "\(enabledCount) reminders configured",
-                icon: "checkmark.circle.fill"
-            ) {
-                EmptyView()
-            }
+         
             
             SettingsRow(
                 title: "Notification Preferences",
@@ -239,7 +232,7 @@ struct SettingsView: View {
             }
             
             SettingsRow(
-                title: "Custom Reminder Messages",
+                title: "Custom Reminders",
                 subtitle: "Personalise your reminder notifications",
                 icon: "text.bubble.fill"
             ) {

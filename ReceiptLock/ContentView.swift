@@ -83,7 +83,7 @@ struct ContentView: View {
                     action: { selectedTab = 1 }
                 )
                 
-                // Scan Tab (Special styling) - CENTER POSITION
+                // Add Tab (Special styling) - CENTER POSITION
                 scanTabButton
                 
                 // Reminders Tab
@@ -153,7 +153,7 @@ struct ContentView: View {
                     }
                     .frame(width: 44, height: 44) // Icon container ≈ 44×44 (same as others)
                     
-                    Text("Scan")
+                    Text("Add")
                         .font(.system(size: 10, weight: .medium)) // Consistent label font/size
                         .foregroundColor(AppTheme.primary)
                         .lineLimit(1)
@@ -166,7 +166,7 @@ struct ContentView: View {
                         .foregroundColor(AppTheme.inactiveTabColor)
                         .frame(width: 44, height: 44) // Icon container ≈ 44×44 (same as others)
                     
-                    Text("Scan")
+                    Text("Add")
                         .font(.system(size: 10, weight: .medium)) // Consistent label font/size
                         .foregroundColor(AppTheme.inactiveTabColor)
                         .lineLimit(1)
