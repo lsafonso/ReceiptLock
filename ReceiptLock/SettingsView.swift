@@ -33,6 +33,7 @@ struct SettingsView: View {
     @State private var isSecurityPrivacyExpanded = false
     @State private var isBackupSyncExpanded = false
     @State private var isDataManagementExpanded = false
+    @State private var isAboutSupportExpanded = false
     
     var body: some View {
         ZStack {
@@ -62,6 +63,9 @@ struct SettingsView: View {
                     .padding(.top, 16) // Group→group 16pt
                 
                 dataManagementSection
+                    .padding(.top, 16) // Group→group 16pt
+                
+                aboutSupportSection
                     .padding(.top, 16) // Group→group 16pt
                 }
                 .padding(.horizontal, 24) // 24pt side insets for full-bleed cards
@@ -406,7 +410,56 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - About & Support Section
+    
+    private var aboutSupportSection: some View {
+        ExpandableSettingsSection(
+            title: "About & Support",
+            icon: "info.circle.fill",
+            isExpanded: $isAboutSupportExpanded
+        ) {
+            // App Version
+            SettingsRow(
+                title: "App Version",
+                subtitle: getAppVersion(),
+                icon: "app.badge.fill"
+            ) {
+                EmptyView()
+            }
+            
+            // Privacy Policy
+            SettingsRow(
+                title: "Privacy Policy",
+                subtitle: "View our privacy policy",
+                icon: "hand.raised.fill"
+            ) {
+                Link(destination: URL(string: "https://tela51.dev/receiptlock/privacy")!) {
+                    Image(systemName: "arrow.up.right.square")
+                        .foregroundColor(AppTheme.primary)
+                }
+            }
+            
+            // Support
+            SettingsRow(
+                title: "Support",
+                subtitle: "Get help and contact us",
+                icon: "questionmark.circle.fill"
+            ) {
+                Link(destination: URL(string: "https://tela51.dev/receiptlock/support")!) {
+                    Image(systemName: "arrow.up.right.square")
+                        .foregroundColor(AppTheme.primary)
+                }
+            }
+        }
+    }
+    
     // MARK: - Helper Methods
+    
+    private func getAppVersion() -> String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
     
     private func deleteAllData() {
         let success = PrivacyManager.shared.deleteUserData()

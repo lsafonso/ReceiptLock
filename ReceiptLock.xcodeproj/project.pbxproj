@@ -398,7 +398,9 @@
 				DEVELOPMENT_TEAM = S7F5YUWH2Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "ReceiptLock needs camera access to scan QR codes and barcodes on appliances for quick entry.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ReceiptLock needs camera access to scan receipts and QR codes for warranty tracking.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ReceiptLock needs access to your photo library to import receipt images for warranty tracking.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "ReceiptLock uses Face ID to securely protect your warranty information.";
 				INFOPLIST_KEY_RECEIPT_SCAN_ENABLED = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -429,7 +431,9 @@
 				DEVELOPMENT_TEAM = S7F5YUWH2Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "ReceiptLock needs camera access to scan QR codes and barcodes on appliances for quick entry.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "ReceiptLock needs camera access to scan receipts and QR codes for warranty tracking.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "ReceiptLock needs access to your photo library to import receipt images for warranty tracking.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "ReceiptLock uses Face ID to securely protect your warranty information.";
 				INFOPLIST_KEY_RECEIPT_SCAN_ENABLED = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
