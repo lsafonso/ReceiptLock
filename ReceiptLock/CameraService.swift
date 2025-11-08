@@ -390,9 +390,7 @@ class CameraService: NSObject, ObservableObject {
     func focusCamera(at point: CGPoint) {
         guard let device = currentCamera else { return }
         
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            
+        sessionQueue.async {
             do {
                 try device.lockForConfiguration()
                 
@@ -418,9 +416,7 @@ class CameraService: NSObject, ObservableObject {
     func zoomCamera(to factor: CGFloat) {
         guard let device = currentCamera else { return }
         
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            
+        sessionQueue.async {
             let clampedFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
             
             do {
@@ -449,8 +445,11 @@ class CameraService: NSObject, ObservableObject {
             settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
         }
         
-        // Enable high resolution if supported
-        settings.isHighResolutionPhotoEnabled = photoOutput.isHighResolutionCaptureEnabled
+        // Enable high resolution if supported (iOS 16+)
+        // Note: Deployment target is iOS 18.5, so we only need the modern API
+        if photoOutput.maxPhotoDimensions.width > 0 && photoOutput.maxPhotoDimensions.height > 0 {
+            settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+        }
         
         // Configure flash only if device supports it
         if photoOutput.isFlashScene, let device = currentCamera, device.hasFlash {

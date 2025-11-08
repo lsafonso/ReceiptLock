@@ -7,26 +7,10 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
-		9C152F322E466F3C0020D593 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9C152F1C2E466F3A0020D593 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 9C152F232E466F3A0020D593;
-			remoteInfo = ReceiptLock;
-		};
-		9C152F3C2E466F3C0020D593 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9C152F1C2E466F3A0020D593 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 9C152F232E466F3A0020D593;
-			remoteInfo = ReceiptLock;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		9C152F242E466F3A0020D593 /* ReceiptLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReceiptLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9C152F312E466F3C0020D593 /* ReceiptLockTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReceiptLockTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9C152F3B2E466F3C0020D593 /* ReceiptLockUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReceiptLockUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -35,34 +19,10 @@
 			path = ReceiptLock;
 			sourceTree = "<group>";
 		};
-		9C152F342E466F3C0020D593 /* ReceiptLockTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ReceiptLockTests;
-			sourceTree = "<group>";
-		};
-		9C152F3E2E466F3C0020D593 /* ReceiptLockUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ReceiptLockUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		9C152F212E466F3A0020D593 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9C152F2E2E466F3C0020D593 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9C152F382E466F3C0020D593 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -76,8 +36,6 @@
 			isa = PBXGroup;
 			children = (
 				9C152F262E466F3A0020D593 /* ReceiptLock */,
-				9C152F342E466F3C0020D593 /* ReceiptLockTests */,
-				9C152F3E2E466F3C0020D593 /* ReceiptLockUITests */,
 				9C152F252E466F3A0020D593 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -86,8 +44,6 @@
 			isa = PBXGroup;
 			children = (
 				9C152F242E466F3A0020D593 /* ReceiptLock.app */,
-				9C152F312E466F3C0020D593 /* ReceiptLockTests.xctest */,
-				9C152F3B2E466F3C0020D593 /* ReceiptLockUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,52 +73,6 @@
 			productReference = 9C152F242E466F3A0020D593 /* ReceiptLock.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9C152F302E466F3C0020D593 /* ReceiptLockTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9C152F482E466F3C0020D593 /* Build configuration list for PBXNativeTarget "ReceiptLockTests" */;
-			buildPhases = (
-				9C152F2D2E466F3C0020D593 /* Sources */,
-				9C152F2E2E466F3C0020D593 /* Frameworks */,
-				9C152F2F2E466F3C0020D593 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				9C152F332E466F3C0020D593 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				9C152F342E466F3C0020D593 /* ReceiptLockTests */,
-			);
-			name = ReceiptLockTests;
-			packageProductDependencies = (
-			);
-			productName = ReceiptLockTests;
-			productReference = 9C152F312E466F3C0020D593 /* ReceiptLockTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		9C152F3A2E466F3C0020D593 /* ReceiptLockUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9C152F4B2E466F3C0020D593 /* Build configuration list for PBXNativeTarget "ReceiptLockUITests" */;
-			buildPhases = (
-				9C152F372E466F3C0020D593 /* Sources */,
-				9C152F382E466F3C0020D593 /* Frameworks */,
-				9C152F392E466F3C0020D593 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				9C152F3D2E466F3C0020D593 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				9C152F3E2E466F3C0020D593 /* ReceiptLockUITests */,
-			);
-			name = ReceiptLockUITests;
-			packageProductDependencies = (
-			);
-			productName = ReceiptLockUITests;
-			productReference = 9C152F3B2E466F3C0020D593 /* ReceiptLockUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -175,14 +85,6 @@
 				TargetAttributes = {
 					9C152F232E466F3A0020D593 = {
 						CreatedOnToolsVersion = 16.4;
-					};
-					9C152F302E466F3C0020D593 = {
-						CreatedOnToolsVersion = 16.4;
-						TestTargetID = 9C152F232E466F3A0020D593;
-					};
-					9C152F3A2E466F3C0020D593 = {
-						CreatedOnToolsVersion = 16.4;
-						TestTargetID = 9C152F232E466F3A0020D593;
 					};
 				};
 			};
@@ -201,28 +103,12 @@
 			projectRoot = "";
 			targets = (
 				9C152F232E466F3A0020D593 /* ReceiptLock */,
-				9C152F302E466F3C0020D593 /* ReceiptLockTests */,
-				9C152F3A2E466F3C0020D593 /* ReceiptLockUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		9C152F222E466F3A0020D593 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9C152F2F2E466F3C0020D593 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9C152F392E466F3C0020D593 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -239,33 +125,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9C152F2D2E466F3C0020D593 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9C152F372E466F3C0020D593 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		9C152F332E466F3C0020D593 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 9C152F232E466F3A0020D593 /* ReceiptLock */;
-			targetProxy = 9C152F322E466F3C0020D593 /* PBXContainerItemProxy */;
-		};
-		9C152F3D2E466F3C0020D593 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 9C152F232E466F3A0020D593 /* ReceiptLock */;
-			targetProxy = 9C152F3C2E466F3C0020D593 /* PBXContainerItemProxy */;
-		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -416,6 +278,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = dev.tela51.ReceiptLock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -454,76 +317,6 @@
 			};
 			name = Release;
 		};
-		9C152F492E466F3C0020D593 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.tela51.ReceiptLockTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ReceiptLock.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ReceiptLock";
-			};
-			name = Debug;
-		};
-		9C152F4A2E466F3C0020D593 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.tela51.ReceiptLockTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ReceiptLock.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ReceiptLock";
-			};
-			name = Release;
-		};
-		9C152F4C2E466F3C0020D593 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.tela51.ReceiptLockUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = ReceiptLock;
-			};
-			name = Debug;
-		};
-		9C152F4D2E466F3C0020D593 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.tela51.ReceiptLockUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = ReceiptLock;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -541,24 +334,6 @@
 			buildConfigurations = (
 				9C152F462E466F3C0020D593 /* Debug */,
 				9C152F472E466F3C0020D593 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		9C152F482E466F3C0020D593 /* Build configuration list for PBXNativeTarget "ReceiptLockTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9C152F492E466F3C0020D593 /* Debug */,
-				9C152F4A2E466F3C0020D593 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		9C152F4B2E466F3C0020D593 /* Build configuration list for PBXNativeTarget "ReceiptLockUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9C152F4C2E466F3C0020D593 /* Debug */,
-				9C152F4D2E466F3C0020D593 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

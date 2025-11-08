@@ -17,13 +17,14 @@ struct ApplianceDetailView: View {
     @State private var showingReceipt = false
     
     private var receiptItem: ReceiptItem? {
-        // Handle both NSSet (before code generation) and Set<ReceiptItem> (after code generation)
-        if let receiptItems = appliance.receiptItems as? NSSet, receiptItems.count > 0 {
-            return receiptItems.allObjects.first as? ReceiptItem
-        } else if let receiptItems = appliance.receiptItems as? Set<ReceiptItem>, !receiptItems.isEmpty {
-            return receiptItems.first
+        // Core Data generates receiptItems as NSSet? with codeGenerationType="class"
+        guard let receiptItems = appliance.receiptItems, receiptItems.count > 0 else {
+            return nil
         }
-        return nil
+        
+        // receiptItems is NSSet, access directly
+        let nsset = receiptItems
+        return nsset.allObjects.first as? ReceiptItem
     }
     
     var body: some View {
