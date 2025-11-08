@@ -140,7 +140,9 @@ struct DataScannerViewControllerRepresentable: UIViewControllerRepresentable {
             // Automatically scan when barcode is detected (first one found)
             for item in addedItems {
                 if case .barcode(let barcode) = item {
-                    if let payload = barcode.payloadStringValue {
+                    // Only process items with a valid payload (checking existence without binding)
+                    let hasPayload = barcode.payloadStringValue != nil
+                    if hasPayload {
                         handleRecognizedItem(item)
                         break // Only process the first detected barcode
                     }

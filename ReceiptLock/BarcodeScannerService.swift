@@ -221,10 +221,12 @@ class BarcodeScannerService: NSObject, ObservableObject {
                 
                 // Configure metadata output connection
                 if let connection = self.metadataOutput.connection(with: .video) {
-                    if connection.isVideoOrientationSupported {
-                        if #available(iOS 17.0, *) {
+                    if #available(iOS 17.0, *) {
+                        if connection.isVideoRotationAngleSupported(0.0) {
                             connection.videoRotationAngle = 0.0
-                        } else {
+                        }
+                    } else {
+                        if connection.isVideoOrientationSupported {
                             connection.videoOrientation = .portrait
                         }
                     }
@@ -554,7 +556,7 @@ struct BarcodeScannerPreviewView: UIViewRepresentable {
         }
         
         // Update metadata output rect of interest when view layout changes
-        if !uiView.bounds.isEmpty, let connection = previewLayer.connection {
+        if !uiView.bounds.isEmpty, previewLayer.connection != nil {
             let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: uiView.bounds)
             scannerService.updateRectOfInterest(rect)
         }
@@ -591,7 +593,7 @@ class PreviewContainerView: UIView {
         }
         
         // Update metadata output rect of interest when layout changes
-        if let connection = previewLayer.connection {
+        if previewLayer.connection != nil {
             let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: bounds)
             if let scannerService = findBarcodeScannerService() {
                 scannerService.updateRectOfInterest(rect)
