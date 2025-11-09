@@ -170,7 +170,20 @@ struct NotificationPreferencesView: View {
             }
         }
         .onAppear {
-            checkNotificationPermission()
+            // Check permission status first, then request if needed
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                DispatchQueue.main.async {
+                    self.notificationPermissionStatus = settings.authorizationStatus
+                    // Request permission if not yet determined
+                    if settings.authorizationStatus == .notDetermined {
+                        NotificationManager.shared.requestPermission()
+                        // Re-check permission status after a brief delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            self.checkNotificationPermission()
+                        }
+                    }
+                }
+            }
         }
         .alert("Notification Permission Required", isPresented: $showingPermissionAlert) {
             Button("Open Settings") {

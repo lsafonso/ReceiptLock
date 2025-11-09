@@ -281,6 +281,9 @@ struct OnboardingView: View {
         
         profileManager.updateProfile(profile)
         profileManager.completeOnboarding()
+        
+        // Request notification permission after onboarding completes
+        NotificationManager.shared.requestPermission()
     }
 }
 

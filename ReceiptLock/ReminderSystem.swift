@@ -423,6 +423,14 @@ struct ReminderManagementView: View {
         }
         .onAppear {
             customMessage = reminderManager.preferences.customReminderMessage
+            // Request notification permission if not yet determined
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                if settings.authorizationStatus == .notDetermined {
+                    DispatchQueue.main.async {
+                        NotificationManager.shared.requestPermission()
+                    }
+                }
+            }
         }
     }
     

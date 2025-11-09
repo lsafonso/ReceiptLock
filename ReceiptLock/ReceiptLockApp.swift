@@ -18,7 +18,6 @@ struct ReceiptLockApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(.light)
                 .onAppear {
-                    NotificationManager.shared.requestPermission()
                     // Initialize backup manager
                     _ = DataBackupManager.shared
                     // Initialize security managers
