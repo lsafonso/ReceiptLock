@@ -226,7 +226,8 @@ struct ApplianceDetailView: View {
             
             Button(action: { showingEditSheet = true }) {
                 HStack {
-                    Image(systemName: "pencil")
+                    Image(systemName: "square.and.pencil")
+                        .symbolRenderingMode(.monochrome)
                     Text("Edit Appliance")
                 }
                 .frame(maxWidth: .infinity)
