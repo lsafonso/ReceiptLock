@@ -389,17 +389,24 @@ struct ReminderManagementView: View {
                 .padding(AppTheme.spacing)
             }
             .navigationTitle("Reminder Settings")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .lineLimit(1)
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Text("Done")
+                            .lineLimit(1)
                     }
                     .fontWeight(.semibold)
                 }

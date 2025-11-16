@@ -215,15 +215,19 @@ struct ProfileEditView: View {
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     CancelButton(action: { dismiss() }, hasUnsavedChanges: name != profileManager.currentProfile.name || email != profileManager.currentProfile.email || selectedImage != nil)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button {
                         saveProfile()
                         dismiss()
+                    } label: {
+                        Text("Save")
+                            .lineLimit(1)
                     }
                     .buttonStyle(PrimarySaveButtonStyle(state: .idle))
                 }

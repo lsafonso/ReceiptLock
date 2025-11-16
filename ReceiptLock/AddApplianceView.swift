@@ -200,6 +200,7 @@ struct AddApplianceView: View {
                 }
                 .padding(.bottom, AppTheme.tabBarBottomPadding)
             }
+            .navigationTitle("Add Appliance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // Only show Cancel and Save buttons when user has started entering data

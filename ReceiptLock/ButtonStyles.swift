@@ -132,12 +132,15 @@ struct CancelButton: View {
     @State private var showingConfirmation = false
     
     var body: some View {
-        Button("Cancel") {
+        Button {
             if hasUnsavedChanges {
                 showingConfirmation = true
             } else {
                 action()
             }
+        } label: {
+            Text("Cancel")
+                .lineLimit(1)
         }
         .buttonStyle(SecondaryCancelButtonStyle())
         .confirmationDialog("Discard changes?", isPresented: $showingConfirmation, titleVisibility: .visible) {
