@@ -35,20 +35,7 @@ struct RemindersTabView: View {
                 .padding(.bottom, AppTheme.tabBarBottomPadding)
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Reminders")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Manage") {
-                        showingReminderManagement = true
-                    }
-                    .foregroundColor(AppTheme.primary)
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
         .sheet(isPresented: $showingReminderManagement) {
             ReminderManagementView()
