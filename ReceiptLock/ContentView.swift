@@ -21,38 +21,38 @@ struct ContentView: View {
             if !profileManager.hasCompletedOnboarding {
                 OnboardingView()
             } else {
-                NavigationStack {
-                    ZStack {
-                        // Main content
-                        Group {
-                            if selectedTab == 0 {
+                ZStack {
+                    // Main content
+                    Group {
+                        if selectedTab == 0 {
+                            NavigationStack {
                                 DashboardView()
-                            } else if selectedTab == 1 {
-                                ApplianceListView()
-                            } else if selectedTab == 2 {
-                                AddApplianceView()
-                            } else if selectedTab == 3 {
-                                RemindersTabView()
-                            } else if selectedTab == 4 {
-                                SettingsView()
                             }
+                        } else if selectedTab == 1 {
+                            ApplianceListView()
+                        } else if selectedTab == 2 {
+                            AddApplianceView()
+                        } else if selectedTab == 3 {
+                            RemindersTabView()
+                        } else if selectedTab == 4 {
+                            SettingsView()
                         }
-                        .animation(.easeInOut, value: selectedTab)
-                        
-                        // Custom tab bar
-                        VStack {
-                            Spacer()
-                            customTabBar
-                        }
-                        .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
-                    .background(AppTheme.background)
-                    .onAppear {
-                        setupTabBarAppearance()
+                    .animation(.easeInOut, value: selectedTab)
+                    
+                    // Custom tab bar
+                    VStack {
+                        Spacer()
+                        customTabBar
                     }
-                    .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
-                        selectedTab = 1 // Switch to Items tab (now at index 1)
-                    }
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                }
+                .background(AppTheme.background)
+                .onAppear {
+                    setupTabBarAppearance()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: switchToAppliancesTabNotification)) { _ in
+                    selectedTab = 1 // Switch to Items tab (now at index 1)
                 }
             }
         }
