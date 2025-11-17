@@ -215,17 +215,19 @@ struct ProfileEditView: View {
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(.editor)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .lineLimit(1)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+                    Button("Save") {
                         saveProfile()
                         dismiss()
-                    } label: {
-                        Text("Save")
-                            .lineLimit(1)
                     }
-                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
+                    .lineLimit(1)
                 }
             }
         }
