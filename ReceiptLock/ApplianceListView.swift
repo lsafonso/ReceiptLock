@@ -108,9 +108,25 @@ struct ApplianceListView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Filter Picker
-                    filterPicker
-                        .padding(.bottom, 16) // 16pt gap to cards
+                    // Search Bar and Filter Picker
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.secondary)
+                            TextField("Search appliances...", text: $searchText)
+                                .textInputAutocapitalization(.never)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(16)
+                        .padding(.horizontal, 24) // Match filter picker horizontal padding
+                        
+                        // Filter Picker
+                        filterPicker
+                    }
+                    .padding(.top, 16) // Top padding for search bar
+                    .padding(.bottom, 16) // 16pt gap to cards
                     
                     // Appliance List
                     if filteredAppliances.isEmpty {
@@ -119,7 +135,6 @@ struct ApplianceListView: View {
                         applianceList
                     }
                 }
-                .searchable(text: $searchText, prompt: "Search appliances...")
             }
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: searchText) { oldValue, newValue in
