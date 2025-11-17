@@ -119,9 +119,9 @@ struct ApplianceListView: View {
                         applianceList
                     }
                 }
+                .searchable(text: $searchText, prompt: "Search appliances...")
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .navigationBar)
             .onChange(of: searchText) { oldValue, newValue in
                 // Search functionality - no need to collapse anything
             }
