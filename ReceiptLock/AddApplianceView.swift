@@ -40,9 +40,7 @@ struct AddApplianceView: View {
     @State private var showingCodeScanner = false
     @State private var scannedCode: String?
     @State private var showingScannedCodeAlert = false
-    @State private var savedApplianceID: UUID?
-    @State private var navigateToDetail = false
-    @State private var navigationPath = NavigationPath()
+    @State private var savedApplianceForDetail: Appliance?
     @State private var isResetting = false
     @State private var showScanMenu = false
     @State private var showingReceiptCamera = false
@@ -170,7 +168,7 @@ struct AddApplianceView: View {
     }
     
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationStack {
             ZStack {
                 AppTheme.background
                     .ignoresSafeArea()
@@ -203,41 +201,28 @@ struct AddApplianceView: View {
             .navigationTitle("Add Appliance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Only show Cancel and Save buttons when user has started entering data
-                if hasStartedEnteringData {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        CancelButton(action: { 
-                            resetForm()
-                            dismiss() 
-                        }, hasUnsavedChanges: hasStartedEnteringData)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        handleCancel()
                     }
-                    
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            saveAppliance()
-                        } label: {
-                            Text("Save")
-                        }
-                        .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
-                        .disabled(title.isEmpty || store.isEmpty || saveButtonState == .loading || isProcessingOCR)
-                        .opacity((title.isEmpty || store.isEmpty || saveButtonState == .loading || isProcessingOCR) ? 0.4 : 1.0)
+                    .lineLimit(1)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveAppliance()
                     }
+                    .lineLimit(1)
                 }
             }
         }
+        .sheet(item: $savedApplianceForDetail, onDismiss: {
+            resetForm()
+        }) { appliance in
+            ApplianceDetailView(appliance: appliance)
+        }
         .onAppear {
             // Clear any lingering validation errors when view appears
-            // This ensures clean state when navigating back from detail view
-            if navigationPath.isEmpty {
-                validationManager.clearErrors()
-                
-                // If we have a saved appliance ID but path is empty, 
-                // user navigated back - reset the form
-                if savedApplianceID != nil {
-                    resetForm()
-                    savedApplianceID = nil
-                }
-            }
+            validationManager.clearErrors()
         }
         .onChange(of: selectedImage) { oldValue, newValue in
             guard FeatureFlags.isReceiptScanEnabled, let newValue = newValue else { return }
@@ -251,19 +236,6 @@ struct AddApplianceView: View {
             }
         } message: {
             Text("Please fix the validation errors before saving.")
-        }
-        .navigationDestination(for: UUID.self) { applianceID in
-            Group {
-                if let appliance = fetchAppliance(id: applianceID) {
-                    ApplianceDetailView(appliance: appliance)
-                }
-            }
-        }
-        .onChange(of: navigateToDetail) { _, shouldNavigate in
-            if shouldNavigate, let applianceID = savedApplianceID {
-                navigationPath.append(applianceID)
-                navigateToDetail = false
-            }
         }
     }
     
@@ -1047,8 +1019,8 @@ struct AddApplianceView: View {
                 
                 // Model Field
                 ValidatedTextField(
-                    title: "Model",
-                    placeholder: "Enter model number",
+                    title: "Brand",
+                    placeholder: "Enter brand",
                     text: $model,
                     fieldKey: "model",
                     validationManager: validationManager
@@ -2047,7 +2019,7 @@ struct AddApplianceView: View {
         saveButtonState = .loading
         isSaving = true
         
-        let appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext)
+        let appliance: Appliance = NSEntityDescription.insertNewObject(forEntityName: "Appliance", into: viewContext) as! Appliance
         appliance.setValue(UUID(), forKey: "id")
         appliance.setValue(title.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "name")
         appliance.setValue(store.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "brand")
@@ -2074,24 +2046,14 @@ struct AddApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
             
-            // Store the saved appliance ID and navigate to detail view
-            if let savedID = appliance.value(forKey: "id") as? UUID {
-                DispatchQueue.main.async {
-                    self.isSaving = false
-                    self.saveButtonState = .success
-                    self.savedApplianceID = savedID
-                    self.navigateToDetail = true
-                }
-            } else {
-                // Fallback: dismiss if we can't get the ID
-                DispatchQueue.main.async {
-                    self.isSaving = false
-                    self.saveButtonState = .success
-                    // Auto-revert handled by button style, but dismiss immediately
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        dismiss()
-                    }
-                }
+            // Navigate to detail view for the newly created appliance
+            // Store appliance in local variable to help type inference
+            let savedAppliance = appliance
+            DispatchQueue.main.async {
+                self.isSaving = false
+                self.saveButtonState = .success
+                // Set the saved appliance to trigger the detail sheet
+                self.savedApplianceForDetail = savedAppliance
             }
         } catch {
             print("❌ Error saving appliance: \(error)")
@@ -2141,6 +2103,11 @@ struct AddApplianceView: View {
                 self.isResetting = false
             }
         }
+    }
+    
+    private func handleCancel() {
+        resetForm()
+        dismiss()
     }
     
     private func fetchAppliance(id: UUID) -> Appliance? {
