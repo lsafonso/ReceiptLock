@@ -96,14 +96,22 @@ struct EditApplianceView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        saveChanges()
-                    } label: {
-                        Text("Save")
+                    if saveButtonState == .success {
+                        Text("Saved")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppTheme.primary)
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("savedStatusLabel")
+                    } else {
+                        Button {
+                            saveChanges()
+                        } label: {
+                            Text("Save")
+                        }
+                        .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
+                        .disabled(title.isEmpty || brand.isEmpty || saveButtonState == .loading)
+                        .opacity((title.isEmpty || brand.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
                     }
-                    .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
-                    .disabled(title.isEmpty || brand.isEmpty || saveButtonState == .loading)
-                    .opacity((title.isEmpty || brand.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
                 }
             }
         }
