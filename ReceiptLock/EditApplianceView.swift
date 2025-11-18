@@ -21,7 +21,7 @@ struct EditApplianceView: View {
     @State private var warrantyMonths: Int
     @State private var notes: String
     @State private var warrantySummary: String
-    @State private var showingSaveSuccessAlert = false
+    @State private var showingSaveToast = false
     @State private var isSaving = false
     @State private var saveButtonState: SaveButtonState = .idle
     
@@ -52,42 +52,37 @@ struct EditApplianceView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Basic Information") {
-                    TextField("Appliance Name", text: $title)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    TextField("Brand", text: $brand)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    TextField("Model", text: $model)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    TextField("Serial Number", text: $serialNumber)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
+            ZStack(alignment: .bottom) {
+                AppTheme.background
+                    .ignoresSafeArea()
                 
-                Section("Purchase Details") {
-                    DatePicker("Purchase Date", selection: $purchaseDate, displayedComponents: .date)
-                    
-                    PriceTextField(price: $price)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
+                        pageHeader
+                        basicInformationSection
+                        purchaseDetailsSection
+                        warrantySection
+                        notesSection
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, AppTheme.smallSpacing)
+                    .padding(.bottom, AppTheme.tabBarBottomPadding)
                 }
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.interactively)
                 
-                Section("Warranty") {
-                    Stepper("\(warrantyMonths) months", value: $warrantyMonths, in: 1...60)
-                    
-                    TextField("Warranty Summary", text: $warrantySummary, axis: .vertical)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .lineLimit(3...6)
-                }
-                
-                Section("Additional Notes") {
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .lineLimit(3...6)
+                if showingSaveToast {
+                    SaveToastView(
+                        title: "Saved",
+                        message: "Appliance updated successfully"
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
                 }
             }
+            .toolbarRole(.editor)
             .navigationTitle("Edit Appliance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -96,31 +91,104 @@ struct EditApplianceView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if saveButtonState == .success {
-                        Text("Saved")
-                            .font(.headline.weight(.semibold))
-                            .foregroundColor(AppTheme.primary)
-                            .frame(minHeight: 44)
-                            .accessibilityIdentifier("savedStatusLabel")
-                    } else {
-                        Button {
-                            saveChanges()
-                        } label: {
-                            Text("Save")
-                        }
-                        .buttonStyle(PrimarySaveButtonStyle(state: saveButtonState))
-                        .disabled(title.isEmpty || brand.isEmpty || saveButtonState == .loading)
-                        .opacity((title.isEmpty || brand.isEmpty || saveButtonState == .loading) ? 0.4 : 1.0)
-                    }
+                    ToolbarSaveButton(
+                        state: saveButtonState,
+                        isDisabled: title.isEmpty || brand.isEmpty || saveButtonState == .loading || saveButtonState == .success,
+                        action: saveChanges
+                    )
                 }
             }
+            .animation(AppTheme.easeInOutAnimation, value: showingSaveToast)
         }
-        .alert("Success!", isPresented: $showingSaveSuccessAlert) {
-            Button("OK") {
-                dismiss()
+    }
+    
+    private var pageHeader: some View {
+        Text("Edit Appliance")
+            .font(.headline.weight(.semibold))
+            .foregroundColor(AppTheme.text)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, AppTheme.smallSpacing)
+            .accessibilityAddTraits(.isHeader)
+    }
+    
+    private var basicInformationSection: some View {
+        SectionCard(title: "Basic Information") {
+            FieldContainer(label: "Appliance Name") {
+                TextField("Enter appliance name", text: $title)
+                    .textFieldStyle(.plain)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
             }
-        } message: {
-            Text("Appliance updated successfully!")
+            
+            FieldContainer(label: "Brand") {
+                TextField("Enter brand", text: $brand)
+                    .textFieldStyle(.plain)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+            }
+            
+            FieldContainer(label: "Model") {
+                TextField("Enter model", text: $model)
+                    .textFieldStyle(.plain)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+            }
+            
+            FieldContainer(label: "Serial Number") {
+                TextField("Enter serial number", text: $serialNumber)
+                    .textFieldStyle(.plain)
+                    .textInputAutocapitalization(.none)
+                    .autocorrectionDisabled()
+            }
+        }
+    }
+    
+    private var purchaseDetailsSection: some View {
+        SectionCard(title: "Purchase Details") {
+            TintedControlField(label: "Purchase Date") {
+                DatePicker("", selection: $purchaseDate, displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .labelsHidden()
+                    .colorScheme(.dark)
+                    .accentColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            
+            FieldContainer(label: "Price") {
+                HStack(spacing: AppTheme.smallSpacing) {
+                    Text(CurrencyManager.shared.currencySymbol)
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(AppTheme.secondaryText)
+                    PriceTextField(price: $price)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    
+    private var warrantySection: some View {
+        SectionCard(title: "Warranty") {
+            WarrantyDurationField(value: $warrantyMonths)
+            
+            FieldContainer(label: "Warranty Summary") {
+                TextField("Add a short warranty summary", text: $warrantySummary, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(3...6)
+                    .frame(minHeight: 96, alignment: .topLeading)
+                    .textInputAutocapitalization(.sentences)
+            }
+        }
+    }
+    
+    private var notesSection: some View {
+        SectionCard(title: "Additional Notes") {
+            FieldContainer(label: "Notes") {
+                TextField("Add any additional notes", text: $notes, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(3...6)
+                    .frame(minHeight: 120, alignment: .topLeading)
+                    .textInputAutocapitalization(.sentences)
+            }
         }
     }
     
@@ -159,9 +227,9 @@ struct EditApplianceView: View {
             DispatchQueue.main.async {
                 self.isSaving = false
                 self.saveButtonState = .success
-                // Auto-revert will happen after 0.8s, then show alert
+                // Auto-revert will happen after 0.8s, then show toast
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    self.showingSaveSuccessAlert = true
+                    self.showSaveConfirmationToast()
                 }
             }
         } catch {
@@ -173,6 +241,217 @@ struct EditApplianceView: View {
             let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
             impactFeedback.impactOccurred()
         }
+    }
+
+    private func showSaveConfirmationToast() {
+        withAnimation(AppTheme.easeOutAnimation) {
+            showingSaveToast = true
+        }
+        
+        let toastDuration: TimeInterval = 2.5
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + toastDuration) {
+            withAnimation(AppTheme.easeInOutAnimation) {
+                showingSaveToast = false
+            }
+            dismiss()
+        }
+    }
+}
+
+// MARK: - UI Helpers
+
+private struct SectionCard<Content: View>: View {
+    let title: String
+    let content: Content
+    
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+            
+            content
+        }
+        .card()
+    }
+}
+
+private struct FieldContainer<Content: View>: View {
+    let label: String
+    let content: Content
+    
+    init(label: String, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+            Text(label)
+                .font(.headline)
+                .foregroundColor(AppTheme.text)
+            
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppTheme.spacing)
+                .padding(.vertical, AppTheme.smallSpacing)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field, style: .continuous)
+                        .fill(AppTheme.cardBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field, style: .continuous)
+                                .stroke(AppTheme.separator, lineWidth: AppTheme.hairlineWidth)
+                        )
+                )
+        }
+    }
+}
+
+private struct TintedControlField<Content: View>: View {
+    let label: String
+    let content: Content
+    
+    init(label: String, @ViewBuilder content: () -> Content) {
+        self.label = label
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+            Text(label)
+                .font(.headline)
+                .foregroundColor(AppTheme.text)
+            
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppTheme.smallSpacing)
+                .padding(.vertical, AppTheme.smallSpacing / 2)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field, style: .continuous)
+                        .fill(AppTheme.primary)
+                )
+        }
+    }
+}
+
+private struct WarrantyDurationField: View {
+    @Binding var value: Int
+    
+    private var formattedValue: String {
+        "\(value) " + (value == 1 ? "month" : "months")
+    }
+    
+    init(value: Binding<Int>) {
+        self._value = value
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+            Text("Duration (months)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+            
+            HStack(alignment: .lastTextBaseline) {
+                Text("Warranty Duration")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.text)
+                
+                Spacer()
+                
+                Text(formattedValue)
+                    .font(.headline)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+            
+            Stepper("", value: $value, in: 1...60)
+                .labelsHidden()
+                .colorScheme(.dark)
+                .accentColor(.white)
+                .padding(.horizontal, AppTheme.smallSpacing)
+                .padding(.vertical, AppTheme.smallSpacing / 2)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.field, style: .continuous)
+                        .fill(AppTheme.primary)
+                )
+        }
+    }
+}
+
+private struct ToolbarSaveButton: View {
+    let state: SaveButtonState
+    let isDisabled: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                switch state {
+                case .loading:
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(AppTheme.primary)
+                    Text("Saving")
+                case .success:
+                    Image(systemName: "checkmark")
+                    Text("Saved")
+                default:
+                    Text("Save")
+                }
+            }
+            .font(.headline.weight(.semibold))
+            .foregroundColor(AppTheme.primary)
+            .padding(.vertical, 8)
+            .padding(.leading, 14)
+            .padding(.trailing, 10)
+            .frame(minHeight: 36)
+            .background(
+                Capsule()
+                    .fill(AppTheme.primary.opacity(0.15))
+            )
+        }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.4 : 1.0)
+        .animation(AppTheme.snappyAnimation, value: state)
+    }
+}
+
+private struct SaveToastView: View {
+    let title: String
+    let message: String
+    
+    var body: some View {
+        HStack(spacing: AppTheme.smallSpacing) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3.weight(.semibold))
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline.weight(.semibold))
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.onPrimary.opacity(0.9))
+            }
+            
+            Spacer()
+        }
+        .foregroundColor(AppTheme.onPrimary)
+        .padding(.vertical, AppTheme.spacing)
+        .padding(.horizontal, AppTheme.spacing)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.card, style: .continuous)
+                .fill(AppTheme.primary)
+        )
+        .shadow(color: AppTheme.primary.opacity(0.3), radius: 12, x: 0, y: 6)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -252,7 +531,8 @@ struct PriceTextField: View {
     }
     
     var body: some View {
-        TextField("Price", text: $priceText)
+        TextField("0.00", text: $priceText)
+            .textFieldStyle(.plain)
             .keyboardType(.decimalPad)
             .autocorrectionDisabled()
             .focused($isFocused)

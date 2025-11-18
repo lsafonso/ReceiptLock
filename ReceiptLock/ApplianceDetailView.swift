@@ -86,7 +86,7 @@ struct ApplianceDetailView: View {
     
     // MARK: - Header Section
     private var headerSection: some View {
-        HStack(spacing: AppTheme.spacing) {
+        HStack(spacing: AppTheme.largeSpacing) {
             // Appliance icon - smaller size
             Image(systemName: getApplianceIcon())
                 .font(.system(size: 40))
@@ -101,12 +101,8 @@ struct ApplianceDetailView: View {
                     .foregroundColor(AppTheme.text)
                     .lineLimit(2)
                 
-                if let model = appliance.model, !model.isEmpty {
-                    Text(model)
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                } else {
-                    Text(appliance.brand ?? "Unknown Brand")
+                if let subtitle = applianceSubtitle {
+                    Text(subtitle)
                         .font(.subheadline)
                         .foregroundColor(AppTheme.secondaryText)
                 }
@@ -114,21 +110,21 @@ struct ApplianceDetailView: View {
             
             Spacer()
         }
-        .padding(AppTheme.spacing)
+        .padding(.vertical, AppTheme.spacing)
+        .padding(.horizontal, 20)
         .cardBackground()
     }
     
     // MARK: - Details Section
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            VStack(spacing: AppTheme.smallSpacing) {
-                ApplianceInfoRow(title: "Purchase Date", value: formattedPurchaseDate)
-                ApplianceInfoRow(title: "Price", value: formattedPrice)
-                ApplianceInfoRow(title: "Warranty Duration", value: "\(appliance.warrantyMonths) months")
-                ApplianceInfoRow(title: "Added", value: formattedCreatedDate)
-            }
+            ApplianceInfoRow(title: "Purchase Date", value: formattedPurchaseDate)
+            ApplianceInfoRow(title: "Price", value: formattedPrice)
+            ApplianceInfoRow(title: "Warranty Duration", value: "\(appliance.warrantyMonths) months")
+            ApplianceInfoRow(title: "Added", value: formattedCreatedDate)
         }
-        .padding(AppTheme.spacing)
+        .padding(.vertical, AppTheme.spacing)
+        .padding(.horizontal, 20)
         .cardBackground()
     }
     
@@ -154,7 +150,7 @@ struct ApplianceDetailView: View {
                 }
                 
                 // Progress bar
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
                     HStack {
                         Text("Warranty Progress")
                             .font(.caption.weight(.medium))
@@ -167,9 +163,7 @@ struct ApplianceDetailView: View {
                             .foregroundColor(AppTheme.secondaryText)
                     }
                     
-                    ProgressView(value: progressValue, total: 1.0)
-                        .progressViewStyle(LinearProgressViewStyle(tint: warrantyStatusColor))
-                        .frame(height: 8)
+                    WarrantyProgressBar(value: progressValue, tint: warrantyStatusColor)
                 }
                 
                 // Expiry date
@@ -188,57 +182,45 @@ struct ApplianceDetailView: View {
                 }
             }
         }
-        .padding(AppTheme.spacing)
+        .padding(.vertical, AppTheme.spacing)
+        .padding(.horizontal, 20)
         .cardBackground()
     }
     
     // MARK: - Actions Section
     private var actionsSection: some View {
-        VStack(spacing: AppTheme.spacing) {
-            // View Receipt button (if receipt exists)
+        VStack(spacing: AppTheme.smallSpacing) {
             if let receiptItem = receiptItem, receiptItem.receipt != nil {
                 Button(action: { showingReceipt = true }) {
-                    HStack {
-                        Image(systemName: "doc.text")
-                            .symbolRenderingMode(.monochrome)
-                        Text("View Receipt")
-                    }
-                    .foregroundColor(AppTheme.onPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(AppTheme.spacing)
-                    .background(AppTheme.primary)
-                    .cornerRadius(AppTheme.cornerRadius)
+                    actionButtonContent(
+                        title: "View Receipt",
+                        systemImage: "doc.text",
+                        foreground: AppTheme.onPrimary,
+                        background: AppTheme.primary
+                    )
                 }
             }
             
             Button(action: shareAppliance) {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                        .symbolRenderingMode(.monochrome)
-                    Text("Share Appliance")
-                }
-                .foregroundColor(AppTheme.onPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(AppTheme.spacing)
-                .background(AppTheme.primary)
-                .cornerRadius(AppTheme.cornerRadius)
+                actionButtonContent(
+                    title: "Share Appliance",
+                    systemImage: "square.and.arrow.up",
+                    foreground: AppTheme.onPrimary,
+                    background: AppTheme.primary
+                )
             }
             
             Button(action: { showingEditSheet = true }) {
-                HStack {
-                    Image(systemName: "square.and.pencil")
-                        .symbolRenderingMode(.monochrome)
-                    Text("Edit Appliance")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(AppTheme.spacing)
-                .background(AppTheme.primary.opacity(0.1))
-                .foregroundColor(AppTheme.primary)
-                .cornerRadius(AppTheme.cornerRadius)
+                actionButtonContent(
+                    title: "Edit Appliance",
+                    systemImage: "square.and.pencil",
+                    foreground: AppTheme.primary,
+                    background: AppTheme.primary.opacity(0.08),
+                    borderColor: AppTheme.primary.opacity(0.2)
+                )
             }
         }
-        .padding(AppTheme.spacing)
-        .cardBackground()
+        .card()
     }
     
     // MARK: - Computed Properties
@@ -256,7 +238,7 @@ struct ApplianceDetailView: View {
         } else if daysUntilExpiry <= 30 {
             return AppTheme.warning
         } else {
-            return AppTheme.success
+            return AppTheme.primary
         }
     }
     
@@ -302,11 +284,29 @@ struct ApplianceDetailView: View {
     }
     
     private var formattedPrice: String {
-        return appliance.price.formatted(.currency(code: CurrencyManager.shared.currencyCode))
+        CurrencyManager.shared.formatPrice(appliance.price)
     }
     
     private var formattedCreatedDate: String {
         return FormatterStore.expiryShort.string(from: appliance.createdAt ?? Date())
+    }
+    
+    private var applianceSubtitle: String? {
+        let trimmedModel = (appliance.model ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedModel.isEmpty {
+            return trimmedModel
+        }
+        
+        let trimmedName = (appliance.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBrand = (appliance.brand ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedBrand.isEmpty else { return nil }
+        if !trimmedName.isEmpty,
+           trimmedName.caseInsensitiveCompare(trimmedBrand) == .orderedSame {
+            return nil
+        }
+        
+        return trimmedBrand
     }
     
     // MARK: - Helper Methods
@@ -379,6 +379,33 @@ struct ApplianceDetailView: View {
         }
     }
     
+    private func actionButtonContent(
+        title: String,
+        systemImage: String,
+        foreground: Color,
+        background: Color,
+        borderColor: Color? = nil
+    ) -> some View {
+        HStack(spacing: AppTheme.smallSpacing) {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.monochrome)
+            Text(title)
+        }
+        .font(.headline.weight(.semibold))
+        .frame(maxWidth: .infinity)
+        .frame(height: 52)
+        .foregroundColor(foreground)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.button, style: .continuous)
+                .fill(background)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.button, style: .continuous)
+                        .stroke(borderColor ?? .clear, lineWidth: borderColor == nil ? 0 : AppTheme.hairlineWidth)
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.button, style: .continuous))
+    }
+    
     private func shareAppliance() {
         let text = """
         Appliance: \(appliance.name ?? "Unknown")
@@ -426,23 +453,47 @@ struct ApplianceDetailView: View {
     }
 }
 
+// MARK: - Warranty Progress Bar
+private struct WarrantyProgressBar: View {
+    let value: Double
+    let tint: Color
+    
+    private var clampedValue: Double {
+        max(0.0, min(1.0, value))
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(AppTheme.separator.opacity(0.6))
+                
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(tint)
+                    .frame(width: geometry.size.width * clampedValue, height: 6)
+            }
+        }
+        .frame(height: 6)
+    }
+}
+
 // MARK: - Appliance Info Row
 struct ApplianceInfoRow: View {
     let title: String
     let value: String
     
     var body: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundColor(AppTheme.secondaryText)
-            
-            Spacer()
+                .textCase(.uppercase)
             
             Text(value)
-                .font(.subheadline.weight(.medium))
+                .font(.headline.weight(.semibold))
                 .foregroundColor(AppTheme.text)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
