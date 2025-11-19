@@ -168,52 +168,35 @@ struct AddApplianceView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AppTheme.background
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Page Title at top left
-                        Text("Add Appliance")
-                            .font(.headline.weight(.semibold))
-                            .foregroundColor(AppTheme.text)
-                            .padding(.horizontal, AppTheme.spacing)
-                            .padding(.top, AppTheme.smallSpacing)
-                        
-                        // Scan receipt Section (only when enabled)
-                        if FeatureFlags.isReceiptScanEnabled {
-                            scanInvoiceSection
-                                .padding(.horizontal, 24) // 24pt side insets for card alignment
-                                .padding(.top, 24) // H1→intro block gap 24pt
-                        }
-                        
-                        // Manual Entry Section
-                        manualEntrySection
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Page Header
+                    SheetHeaderView(
+                        title: "Add Appliance",
+                        isSaving: isSaving,
+                        onCancel: { handleCancel() },
+                        onSave: { saveAppliance() }
+                    )
+                    
+                    // Scan receipt Section (only when enabled)
+                    if FeatureFlags.isReceiptScanEnabled {
+                        scanInvoiceSection
                             .padding(.horizontal, 24) // 24pt side insets for card alignment
-                            .padding(.top, 24) // Block→grid gap 24pt
-                        
+                            .padding(.top, 24) // Header→intro block gap 24pt
                     }
-                }
-                .padding(.bottom, AppTheme.tabBarBottomPadding)
-            }
-            .navigationTitle("Add Appliance")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        handleCancel()
-                    }
-                    .lineLimit(1)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveAppliance()
-                    }
-                    .lineLimit(1)
+                    
+                    // Manual Entry Section
+                    manualEntrySection
+                        .padding(.horizontal, 24) // 24pt side insets for card alignment
+                        .padding(.top, 24) // Block→grid gap 24pt
+                    
                 }
             }
+            .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .sheet(item: $savedApplianceForDetail, onDismiss: {
             resetForm()

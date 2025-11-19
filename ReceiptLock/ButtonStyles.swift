@@ -208,3 +208,49 @@ extension View {
     }
 }
 
+// MARK: - Shared Sheet Header
+
+struct SheetHeaderView: View {
+    let title: String
+    let isSaving: Bool
+    var saveDisabled: Bool = false
+    let onCancel: () -> Void
+    let onSave: () -> Void
+    
+    var body: some View {
+        ZStack {
+            // Centered Title
+            Text(title)
+                .font(.title3.weight(.semibold))
+                .foregroundColor(AppTheme.text)
+                .multilineTextAlignment(.center)
+            
+            // Left and Right Buttons
+            HStack {
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppTheme.primary)
+                        .padding(.vertical, 12)
+                        .padding(.trailing, 12) // Hit area expansion
+                        .contentShape(Rectangle())
+                }
+                
+                Spacer()
+                
+                Button(action: onSave) {
+                    Text(isSaving ? "Saving..." : "Save")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText : AppTheme.primary)
+                        .padding(.vertical, 12)
+                        .padding(.leading, 12) // Hit area expansion
+                        .contentShape(Rectangle())
+                }
+                .disabled(isSaving || saveDisabled)
+            }
+        }
+        .frame(minHeight: 44)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+    }
+}

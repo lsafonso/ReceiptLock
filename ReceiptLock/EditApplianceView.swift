@@ -51,64 +51,46 @@ struct EditApplianceView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                AppTheme.background
-                    .ignoresSafeArea()
-                
-                ScrollView {
+        ZStack(alignment: .bottom) {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 0) {
+                    SheetHeaderView(
+                        title: "Edit Appliance",
+                        isSaving: isSaving,
+                        saveDisabled: title.isEmpty || brand.isEmpty || saveButtonState == .loading || saveButtonState == .success,
+                        onCancel: { dismiss() },
+                        onSave: { saveChanges() }
+                    )
+                    
                     VStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
-                        pageHeader
                         basicInformationSection
                         purchaseDetailsSection
                         warrantySection
                         notesSection
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, AppTheme.smallSpacing)
+                    .padding(.top, 24)
                     .padding(.bottom, AppTheme.tabBarBottomPadding)
                 }
-                .scrollIndicators(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-                
-                if showingSaveToast {
-                    SaveToastView(
-                        title: "Saved",
-                        message: "Appliance updated successfully"
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .allowsHitTesting(false)
-                }
             }
-            .toolbarRole(.editor)
-            .navigationTitle("Edit Appliance")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    CancelButton(action: { dismiss() }, hasUnsavedChanges: hasUnsavedChanges)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    ToolbarSaveButton(
-                        state: saveButtonState,
-                        isDisabled: title.isEmpty || brand.isEmpty || saveButtonState == .loading || saveButtonState == .success,
-                        action: saveChanges
-                    )
-                }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            
+            if showingSaveToast {
+                SaveToastView(
+                    title: "Saved",
+                    message: "Appliance updated successfully"
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .allowsHitTesting(false)
             }
-            .animation(AppTheme.easeInOutAnimation, value: showingSaveToast)
         }
-    }
-    
-    private var pageHeader: some View {
-        Text("Edit Appliance")
-            .font(.headline.weight(.semibold))
-            .foregroundColor(AppTheme.text)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, AppTheme.smallSpacing)
-            .accessibilityAddTraits(.isHeader)
+        .animation(AppTheme.easeInOutAnimation, value: showingSaveToast)
     }
     
     private var basicInformationSection: some View {
@@ -383,44 +365,6 @@ private struct WarrantyDurationField: View {
                         .fill(AppTheme.primary)
                 )
         }
-    }
-}
-
-private struct ToolbarSaveButton: View {
-    let state: SaveButtonState
-    let isDisabled: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                switch state {
-                case .loading:
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .tint(AppTheme.primary)
-                    Text("Saving")
-                case .success:
-                    Image(systemName: "checkmark")
-                    Text("Saved")
-                default:
-                    Text("Save")
-                }
-            }
-            .font(.headline.weight(.semibold))
-            .foregroundColor(AppTheme.primary)
-            .padding(.vertical, 8)
-            .padding(.leading, 14)
-            .padding(.trailing, 10)
-            .frame(minHeight: 36)
-            .background(
-                Capsule()
-                    .fill(AppTheme.primary.opacity(0.15))
-            )
-        }
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.4 : 1.0)
-        .animation(AppTheme.snappyAnimation, value: state)
     }
 }
 
