@@ -43,13 +43,17 @@ struct SettingsView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                 // Page Title at top left
-                Text("Settings")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.text)
-                    .padding(.horizontal, 24) // 24pt side insets
+                HStack {
+                    Text("Settings")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(AppTheme.text)
+                    Spacer()
+                }
+                .padding(.horizontal, 24) // 24pt side insets
+                .padding(.top, 24) // H1 top inset 24pt
                 
                 profilePersonalizationSection
-                    .padding(.top, 24) // Group top margin 24 from page header
+                    .padding(.top, 16) // Group top margin 16pt
                 
                 receiptApplianceSection
                     .padding(.top, 16) // Group→group 16pt

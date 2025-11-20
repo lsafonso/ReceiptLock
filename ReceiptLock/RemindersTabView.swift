@@ -29,7 +29,7 @@ struct RemindersTabView: View {
                         
                         // Active Reminders
                         activeRemindersSection
-                            .padding(.top, 24) // Overview section → "Active Reminders" header 24pt
+                            .padding(.top, AppTheme.spacing)
                     }
                 }
                 .padding(.bottom, AppTheme.tabBarBottomPadding)
@@ -56,11 +56,6 @@ struct RemindersTabView: View {
                     .font(.title)
                     .foregroundColor(AppTheme.primary)
             }
-            .padding(.bottom, 8) // Eyebrow sits 8 above the H1
-            
-            Text("Stay on top of your warranties")
-                .font(.title2.weight(.semibold))
-                .foregroundColor(AppTheme.text)
         }
         .padding(.horizontal, 24) // 24pt side insets for card alignment
     }

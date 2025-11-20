@@ -221,7 +221,7 @@ struct SheetHeaderView: View {
         ZStack {
             // Centered Title
             Text(title)
-                .font(.title3.weight(.semibold))
+                .font(.headline.weight(.semibold))
                 .foregroundColor(AppTheme.text)
                 .multilineTextAlignment(.center)
             
