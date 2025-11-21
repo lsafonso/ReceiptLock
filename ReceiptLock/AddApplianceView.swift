@@ -60,6 +60,7 @@ struct AddApplianceView: View {
     @State private var editableItems: [EditableItem] = []
     @State private var showingBatchCreationSuccess = false
     @State private var batchCreationCount = 0
+    @State private var scrollOffset: CGFloat = 0
     
     struct DetectedLine: Identifiable {
         let id = UUID()
@@ -181,14 +182,23 @@ struct AddApplianceView: View {
                     isSaving: isSaving,
                     saveDisabled: !hasStartedEditing,
                     onCancel: { handleCancel() },
-                    onSave: { saveAppliance() }
+                    onSave: { saveAppliance() },
+                    scrollOffset: scrollOffset
                 )
-                .padding(.top, 8) // Additional breathing room from safe area
+                .padding(.top, AppTheme.smallSpacing) // 8pt additional from safe area (12pt internal + 8pt = 20pt total)
                 .background(AppTheme.background) // Ensure background for sticky header
                 .zIndex(1) // Ensure header stays above content during transitions
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        // Track scroll offset
+                        GeometryReader { geometry in
+                            let offset = geometry.frame(in: .named("scroll")).minY
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
+                        }
+                        .frame(height: 0)
+                        
                         // Scan receipt Section (only when enabled)
                         if FeatureFlags.isReceiptScanEnabled {
                             scanInvoiceSection
@@ -202,6 +212,10 @@ struct AddApplianceView: View {
                             .padding(.top, 24) // Block→grid gap 24pt
                     }
                     .padding(.bottom, AppTheme.tabBarBottomPadding)
+                }
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = max(0, -value)
                 }
             }
         }
@@ -928,11 +942,11 @@ struct AddApplianceView: View {
                 ForEach(DeviceType.allCases, id: \.self) { deviceType in
                     Button(action: {
                         selectedDeviceType = deviceType
-                        title = deviceType.rawValue
-                        // Pre-fill model with device type as default
-                        if model.isEmpty {
-                            model = deviceType.rawValue
+                        // Only auto-fill Appliance Name if it's empty
+                        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            title = deviceType.rawValue
                         }
+                        // Brand field is never auto-filled from device type
                     }) {
                         VStack(spacing: AppTheme.smallSpacing) {
                             Image(systemName: deviceType.icon)

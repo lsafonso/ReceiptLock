@@ -42,7 +42,8 @@ struct ApplianceDetailView: View {
                 // Actions
                 actionsSection
             }
-            .padding(AppTheme.spacing)
+            .padding(.horizontal, AppTheme.spacing)
+            .padding(.top, AppTheme.largeSpacing) // 24pt from safe area
         }
         .background(AppTheme.background)
         .navigationBarTitleDisplayMode(.inline)
@@ -111,7 +112,7 @@ struct ApplianceDetailView: View {
             Spacer()
         }
         .padding(.vertical, AppTheme.spacing)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24) // 24pt to match other screens' horizontal alignment
         .cardBackground()
     }
     
@@ -124,7 +125,7 @@ struct ApplianceDetailView: View {
             ApplianceInfoRow(title: "Added", value: formattedCreatedDate)
         }
         .padding(.vertical, AppTheme.spacing)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24) // 24pt to match other screens' horizontal alignment
         .cardBackground()
     }
     
@@ -183,7 +184,7 @@ struct ApplianceDetailView: View {
             }
         }
         .padding(.vertical, AppTheme.spacing)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24) // 24pt to match other screens' horizontal alignment
         .cardBackground()
     }
     

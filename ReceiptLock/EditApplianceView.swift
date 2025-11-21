@@ -24,6 +24,7 @@ struct EditApplianceView: View {
     @State private var showingSaveToast = false
     @State private var isSaving = false
     @State private var saveButtonState: SaveButtonState = .idle
+    @State private var scrollOffset: CGFloat = 0
     
     private var hasUnsavedChanges: Bool {
         title != (appliance.name ?? "") ||
@@ -55,17 +56,30 @@ struct EditApplianceView: View {
             AppTheme.background
                 .ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 0) {
-                    SheetHeaderView(
-                        title: "Edit Appliance",
-                        isSaving: isSaving,
-                        saveDisabled: title.isEmpty || brand.isEmpty || saveButtonState == .loading || saveButtonState == .success,
-                        onCancel: { dismiss() },
-                        onSave: { saveChanges() }
-                    )
-                    
+            VStack(spacing: 0) {
+                // Sticky Header
+                SheetHeaderView(
+                    title: "Edit Appliance",
+                    isSaving: isSaving,
+                    saveDisabled: title.isEmpty || brand.isEmpty || saveButtonState == .loading || saveButtonState == .success,
+                    onCancel: { dismiss() },
+                    onSave: { saveChanges() },
+                    scrollOffset: scrollOffset
+                )
+                .padding(.top, AppTheme.smallSpacing) // 8pt additional from safe area (12pt internal + 8pt = 20pt total)
+                .background(AppTheme.background) // Ensure background for sticky header
+                .zIndex(1) // Ensure header stays above content during transitions
+                
+                ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.largeSpacing) {
+                        // Track scroll offset
+                        GeometryReader { geometry in
+                            let offset = geometry.frame(in: .named("scroll")).minY
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
+                        }
+                        .frame(height: 0)
+                        
                         basicInformationSection
                         purchaseDetailsSection
                         warrantySection
@@ -74,6 +88,10 @@ struct EditApplianceView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 24)
                     .padding(.bottom, AppTheme.tabBarBottomPadding)
+                }
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = max(0, -value)
                 }
             }
             .scrollIndicators(.hidden)

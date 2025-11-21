@@ -208,6 +208,15 @@ extension View {
     }
 }
 
+// MARK: - Scroll Offset Preference Key
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // MARK: - Shared Sheet Header
 
 struct SheetHeaderView: View {
@@ -216,41 +225,51 @@ struct SheetHeaderView: View {
     var saveDisabled: Bool = false
     let onCancel: () -> Void
     let onSave: () -> Void
+    var scrollOffset: CGFloat = 0 // Track scroll offset for divider visibility
     
     var body: some View {
-        ZStack {
-            // Centered Title
-            Text(title)
-                .font(.headline.weight(.semibold))
-                .foregroundColor(AppTheme.text)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 0) {
+            ZStack {
+                // Centered Title
+                Text(title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.text)
+                    .multilineTextAlignment(.center)
+                
+                // Left and Right Buttons
+                HStack {
+                    Button(action: onCancel) {
+                        Text("Cancel")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppTheme.primary)
+                            .padding(.vertical, 12)
+                            .padding(.trailing, 12) // Hit area expansion
+                            .contentShape(Rectangle())
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: onSave) {
+                        Text(isSaving ? "Saving..." : "Save")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText.opacity(0.6) : AppTheme.primary)
+                            .padding(.vertical, 12)
+                            .padding(.leading, 12) // Hit area expansion
+                            .contentShape(Rectangle())
+                    }
+                    .disabled(isSaving || saveDisabled)
+                }
+            }
+            .frame(minHeight: 44)
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
             
-            // Left and Right Buttons
-            HStack {
-                Button(action: onCancel) {
-                    Text("Cancel")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(AppTheme.primary)
-                        .padding(.vertical, 12)
-                        .padding(.trailing, 12) // Hit area expansion
-                        .contentShape(Rectangle())
-                }
-                
-                Spacer()
-                
-                Button(action: onSave) {
-                    Text(isSaving ? "Saving..." : "Save")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText.opacity(0.6) : AppTheme.primary)
-                        .padding(.vertical, 12)
-                        .padding(.leading, 12) // Hit area expansion
-                        .contentShape(Rectangle())
-                }
-                .disabled(isSaving || saveDisabled)
+            // Subtle divider that appears when scrolled
+            if scrollOffset > 0 {
+                Divider()
+                    .background(AppTheme.separator.opacity(0.5))
+                    .padding(.horizontal, 24)
             }
         }
-        .frame(minHeight: 44)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
     }
 }

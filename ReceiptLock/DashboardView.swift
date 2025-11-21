@@ -36,19 +36,33 @@ struct DashboardView: View {
             AppTheme.background
                 .ignoresSafeArea()
             
-            ScrollView {
-                LazyVStack(spacing: AppTheme.largeSpacing) {
-                    // Header
+            List {
+                // Header
+                Section {
                     headerSection
-                    
-                    // Warranty Summary Card
-                    warrantySummaryCard
-                    
-                    // Your Appliances Section
-                    appliancesSection
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: AppTheme.largeSpacing, leading: AppTheme.spacing, bottom: 0, trailing: AppTheme.spacing))
                 }
-                .padding(AppTheme.spacing)
+                
+                // Warranty Summary Card
+                Section {
+                    warrantySummaryCard
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: AppTheme.largeSpacing, leading: AppTheme.spacing, bottom: 0, trailing: AppTheme.spacing))
+                }
+                
+                // Your Appliances Section
+                Section {
+                    appliancesSectionContent
+                } header: {
+                    appliancesSectionHeader
+                        .textCase(nil)
+                }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .navigationBarHidden(true)
@@ -187,71 +201,83 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - Appliances Section
-    private var appliancesSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            HStack {
-                Text("Your Appliances")
-                    .rlHeadline()
-                
-                Spacer()
-                
-                // Sorting Dropdown
-                Menu {
-                    ForEach(SortOrder.allCases, id: \.self) { sortOrder in
-                        Button(action: {
-                            selectedSortOrder = sortOrder
-                        }) {
-                            HStack {
-                                Text(sortOrder.rawValue)
-                                if selectedSortOrder == sortOrder {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(AppTheme.primary)
-                                }
+    // MARK: - Appliances Section Header
+    private var appliancesSectionHeader: some View {
+        HStack {
+            Text("Your Appliances")
+                .rlHeadline()
+            
+            Spacer()
+            
+            // Sorting Dropdown
+            Menu {
+                ForEach(SortOrder.allCases, id: \.self) { sortOrder in
+                    Button(action: {
+                        selectedSortOrder = sortOrder
+                    }) {
+                        HStack {
+                            Text(sortOrder.rawValue)
+                            if selectedSortOrder == sortOrder {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(AppTheme.primary)
                             }
                         }
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.caption)
-                        Text(selectedSortOrder.rawValue)
-                            .rlCaption()
-                            .fontWeight(.medium)
-                        Image(systemName: "chevron.down")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(AppTheme.primary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(AppTheme.primary.opacity(0.1))
-                    .cornerRadius(AppTheme.smallCornerRadius)
                 }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.caption)
+                    Text(selectedSortOrder.rawValue)
+                        .rlCaption()
+                        .fontWeight(.medium)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                }
+                .foregroundColor(AppTheme.primary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(AppTheme.primary.opacity(0.1))
+                .cornerRadius(AppTheme.smallCornerRadius)
             }
-            
+        }
+        .padding(.horizontal, AppTheme.spacing)
+        .padding(.top, AppTheme.smallSpacing) // Small top padding, List section provides additional spacing
+    }
+    
+    // MARK: - Appliances Section Content
+    private var appliancesSectionContent: some View {
+        Group {
             if sortedAppliances.isEmpty {
-                VStack {
-                    Spacer()
-                    
-                    EmptyStateView(
-                        title: "No Appliances Yet",
-                        message: "Start by adding your first appliance to track warranties.",
-                        systemImage: "plus.circle"
-                    )
-                    
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .frame(minHeight: 400)
+                EmptyStateView(
+                    title: "No Appliances Yet",
+                    message: "Start by adding your first appliance to track warranties.",
+                    systemImage: "plus.circle"
+                )
+                .frame(maxWidth: .infinity, minHeight: 400)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: AppTheme.spacing, leading: AppTheme.spacing, bottom: AppTheme.spacing, trailing: AppTheme.spacing))
             } else {
-                LazyVStack(spacing: AppTheme.spacing) {
-                    ForEach(sortedAppliances, id: \.id) { appliance in
-                        ExpandableApplianceCard(appliance: appliance)
-                    }
+                ForEach(Array(sortedAppliances.enumerated()), id: \.element.id) { index, appliance in
+                    ExpandableApplianceCard(appliance: appliance)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(
+                            top: index == 0 ? AppTheme.spacing : 0,
+                            leading: AppTheme.spacing,
+                            bottom: 0,
+                            trailing: AppTheme.spacing
+                        ))
+                        .padding(.bottom, AppTheme.spacing) // Card→card gap 16pt
                 }
+                
+                // View All Button
+                viewAllButton
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: AppTheme.spacing, leading: AppTheme.spacing, bottom: 0, trailing: AppTheme.spacing))
             }
-            
-            viewAllButton
         }
     }
     

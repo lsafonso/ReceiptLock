@@ -50,7 +50,7 @@ struct SettingsView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 24) // 24pt side insets
-                .padding(.top, 24) // H1 top inset 24pt
+                .padding(.top, AppTheme.largeSpacing) // 24pt from safe area
                 
                 profilePersonalizationSection
                     .padding(.top, 16) // Group top margin 16pt

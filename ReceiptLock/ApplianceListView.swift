@@ -125,7 +125,7 @@ struct ApplianceListView: View {
                         // Filter Picker
                         filterPicker
                     }
-                    .padding(.top, 16) // Top padding for search bar
+                    .padding(.top, AppTheme.largeSpacing) // 24pt from safe area
                     .padding(.bottom, 16) // 16pt gap to cards
                     
                     // Appliance List
