@@ -203,52 +203,19 @@ struct ValidatedTextField: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-            HStack {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(AppTheme.text)
-                
-                if validationManager.getError(for: fieldKey) != nil {
-                    Text("*")
-                        .font(.headline)
-                        .foregroundColor(AppTheme.error)
-                }
-                
-                Spacer()
-            }
-            
-            TextField(placeholder, text: $text)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding(.horizontal, AppTheme.spacing)
-                .padding(.vertical, AppTheme.smallSpacing)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                        .fill(AppTheme.cardBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                                .stroke(
-                                    validationManager.getError(for: fieldKey) != nil ? AppTheme.error : AppTheme.separator,
-                                    lineWidth: 1
-                                )
-                        )
-                )
-                .onChange(of: text) { _, newValue in
-                    if !skipValidation {
-                        _ = validationRule(newValue, fieldKey)
-                    } else {
-                        // Clear error for this field when skipping validation (during reset)
-                        validationManager.errors.removeValue(forKey: fieldKey)
-                    }
-                }
-            
-            if let error = validationManager.getError(for: fieldKey) {
-                Text(error.errorDescription ?? "")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.error)
-                    .padding(.horizontal, AppTheme.spacing)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+        ReceiptLockTextField(
+            title: title,
+            placeholder: placeholder,
+            text: $text,
+            hasError: validationManager.getError(for: fieldKey) != nil,
+            errorMessage: validationManager.getError(for: fieldKey)?.errorDescription
+        )
+        .onChange(of: text) { _, newValue in
+            if !skipValidation {
+                _ = validationRule(newValue, fieldKey)
+            } else {
+                // Clear error for this field when skipping validation (during reset)
+                validationManager.errors.removeValue(forKey: fieldKey)
             }
         }
     }

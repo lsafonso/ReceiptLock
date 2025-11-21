@@ -188,50 +188,104 @@ struct AvatarView: View {
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var profileManager = UserProfileManager.shared
+    
     @State private var name: String
     @State private var email: String
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var isSaving: Bool = false
+    @State private var scrollOffset: CGFloat = 0
+    
+    // Tracking changes
+    @State private var originalName: String
+    @State private var originalEmail: String
+    
+    // Focus management
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case name
+        case email
+    }
     
     init() {
-        self._name = State(initialValue: UserProfileManager.shared.currentProfile.name)
-        self._email = State(initialValue: UserProfileManager.shared.currentProfile.email)
+        let currentProfile = UserProfileManager.shared.currentProfile
+        self._name = State(initialValue: currentProfile.name)
+        self._email = State(initialValue: currentProfile.email)
+        self._originalName = State(initialValue: currentProfile.name)
+        self._originalEmail = State(initialValue: currentProfile.email)
+    }
+    
+    var hasChanges: Bool {
+        let nameChanged = name.trimmingCharacters(in: .whitespacesAndNewlines) != originalName
+        let emailChanged = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != originalEmail.lowercased()
+        let imageChanged = selectedImage != nil
+        
+        return nameChanged || emailChanged || imageChanged
+    }
+    
+    var isEmailValid: Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email.trimmingCharacters(in: .whitespacesAndNewlines))
     }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppTheme.largeSpacing) {
-                    // Avatar Section
-                    avatarSection
-                    
-                    // Name Section
-                    nameSection
-                    
-                    // Email Section
-                    emailSection
-                }
-                .padding(AppTheme.spacing)
-            }
-            .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Page Header
+                SheetHeaderView(
+                    title: "Edit Profile",
+                    isSaving: isSaving,
+                    saveDisabled: !hasChanges,
+                    onCancel: { dismiss() },
+                    onSave: {
+                        handleSave()
+                    },
+                    scrollOffset: scrollOffset
+                )
+                .padding(.top, 8) // Reduced from AppTheme.smallSpacing
+                .background(AppTheme.background)
+                .zIndex(1)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Track scroll offset
+                        GeometryReader { geometry in
+                            let offset = geometry.frame(in: .named("scroll")).minY
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
+                        }
+                        .frame(height: 0)
+                        
+                        VStack(spacing: AppTheme.largeSpacing) {
+                            // Avatar Section
+                            avatarSection
+                            
+                            VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                                Text("Profile Details")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundColor(AppTheme.secondaryText)
+                                    .accessibilityAddTraits(.isHeader)
+                                
+                                VStack(spacing: AppTheme.spacing) {
+                                    // Name Section
+                                    nameSection
+                                    
+                                    // Email Section
+                                    emailSection
+                                }
+                            }
+                        }
+                        .padding(AppTheme.spacing)
                     }
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.primary)
-                    .lineLimit(1)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveProfile()
-                        dismiss()
-                    }
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.primary)
-                    .lineLimit(1)
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = max(0, -value)
                 }
             }
         }
@@ -241,10 +295,10 @@ struct ProfileEditView: View {
     }
     
     private var avatarSection: some View {
-        VStack(spacing: AppTheme.spacing) {
-            Button(action: {
-                showingImagePicker = true
-            }) {
+        Button(action: {
+            showingImagePicker = true
+        }) {
+            VStack(spacing: AppTheme.spacing) {
                 ZStack {
                     AvatarView(
                         image: selectedImage ?? profileManager.getAvatarImage(),
@@ -266,50 +320,79 @@ struct ProfileEditView: View {
                             .shadow(color: AppTheme.primary.opacity(0.3), radius: 8, x: 0, y: 2)
                     }
                 }
+                
+                Text(selectedImage == nil && profileManager.getAvatarImage() == nil ? "Tap to add photo" : "Change")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.primary)
             }
-            .buttonStyle(PlainButtonStyle())
-            
-            Text(selectedImage == nil && profileManager.getAvatarImage() == nil ? "Tap to add photo" : "Tap to change photo")
-                .font(.caption)
-                .foregroundColor(AppTheme.secondaryText)
         }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel("Profile photo")
+        .accessibilityHint("Double-tap to change profile photo")
     }
     
     private var nameSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-            Text("Name")
-                .font(.headline)
-                .foregroundColor(AppTheme.text)
-            
-            TextField("Enter your name", text: $name)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.vertical, AppTheme.smallSpacing)
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.cornerRadius)
-        }
+        ReceiptLockTextField(
+            title: "Name",
+            placeholder: "Enter your name",
+            text: $name,
+            textContentType: .name,
+            autocapitalization: .words,
+            submitLabel: .next,
+            onSubmit: {
+                focusedField = .email
+            }
+        )
+        .focused($focusedField, equals: .name)
+        .accessibilityLabel("Name, text field")
     }
     
     private var emailSection: some View {
-        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-            Text("Email")
-                .font(.headline)
-                .foregroundColor(AppTheme.text)
-            
-            TextField("Enter your email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.emailAddress)
-                .autocapitalization(.none)
-                .padding(.vertical, AppTheme.smallSpacing)
-                .background(AppTheme.cardBackground)
-                .cornerRadius(AppTheme.cornerRadius)
-        }
+        ReceiptLockTextField(
+            title: "Email",
+            placeholder: "Enter your email",
+            text: $email,
+            keyboardType: .emailAddress,
+            textContentType: .emailAddress,
+            autocapitalization: .never,
+            autocorrectionDisabled: true,
+            hasError: !email.isEmpty && !isEmailValid,
+            errorMessage: "Enter a valid email address.",
+            submitLabel: .done,
+            onSubmit: {
+                handleSave()
+            }
+        )
+        .focused($focusedField, equals: .email)
+        .accessibilityLabel("Email address, text field")
     }
     
-    
-    private func saveProfile() {
+    private func handleSave() {
+        guard hasChanges else { return }
+        
+        // Trim inputs
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        // Validate
+        guard !trimmedEmail.isEmpty else { return }
+        
+        // Simple email validation regex
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        guard emailPred.evaluate(with: trimmedEmail) else {
+            // Trigger haptic for error?
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+            return
+        }
+        
+        isSaving = true
+        
+        // Update model
         var updatedProfile = profileManager.currentProfile
-        updatedProfile.name = name
-        updatedProfile.email = email
+        updatedProfile.name = trimmedName
+        updatedProfile.email = trimmedEmail
         
         // Update avatar data in the profile before saving
         if let selectedImage = selectedImage {
@@ -320,7 +403,16 @@ struct ProfileEditView: View {
         
         profileManager.updateProfile(updatedProfile)
         
-        // Note: dismiss() is handled by the Save button action to avoid double dismissal
+        // Success feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
+        dismiss()
+    }
+    
+    // Deprecated: Logic moved to handleSave
+    private func saveProfile() {
+        handleSave()
     }
 }
 
