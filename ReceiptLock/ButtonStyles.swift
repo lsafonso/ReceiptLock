@@ -241,7 +241,7 @@ struct SheetHeaderView: View {
                 Button(action: onSave) {
                     Text(isSaving ? "Saving..." : "Save")
                         .font(.headline.weight(.semibold))
-                        .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText : AppTheme.primary)
+                        .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText.opacity(0.6) : AppTheme.primary)
                         .padding(.vertical, 12)
                         .padding(.leading, 12) // Hit area expansion
                         .contentShape(Rectangle())

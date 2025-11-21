@@ -156,11 +156,13 @@ struct AddApplianceView: View {
     }
     
     // Computed property to check if user has started entering any data
-    private var hasStartedEnteringData: Bool {
-        !title.isEmpty ||
-        !store.isEmpty ||
-        !model.isEmpty ||
-        !serialNumber.isEmpty ||
+    private var hasStartedEditing: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !store.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !serialNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !warrantySummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
         price > 0 ||
         selectedDeviceType != nil ||
         selectedImage != nil ||
@@ -172,31 +174,36 @@ struct AddApplianceView: View {
             AppTheme.background
                 .ignoresSafeArea()
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Page Header
-                    SheetHeaderView(
-                        title: "Add Appliance",
-                        isSaving: isSaving,
-                        onCancel: { handleCancel() },
-                        onSave: { saveAppliance() }
-                    )
-                    
-                    // Scan receipt Section (only when enabled)
-                    if FeatureFlags.isReceiptScanEnabled {
-                        scanInvoiceSection
+            VStack(spacing: 0) {
+                // Page Header
+                SheetHeaderView(
+                    title: "Add Appliance",
+                    isSaving: isSaving,
+                    saveDisabled: !hasStartedEditing,
+                    onCancel: { handleCancel() },
+                    onSave: { saveAppliance() }
+                )
+                .padding(.top, 8) // Additional breathing room from safe area
+                .background(AppTheme.background) // Ensure background for sticky header
+                .zIndex(1) // Ensure header stays above content during transitions
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Scan receipt Section (only when enabled)
+                        if FeatureFlags.isReceiptScanEnabled {
+                            scanInvoiceSection
+                                .padding(.horizontal, 24) // 24pt side insets for card alignment
+                                .padding(.top, 24) // Header→intro block gap 24pt
+                        }
+                        
+                        // Manual Entry Section
+                        manualEntrySection
                             .padding(.horizontal, 24) // 24pt side insets for card alignment
-                            .padding(.top, 24) // Header→intro block gap 24pt
+                            .padding(.top, 24) // Block→grid gap 24pt
                     }
-                    
-                    // Manual Entry Section
-                    manualEntrySection
-                        .padding(.horizontal, 24) // 24pt side insets for card alignment
-                        .padding(.top, 24) // Block→grid gap 24pt
-                    
+                    .padding(.bottom, AppTheme.tabBarBottomPadding)
                 }
             }
-            .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .sheet(item: $savedApplianceForDetail, onDismiss: {
             resetForm()
