@@ -220,6 +220,8 @@ struct ProfileEditView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.primary)
                     .lineLimit(1)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -227,6 +229,8 @@ struct ProfileEditView: View {
                         saveProfile()
                         dismiss()
                     }
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(AppTheme.primary)
                     .lineLimit(1)
                 }
             }
