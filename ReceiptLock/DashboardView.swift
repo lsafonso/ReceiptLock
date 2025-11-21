@@ -97,33 +97,34 @@ struct DashboardView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
                     
-                    Button(action: {
-                        showingProfileEdit = true
-                    }) {
-                        ZStack {
-                            AvatarView(
-                                image: profileManager.getAvatarImage(),
-                                size: 28,
-                                showBorder: true
-                            )
-                            
-                            // Plus icon overlay when no photo is selected
-                            if profileManager.getAvatarImage() == nil {
-                                Circle()
-                                    .fill(AppTheme.primary.opacity(0.9))
-                                    .frame(width: 16, height: 16)
-                                    .overlay(
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(.white)
-                                    )
-                                    .offset(x: 10, y: 10) // Bottom right corner
-                                    .shadow(color: AppTheme.primary.opacity(0.3), radius: 4, x: 0, y: 1)
-                            }
+                    ZStack {
+                        AvatarView(
+                            image: profileManager.getAvatarImage(),
+                            size: 28,
+                            showBorder: true
+                        )
+                        
+                        // Plus icon overlay when no photo is selected
+                        if profileManager.getAvatarImage() == nil {
+                            Circle()
+                                .fill(AppTheme.primary.opacity(0.9))
+                                .frame(width: 16, height: 16)
+                                .overlay(
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white)
+                                )
+                                .offset(x: 10, y: 10) // Bottom right corner
+                                .shadow(color: AppTheme.primary.opacity(0.3), radius: 4, x: 0, y: 1)
                         }
                     }
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
+                    .accessibilityLabel("Edit profile")
+                    .accessibilityAddTraits(.isButton)
+                    .onTapGesture {
+                        showingProfileEdit = true
+                    }
                 }
             }
         }
