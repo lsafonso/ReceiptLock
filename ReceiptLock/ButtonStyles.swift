@@ -223,6 +223,7 @@ struct SheetHeaderView: View {
     let title: String
     let isSaving: Bool
     var saveDisabled: Bool = false
+    var saveButtonTitle: String = "Save"
     let onCancel: () -> Void
     let onSave: () -> Void
     var scrollOffset: CGFloat = 0 // Track scroll offset for divider visibility
@@ -250,7 +251,7 @@ struct SheetHeaderView: View {
                     Spacer()
                     
                     Button(action: onSave) {
-                        Text(isSaving ? "Saving..." : "Save")
+                        Text(isSaving ? "Saving..." : saveButtonTitle)
                             .font(.headline.weight(.semibold))
                             .foregroundColor(isSaving || saveDisabled ? AppTheme.secondaryText.opacity(0.6) : AppTheme.primary)
                             .padding(.vertical, 12)

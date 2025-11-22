@@ -366,52 +366,62 @@ struct ReminderManagementView: View {
     @State private var showingCustomMessageEditor = false
     @State private var editingReminder: Reminder?
     @State private var customMessage: String = ""
+    @State private var scrollOffset: CGFloat = 0
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: AppTheme.largeSpacing) {
-                    // Header
-                    headerSection
-                    
-                    // Reminder Settings
-                    reminderSettingsSection
-                    
-                    // Custom Message
-                    customMessageSection
-                    
-                    // Reminder Time
-                    reminderTimeSection
-                    
-                    // Notification Toggle
-                    notificationToggleSection
-                }
-                .padding(AppTheme.spacing)
-            }
-            .navigationTitle("Reminder Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(.editor)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("Cancel")
-                            .lineLimit(1)
-                    }
-                }
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                SheetHeaderView(
+                    title: "Reminder Settings",
+                    isSaving: false,
+                    saveDisabled: false,
+                    saveButtonTitle: "Done",
+                    onCancel: { dismiss() },
+                    onSave: { dismiss() },
+                    scrollOffset: scrollOffset
+                )
+                .padding(.top, AppTheme.smallSpacing)
+                .background(AppTheme.background)
+                .zIndex(1)
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("Done")
-                            .lineLimit(1)
+                ScrollView {
+                    VStack(spacing: AppTheme.largeSpacing) {
+                        // Track scroll offset
+                        GeometryReader { geometry in
+                            let offset = geometry.frame(in: .named("scroll")).minY
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
+                        }
+                        .frame(height: 0)
+                        
+                        // Header
+                        headerSection
+                        
+                        // Reminder Settings
+                        reminderSettingsSection
+                        
+                        // Custom Message
+                        customMessageSection
+                        
+                        // Reminder Time
+                        reminderTimeSection
+                        
+                        // Notification Toggle
+                        notificationToggleSection
                     }
-                    .fontWeight(.semibold)
+                    .padding(AppTheme.spacing)
+                }
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = max(0, -value)
                 }
             }
         }
+        .navigationBarBackButtonHidden(true)
         .sheet(isPresented: $showingCustomMessageEditor) {
             CustomMessageEditorView(
                 message: $customMessage,
