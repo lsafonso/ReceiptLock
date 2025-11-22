@@ -8,6 +8,7 @@
 import SwiftUI
 import UserNotifications
 
+@available(iOS 18.0, *)
 struct NotificationPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("notificationSound") private var notificationSound: String = "default"
@@ -256,6 +257,7 @@ struct NotificationPreferencesView: View {
     }
 }
 
+@available(iOS 18.0, *)
 #Preview {
     NotificationPreferencesView()
 }
