@@ -626,51 +626,70 @@ struct CustomMessageEditorView: View {
     let onSave: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tempMessage: String = ""
+    @State private var showingDiscardConfirmation = false
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: AppTheme.largeSpacing) {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    Text("Custom Message Template")
-                        .font(.headline)
-                        .foregroundColor(AppTheme.text)
-                    
-                    Text("Use these placeholders in your message:")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                    
-                    VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                        Text("• {appliance} - Appliance name")
-                        Text("• {expiryDate} - Warranty expiry date")
-                        Text("• {daysLeft} - Days until expiry")
-                    }
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                }
-                
-                TextField("Enter your custom message...", text: $tempMessage, axis: .vertical)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .lineLimit(3...6)
-                
-                Spacer()
-            }
-            .padding(AppTheme.spacing)
-            .navigationTitle("Edit Message")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    CancelButton(action: { dismiss() }, hasUnsavedChanges: tempMessage != message)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                SheetHeaderView(
+                    title: "Edit Message",
+                    isSaving: false,
+                    saveDisabled: false,
+                    saveButtonTitle: "Save",
+                    onCancel: {
+                        if tempMessage != message {
+                            showingDiscardConfirmation = true
+                        } else {
+                            dismiss()
+                        }
+                    },
+                    onSave: {
                         message = tempMessage
                         onSave(tempMessage)
                         dismiss()
+                    },
+                    scrollOffset: 0
+                )
+                .padding(.top, AppTheme.smallSpacing)
+                .background(AppTheme.background)
+                .zIndex(1)
+                
+                VStack(spacing: AppTheme.largeSpacing) {
+                    VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                        Text("Custom Message Template")
+                            .font(.headline)
+                            .foregroundColor(AppTheme.text)
+                        
+                        Text("Use these placeholders in your message:")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                        
+                        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                            Text("• {appliance} - Appliance name")
+                            Text("• {expiryDate} - Warranty expiry date")
+                            Text("• {daysLeft} - Days until expiry")
+                        }
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
                     }
-                    .buttonStyle(PrimarySaveButtonStyle(state: .idle))
+                    
+                    TextField("Enter your custom message...", text: $tempMessage, axis: .vertical)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .lineLimit(3...6)
+                    
+                    Spacer()
                 }
+                .padding(AppTheme.spacing)
             }
+        }
+        .confirmationDialog("Discard changes?", isPresented: $showingDiscardConfirmation, titleVisibility: .visible) {
+            Button("Discard", role: .destructive) {
+                dismiss()
+            }
+            Button("Keep Editing", role: .cancel) { }
         }
         .onAppear {
             tempMessage = message
@@ -686,51 +705,55 @@ struct ReminderMessageEditorView: View {
     @State private var tempMessage: String = ""
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: AppTheme.largeSpacing) {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    Text("Edit \(reminder.displayText) Message")
-                        .font(.headline)
-                        .foregroundColor(AppTheme.text)
-                    
-                    Text("Use these placeholders in your message:")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.secondaryText)
-                    
-                    VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
-                        Text("• {appliance} - Appliance name")
-                        Text("• {expiryDate} - Warranty expiry date")
-                        Text("• {daysLeft} - Days until expiry")
-                    }
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                }
-                
-                TextField("Enter your message...", text: $tempMessage, axis: .vertical)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .lineLimit(3...6)
-                
-                Spacer()
-            }
-            .padding(AppTheme.spacing)
-            .navigationTitle("Edit Message")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                SheetHeaderView(
+                    title: "Edit Message",
+                    isSaving: false,
+                    saveDisabled: false,
+                    saveButtonTitle: "Save",
+                    onCancel: { dismiss() },
+                    onSave: {
                         var updatedReminder = reminder
                         updatedReminder.message = tempMessage
                         onSave(updatedReminder)
                         dismiss()
+                    },
+                    scrollOffset: 0
+                )
+                .padding(.top, AppTheme.smallSpacing)
+                .background(AppTheme.background)
+                .zIndex(1)
+                
+                VStack(spacing: AppTheme.largeSpacing) {
+                    VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                        Text("Edit \(reminder.displayText) Message")
+                            .font(.headline)
+                            .foregroundColor(AppTheme.text)
+                        
+                        Text("Use these placeholders in your message:")
+                            .font(.subheadline)
+                            .foregroundColor(AppTheme.secondaryText)
+                        
+                        VStack(alignment: .leading, spacing: AppTheme.smallSpacing) {
+                            Text("• {appliance} - Appliance name")
+                            Text("• {expiryDate} - Warranty expiry date")
+                            Text("• {daysLeft} - Days until expiry")
+                        }
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
                     }
-                    .fontWeight(.semibold)
+                    
+                    TextField("Enter your message...", text: $tempMessage, axis: .vertical)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .lineLimit(3...6)
+                    
+                    Spacer()
                 }
+                .padding(AppTheme.spacing)
             }
         }
         .onAppear {
