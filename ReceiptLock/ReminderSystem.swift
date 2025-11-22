@@ -107,6 +107,18 @@ class ReminderManager: ObservableObject {
         }
     }
     
+    func setReminderEnabled(_ reminder: Reminder, isEnabled: Bool) {
+        if let index = preferences.defaultReminders.firstIndex(where: { $0.id == reminder.id }) {
+            preferences.defaultReminders[index].isEnabled = isEnabled
+            savePreferences()
+            
+            // Reschedule notifications
+            Task {
+                await rescheduleAllNotifications()
+            }
+        }
+    }
+    
     func updateReminderMessage(_ reminder: Reminder, message: String) {
         if let index = preferences.defaultReminders.firstIndex(where: { $0.id == reminder.id }) {
             preferences.defaultReminders[index].message = message
@@ -479,12 +491,18 @@ struct ReminderManagementView: View {
                 .foregroundColor(AppTheme.text)
             
             VStack(spacing: AppTheme.smallSpacing) {
-                ForEach(reminderManager.preferences.defaultReminders) { reminder in
+                ForEach(reminderManager.preferences.defaultReminders.indices, id: \.self) { index in
+                    let reminder = reminderManager.preferences.defaultReminders[index]
                     ReminderRowView(
                         reminder: reminder,
-                        onToggle: {
-                            reminderManager.toggleReminder(reminder)
-                        },
+                        isEnabled: Binding(
+                            get: {
+                                reminderManager.preferences.defaultReminders[index].isEnabled
+                            },
+                            set: { newValue in
+                                reminderManager.setReminderEnabled(reminder, isEnabled: newValue)
+                            }
+                        ),
                         onEditMessage: {
                             editingReminder = reminder
                         }
@@ -584,7 +602,7 @@ struct ReminderManagementView: View {
 // MARK: - Reminder Row View
 struct ReminderRowView: View {
     let reminder: Reminder
-    let onToggle: () -> Void
+    @Binding var isEnabled: Bool
     let onEditMessage: () -> Void
     
     var body: some View {
@@ -603,11 +621,8 @@ struct ReminderRowView: View {
             Spacer()
             
             VStack(spacing: AppTheme.smallSpacing) {
-                Toggle("", isOn: .constant(reminder.isEnabled))
+                Toggle("", isOn: $isEnabled)
                     .labelsHidden()
-                    .onTapGesture {
-                        onToggle()
-                    }
                 
                 Button(action: onEditMessage) {
                     Image(systemName: "pencil")
