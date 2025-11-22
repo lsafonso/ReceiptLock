@@ -52,9 +52,17 @@ struct RemindersTabView: View {
                 
                 Spacer()
                 
-                Image(systemName: "bell.badge.fill")
-                    .font(.title)
-                    .foregroundColor(AppTheme.primary)
+                Button(action: {
+                    showingReminderManagement = true
+                }) {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.title)
+                        .foregroundColor(AppTheme.primary)
+                }
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+                .accessibilityLabel("Open reminder settings")
+                .accessibilityAddTraits(.isButton)
             }
         }
         .padding(.horizontal, 24) // 24pt side insets for card alignment

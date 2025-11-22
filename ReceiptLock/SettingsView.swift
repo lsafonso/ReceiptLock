@@ -21,6 +21,7 @@ struct SettingsView: View {
     // Sheet States
     @State private var showingReminderManagement = false
     @State private var showingImportPicker = false
+    @State private var showingImportBackupView = false
     
     // Data Managers
     @StateObject private var backupManager = DataBackupManager.shared
@@ -104,6 +105,9 @@ struct SettingsView: View {
         // Sheets & Importers
         .sheet(isPresented: $showingReminderManagement) {
             ReminderManagementView()
+        }
+        .sheet(isPresented: $showingImportBackupView) {
+            ImportBackupView()
         }
         .fileImporter(
             isPresented: $showingImportPicker,
@@ -220,7 +224,7 @@ struct SettingsView: View {
                     }
                     
                     Button(action: {
-                        showingImportPicker = true
+                        showingImportBackupView = true
                     }) {
                         Label("Import ZIP", systemImage: "square.and.arrow.down")
                     }
