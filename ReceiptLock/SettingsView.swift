@@ -8,32 +8,31 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var showingExportSheet = false
-    @State private var showingImportPicker = false
+    // MARK: - State Properties
+    
+    // Alert States
     @State private var showingDeleteAlert = false
-    @State private var showingReminderManagement = false
-    @State private var showingReceiptCategories = false
-    @State private var showingStoragePreferences = false
-    @State private var showingNotificationPreferences = false
-    @State private var showingCustomReminderMessages = false
-    @State private var showingStorageUsage = false
     @State private var showingRestartAlert = false
     @State private var showingExportAlert = false
     @State private var exportAlertMessage = ""
     @State private var showingImportAlert = false
     @State private var importAlertMessage = ""
+    
+    // Sheet States
+    @State private var showingReminderManagement = false
+    @State private var showingImportPicker = false
+    
+    // Data Managers
     @StateObject private var backupManager = DataBackupManager.shared
     @StateObject private var currencyManager = CurrencyManager.shared
     @StateObject private var profileManager = UserProfileManager.shared
     
-    // Expandable sections state
+    // Expandable Sections State
     @State private var isCurrencyExpanded = false
-    @State private var isReceiptApplianceExpanded = false
-    @State private var isNotificationsRemindersExpanded = false
-    @State private var isSecurityPrivacyExpanded = false
-    @State private var isBackupSyncExpanded = false
-    @State private var isDataManagementExpanded = false
-    @State private var isAboutSupportExpanded = false
+    @State private var isNotificationsExpanded = false
+    @State private var isBackupExpanded = false
+    @State private var isAboutExpanded = false
+    @State private var isDangerZoneExpanded = false
     
     var body: some View {
         ZStack {
@@ -42,42 +41,43 @@ struct SettingsView: View {
             
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                // Page Title at top left
-                HStack {
-                    Text("Settings")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(AppTheme.text)
-                    Spacer()
+                    // Page Title
+                    HStack {
+                        Text("Settings")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(AppTheme.text)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, AppTheme.largeSpacing)
+                    
+                    // A. Currency
+                    currencySection
+                        .padding(.top, 16)
+                    
+                    // B. Notifications & Reminders
+                    notificationsRemindersSection
+                        .padding(.top, 16)
+                    
+                    // C. Backup & Sync
+                    backupSyncSection
+                        .padding(.top, 16)
+                    
+                    // D. Danger Zone (Reordered to be before About & Support)
+                    dangerZoneSection
+                        .padding(.top, 16)
+                    
+                    // E. About & Support (Reordered to be last)
+                    aboutSupportSection
+                        .padding(.top, 16)
                 }
-                .padding(.horizontal, 24) // 24pt side insets
-                .padding(.top, AppTheme.largeSpacing) // 24pt from safe area
-                
-                profilePersonalizationSection
-                    .padding(.top, 16) // Group top margin 16pt
-                
-                receiptApplianceSection
-                    .padding(.top, 16) // Group→group 16pt
-                
-                notificationsRemindersSection
-                    .padding(.top, 16) // Group→group 16pt
-                
-                // securityPrivacySection // Hidden as requested
-                
-                backupSyncSection
-                    .padding(.top, 16) // Group→group 16pt
-                
-                dataManagementSection
-                    .padding(.top, 16) // Group→group 16pt
-                
-                aboutSupportSection
-                    .padding(.top, 16) // Group→group 16pt
-                }
-                .padding(.horizontal, 24) // 24pt side insets for full-bleed cards
+                .padding(.horizontal, 24)
             }
-            .scrollContentBackground(.hidden) // Hide list background
+            .scrollContentBackground(.hidden)
             .padding(.bottom, AppTheme.tabBarBottomPadding)
         }
         .navigationBarTitleDisplayMode(.inline)
+        // Alerts
         .alert("Delete All Data", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
@@ -85,27 +85,6 @@ struct SettingsView: View {
             }
         } message: {
             Text("This will permanently delete all receipts and associated files. This action cannot be undone.")
-        }
-        .sheet(isPresented: $showingExportSheet) {
-            ExportView()
-        }
-        .sheet(isPresented: $showingReminderManagement) {
-            ReminderManagementView()
-        }
-        .sheet(isPresented: $showingReceiptCategories) {
-            ReceiptCategoriesView()
-        }
-        .sheet(isPresented: $showingStoragePreferences) {
-            StoragePreferencesView()
-        }
-        .sheet(isPresented: $showingNotificationPreferences) {
-            NotificationPreferencesView()
-        }
-        .sheet(isPresented: $showingCustomReminderMessages) {
-            CustomReminderMessagesView()
-        }
-        .sheet(isPresented: $showingStorageUsage) {
-            StorageUsageView()
         }
         .alert("Restart Required", isPresented: $showingRestartAlert) {
             Button("OK") { }
@@ -122,6 +101,10 @@ struct SettingsView: View {
         } message: {
             Text(importAlertMessage)
         }
+        // Sheets & Importers
+        .sheet(isPresented: $showingReminderManagement) {
+            ReminderManagementView()
+        }
         .fileImporter(
             isPresented: $showingImportPicker,
             allowedContentTypes: [.zip],
@@ -131,18 +114,16 @@ struct SettingsView: View {
         }
     }
     
-
+    // MARK: - A. Currency Section
     
-    // MARK: - Profile & Personalization Section
-    
-    private var profilePersonalizationSection: some View {
+    private var currencySection: some View {
         ExpandableSettingsSection(
-            title: "Currency Settings", 
-            icon: "creditcard.fill", 
+            title: "Currency",
+            icon: "creditcard.fill",
             isExpanded: $isCurrencyExpanded
         ) {
             SettingsRow(
-                title: "Preferences",
+                title: "Currency Preferences",
                 subtitle: "\(currencyManager.currencySymbol) \(currencyManager.currencyName)",
                 icon: "creditcard.fill"
             ) {
@@ -175,49 +156,17 @@ struct SettingsView: View {
         }
     }
     
-    // MARK: - Receipt & Appliance Settings Section
-    
-    private var receiptApplianceSection: some View {
-        ExpandableSettingsSection(
-            title: "Receipt & Appliance", 
-            icon: "doc.text.fill", 
-            isExpanded: $isReceiptApplianceExpanded
-        ) {
-            SettingsRow(
-                title: "Categories",
-                subtitle: "Manage organisation",
-                icon: "folder.fill"
-            ) {
-                Button("Manage") {
-                    showingReceiptCategories = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Storage Preferences",
-                subtitle: "Manage storage and compression",
-                icon: "externaldrive.fill"
-            ) {
-                Button("Configure") {
-                    showingStoragePreferences = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-        }
-    }
-    
-    // MARK: - Notifications & Reminders Section
+    // MARK: - B. Notifications & Reminders Section
     
     private var notificationsRemindersSection: some View {
         ExpandableSettingsSection(
-            title: "Notifications & Reminders", 
-            icon: "bell.fill", 
-            isExpanded: $isNotificationsRemindersExpanded
+            title: "Notifications & Reminders",
+            icon: "bell.fill",
+            isExpanded: $isNotificationsExpanded
         ) {
             SettingsRow(
                 title: "Reminder Settings",
-                subtitle: "Configure multiple reminders and custom messages",
+                subtitle: "Configure multiple reminders",
                 icon: "bell.badge.fill"
             ) {
                 Button("Configure") {
@@ -225,84 +174,18 @@ struct SettingsView: View {
                 }
                 .foregroundColor(AppTheme.primary)
             }
-            
-         
-            
-            SettingsRow(
-                title: "Notification Preferences",
-                subtitle: "Sound, badges, and alert styles",
-                icon: "speaker.wave.2.fill"
-            ) {
-                Button("Configure") {
-                    showingNotificationPreferences = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Custom Reminders",
-                subtitle: "Personalise your reminder notifications",
-                icon: "text.bubble.fill"
-            ) {
-                Button("Configure") {
-                    showingCustomReminderMessages = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
         }
     }
     
-    // MARK: - Security & Privacy Section
-    
-    private var securityPrivacySection: some View {
-        ExpandableSettingsSection(
-            title: "Security & Privacy", 
-            icon: "lock.shield.fill", 
-            isExpanded: $isSecurityPrivacyExpanded
-        ) {
-            SettingsRow(
-                title: "Biometric Authentication",
-                subtitle: "Face ID, Touch ID, and passcode",
-                icon: "faceid"
-            ) {
-                NavigationLink("Configure") {
-                    SecuritySettingsView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Encryption Settings",
-                subtitle: "Data encryption and security levels",
-                icon: "lock.rotation"
-            ) {
-                NavigationLink("Configure") {
-                    SecuritySettingsView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Privacy Controls",
-                subtitle: "Manage data sharing and consent",
-                icon: "hand.raised.fill"
-            ) {
-                NavigationLink("Manage") {
-                    SecuritySettingsView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-        }
-    }
-    
-    // MARK: - Backup & Sync Section
+    // MARK: - C. Backup & Sync Section
     
     private var backupSyncSection: some View {
         ExpandableSettingsSection(
-            title: "Backup & Sync", 
-            icon: "icloud.fill", 
-            isExpanded: $isBackupSyncExpanded
+            title: "Backup & Sync",
+            icon: "icloud.fill",
+            isExpanded: $isBackupExpanded
         ) {
+            // iCloud Sync Toggle
             SettingsRow(
                 title: "iCloud Sync",
                 subtitle: "Automatically sync across devices",
@@ -318,30 +201,10 @@ struct SettingsView: View {
                 .labelsHidden()
             }
             
+            // Manual Backup & Restore (ZIP)
             SettingsRow(
-                title: "Backup Settings",
-                subtitle: "Manage data backup and restore",
-                icon: "externaldrive.fill"
-            ) {
-                NavigationLink("Configure") {
-                    BackupSettingsView()
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            if let lastBackup = backupManager.lastBackupDate {
-                SettingsRow(
-                    title: "Last Backup",
-                    subtitle: lastBackup.formatted(date: .abbreviated, time: .shortened),
-                    icon: "clock.fill"
-                ) {
-                    EmptyView()
-                }
-            }
-            
-            SettingsRow(
-                title: "Import/Export (ZIP)",
-                subtitle: "Backup and restore data as ZIP",
+                title: "Manual Backup & Restore",
+                subtitle: "Export and import data as ZIP",
                 icon: "arrow.triangle.2.circlepath"
             ) {
                 Menu {
@@ -366,61 +229,17 @@ struct SettingsView: View {
                         .font(.headline)
                 }
                 .tint(AppTheme.primary)
-                .accessibilityLabel("Manage import and export")
             }
         }
     }
     
-    // MARK: - Data Management Section
-    
-    private var dataManagementSection: some View {
-        ExpandableSettingsSection(
-            title: "Data Management", 
-            icon: "folder.fill", 
-            isExpanded: $isDataManagementExpanded
-        ) {
-            SettingsRow(
-                title: "Storage Usage",
-                subtitle: "View app storage and cleanup options",
-                icon: "chart.pie.fill"
-            ) {
-                Button("View") {
-                    showingStorageUsage = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Data Export",
-                subtitle: "Export all receipts and files",
-                icon: "square.and.arrow.up.fill"
-            ) {
-                Button("Export") {
-                    showingExportSheet = true
-                }
-                .foregroundColor(AppTheme.primary)
-            }
-            
-            SettingsRow(
-                title: "Data Deletion",
-                subtitle: "Permanently remove all data",
-                icon: "trash.fill"
-            ) {
-                Button("Delete") {
-                    showingDeleteAlert = true
-                }
-                .foregroundColor(AppTheme.error)
-            }
-        }
-    }
-    
-    // MARK: - About & Support Section
+    // MARK: - D. About & Support Section
     
     private var aboutSupportSection: some View {
         ExpandableSettingsSection(
             title: "About & Support",
             icon: "info.circle.fill",
-            isExpanded: $isAboutSupportExpanded
+            isExpanded: $isAboutExpanded
         ) {
             // App Version
             SettingsRow(
@@ -443,6 +262,18 @@ struct SettingsView: View {
                 }
             }
             
+            // Terms of Use
+            SettingsRow(
+                title: "Terms of Use",
+                subtitle: "View our terms of service",
+                icon: "doc.text.fill"
+            ) {
+                Link(destination: URL(string: "https://tela51.dev/receiptlock/terms")!) {
+                    Image(systemName: "arrow.up.right.square")
+                        .foregroundColor(AppTheme.primary)
+                }
+            }
+            
             // Support
             SettingsRow(
                 title: "Support",
@@ -453,6 +284,39 @@ struct SettingsView: View {
                     Image(systemName: "arrow.up.right.square")
                         .foregroundColor(AppTheme.primary)
                 }
+            }
+            
+            // Reset Onboarding (Optional/Debug)
+             SettingsRow(
+                 title: "Reset Onboarding",
+                 subtitle: "For testing purposes",
+                 icon: "arrow.counterclockwise"
+             ) {
+                 Button("Reset") {
+                     UserProfileManager.shared.resetOnboarding()
+                 }
+                 .foregroundColor(AppTheme.primary)
+             }
+        }
+    }
+    
+    // MARK: - E. Danger Zone Section
+    
+    private var dangerZoneSection: some View {
+        ExpandableSettingsSection(
+            title: "Danger Zone",
+            icon: "exclamationmark.triangle.fill",
+            isExpanded: $isDangerZoneExpanded
+        ) {
+            SettingsRow(
+                title: "Delete All Data",
+                subtitle: "Permanently remove all data",
+                icon: "trash.fill"
+            ) {
+                Button("Delete") {
+                    showingDeleteAlert = true
+                }
+                .foregroundColor(AppTheme.error)
             }
         }
     }
@@ -468,7 +332,6 @@ struct SettingsView: View {
     private func deleteAllData() {
         let success = PrivacyManager.shared.deleteUserData()
         if success {
-            // Optionally show a confirmation or reset in-app state
             UserProfileManager.shared.resetOnboarding()
         }
     }
@@ -492,7 +355,8 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Settings Section Component
+// MARK: - Helper Components
+
 struct SettingsSection<Content: View>: View {
     let title: String
     let icon: String
@@ -522,12 +386,11 @@ struct SettingsSection<Content: View>: View {
             }
         }
         .padding()
-        .background(Color.clear) // Parent paints bg
+        .background(Color.clear)
         .cornerRadius(AppTheme.cornerRadius)
     }
 }
 
-// MARK: - Expandable Settings Section Component
 struct ExpandableSettingsSection<Content: View>: View {
     let title: String
     let icon: String
@@ -549,11 +412,11 @@ struct ExpandableSettingsSection<Content: View>: View {
                     isExpanded.toggle()
                 }
             }) {
-                HStack(spacing: 12) { // Icon to text gap 12pt (match reminders)
+                HStack(spacing: 12) {
                     Image(systemName: icon)
                         .foregroundColor(AppTheme.primary)
                         .font(.title3)
-                        .frame(width: 36, height: 36) // Icon 36pt (match reminders)
+                        .frame(width: 36, height: 36)
                     
                     Text(title)
                         .font(.headline)
@@ -572,7 +435,7 @@ struct ExpandableSettingsSection<Content: View>: View {
             
             // Content with animation
             if isExpanded {
-                VStack(spacing: 0) { // No spacing, rows handle their own spacing
+                VStack(spacing: 0) {
                     content
                 }
                 .transition(.asymmetric(
@@ -581,11 +444,10 @@ struct ExpandableSettingsSection<Content: View>: View {
                 ))
             }
         }
-        .card() // Apply standard card styling
+        .card()
     }
 }
 
-// MARK: - Settings Row Component
 struct SettingsRow<Content: View>: View {
     let title: String
     let subtitle: String
@@ -601,13 +463,10 @@ struct SettingsRow<Content: View>: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // LINE 1: Title + trailing action
             HStack(spacing: 0) {
-                // Reserve the same leading width as header icon + gap so title starts at section title x
                 Spacer()
                     .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH)
                 
-                // Title begins exactly at section-title x
                 Text(title)
                     .font(.body)
                     .foregroundColor(AppTheme.text)
@@ -616,11 +475,9 @@ struct SettingsRow<Content: View>: View {
                 
                 Spacer(minLength: 0)
                 
-                // Trailing action aligns with card's trailing (same as chevron)
                 content
             }
             
-            // LINE 2: Subtitle begins at the same textLeading
             HStack(spacing: 0) {
                 Spacer()
                     .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH)
@@ -635,7 +492,6 @@ struct SettingsRow<Content: View>: View {
             }
         }
         .padding(.vertical, 10)
-        // Draw the ROW ICON inside the reserved block so the text start doesn’t shift
         .overlay(alignment: .leading) {
             HStack(spacing: SettingsMetrics.rowGap) {
                 Image(systemName: icon)
@@ -643,30 +499,16 @@ struct SettingsRow<Content: View>: View {
                     .scaledToFit()
                     .frame(width: SettingsMetrics.rowIcon, height: SettingsMetrics.rowIcon)
                     .foregroundColor(AppTheme.secondaryText)
-                // empty label to preserve the gap; real text starts after reserved width
                 Color.clear.frame(width: 0, height: 0)
             }
             .frame(width: SettingsMetrics.textLeading - SettingsMetrics.cardH, alignment: .trailing)
         }
-        .background(Color.clear) // Flat inside outer card
+        .background(Color.clear)
     }
 }
 
-// MARK: - Export View (Placeholder)
-struct ExportView: View {
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Export functionality will be implemented here")
-                    .foregroundColor(AppTheme.secondaryText)
-            }
-            .navigationTitle("Export Data")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
-
+// MARK: - Preview
 #Preview {
     SettingsView()
         .environmentObject(CurrencyManager.shared)
-} 
+}
