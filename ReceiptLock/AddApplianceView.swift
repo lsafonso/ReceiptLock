@@ -239,7 +239,7 @@ struct AddApplianceView: View {
                 validationManager.clearErrors()
             }
         } message: {
-            Text("Please fix the validation errors before saving.")
+            Text("Scroll down and complete the required fields (Appliance name, Store, Purchase date and Price) before saving.")
         }
     }
     
@@ -927,6 +927,11 @@ struct AddApplianceView: View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
             Text("Select a device type to get started")
                 .rlSubheadline()
+            
+            Text("Step 1: Choose a device. Step 2: Scroll down to fill in the details.")
+                .font(.footnote)
+                .foregroundColor(AppTheme.secondaryText)
+                .multilineTextAlignment(.leading)
             
             // Footnote when scan is disabled
             if !FeatureFlags.isReceiptScanEnabled {
@@ -2058,6 +2063,8 @@ struct AddApplianceView: View {
                 self.saveButtonState = .success
                 // Set the saved appliance to trigger the detail sheet
                 self.savedApplianceForDetail = savedAppliance
+                // Reset form after successful save
+                self.resetForm()
             }
         } catch {
             print("❌ Error saving appliance: \(error)")
@@ -2076,7 +2083,16 @@ struct AddApplianceView: View {
     // Note: handleScannedCode is already defined above and shows an alert
     // The old barcode handling functions have been removed in favor of the new CodeScannerView
     
+    // MARK: - Helper Methods
+    
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
     private func resetForm() {
+        // Dismiss keyboard first
+        dismissKeyboard()
+        
         // Set flag to prevent validation during reset
         isResetting = true
         
@@ -2099,6 +2115,31 @@ struct AddApplianceView: View {
         scannedCode = nil
         saveButtonState = .idle
         
+        // Clear OCR and image processing state
+        isProcessingOCR = false
+        ocrError = nil
+        showingOCRError = false
+        selectedPDFURL = nil
+        pdfPageCount = 0
+        currentPDFPageIndex = 0
+        detectedLines = []
+        processedPageHashes = []
+        showingDetectedItems = false
+        showingBatchEdit = false
+        editableItems = []
+        showingBatchCreationSuccess = false
+        batchCreationCount = 0
+        
+        // Clear scanner and camera state
+        showingCodeScanner = false
+        showingScannedCodeAlert = false
+        showScanMenu = false
+        showingReceiptCamera = false
+        showingPhotoPicker = false
+        showingCameraPermissionDenied = false
+        showingDocumentScanner = false
+        showingFileImporter = false
+        
         // Clear errors again after field changes have propagated
         // Then reset the flag to allow normal validation
         DispatchQueue.main.async {
@@ -2111,7 +2152,6 @@ struct AddApplianceView: View {
     
     private func handleCancel() {
         resetForm()
-        dismiss()
     }
     
     private func fetchAppliance(id: UUID) -> Appliance? {
