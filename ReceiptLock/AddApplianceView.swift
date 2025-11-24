@@ -61,6 +61,7 @@ struct AddApplianceView: View {
     @State private var showingBatchCreationSuccess = false
     @State private var batchCreationCount = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var scrollToFormTrigger: Int = 0
     
     struct DetectedLine: Identifiable {
         let id = UUID()
@@ -189,33 +190,40 @@ struct AddApplianceView: View {
                 .background(AppTheme.background) // Ensure background for sticky header
                 .zIndex(1) // Ensure header stays above content during transitions
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Track scroll offset
-                        GeometryReader { geometry in
-                            let offset = geometry.frame(in: .named("scroll")).minY
-                            Color.clear
-                                .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
-                        }
-                        .frame(height: 0)
-                        
-                        // Scan receipt Section (only when enabled)
-                        if FeatureFlags.isReceiptScanEnabled {
-                            scanInvoiceSection
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Track scroll offset
+                            GeometryReader { geometry in
+                                let offset = geometry.frame(in: .named("scroll")).minY
+                                Color.clear
+                                    .preference(key: ScrollOffsetPreferenceKey.self, value: offset)
+                            }
+                            .frame(height: 0)
+                            
+                            // Scan receipt Section (only when enabled)
+                            if FeatureFlags.isReceiptScanEnabled {
+                                scanInvoiceSection
+                                    .padding(.horizontal, 24) // 24pt side insets for card alignment
+                                    .padding(.top, 24) // Header→intro block gap 24pt
+                            }
+                            
+                            // Manual Entry Section
+                            manualEntrySection
                                 .padding(.horizontal, 24) // 24pt side insets for card alignment
-                                .padding(.top, 24) // Header→intro block gap 24pt
+                                .padding(.top, 24) // Block→grid gap 24pt
                         }
-                        
-                        // Manual Entry Section
-                        manualEntrySection
-                            .padding(.horizontal, 24) // 24pt side insets for card alignment
-                            .padding(.top, 24) // Block→grid gap 24pt
+                        .padding(.bottom, AppTheme.tabBarBottomPadding)
                     }
-                    .padding(.bottom, AppTheme.tabBarBottomPadding)
-                }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                    scrollOffset = max(0, -value)
+                    .coordinateSpace(name: "scroll")
+                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                        scrollOffset = max(0, -value)
+                    }
+                    .onChange(of: scrollToFormTrigger) { _, _ in
+                        withAnimation {
+                            proxy.scrollTo("formSection", anchor: .top)
+                        }
+                    }
                 }
             }
         }
@@ -986,6 +994,7 @@ struct AddApplianceView: View {
             
             // Form Fields
             formFields
+                .id("formSection")
         }
         .card() // Apply standard card styling
     }
@@ -2015,6 +2024,9 @@ struct AddApplianceView: View {
         if !isValid {
             print("❌ Validation failed")
             showingValidationAlert = true
+            
+            // Scroll to form section to show validation errors
+            scrollToFormTrigger += 1
             
             // Haptic feedback for validation errors
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
