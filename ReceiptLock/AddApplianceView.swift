@@ -242,12 +242,12 @@ struct AddApplianceView: View {
                 await handlePhotoPickerSelection(item: newValue)
             }
         }
-        .alert("Validation Errors", isPresented: $showingValidationAlert) {
+        .alert("Missing information", isPresented: $showingValidationAlert) {
             Button("OK") {
                 validationManager.clearErrors()
             }
         } message: {
-            Text("Scroll down and complete the required fields (Appliance name, Store, Purchase date and Price) before saving.")
+            Text("Please fill in the required fields before saving.")
         }
     }
     
