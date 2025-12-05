@@ -1,5 +1,10 @@
 # ReceiptLock
 
+# Project Overview **
+ReceiptLock is a digital warranty and receipt organiser designed to help users store, manage, and access their purchase records with ease. The app allows users to scan receipts, track warranty periods, and organise appliances or products in one secure place. With built-in reminders, optional cloud backup, and offline support, ReceiptLock ensures important purchase information is always available when needed.
+<img width="1920" height="1920" alt="MacBook Pro 16_ - 1" src="https://github.com/user-attachments/assets/026af71a-2456-4b2c-b0f1-16e6c9ad3826" />
+
+
 > **📝 Documentation Updated**: This documentation has been updated as of January 2025 to reflect the current implementation with smart dashboard sorting functionality, appliance-based management, enhanced settings hierarchy, and complete security implementation.
 
 A comprehensive iOS app for managing receipts and warranty information with OCR capabilities, local notifications, data export/import features, and enterprise-grade security.
